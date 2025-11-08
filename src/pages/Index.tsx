@@ -25,9 +25,16 @@ const Index = () => {
   });
 
   const [ssData, setSsData] = useState({
-    estimatedBenefit: 3000,
-    claimAge: 67,
-    fullRetirementAge: 67,
+    spouse1: {
+      estimatedBenefit: 3000,
+      claimAge: 67,
+      fullRetirementAge: 67,
+    },
+    spouse2: {
+      estimatedBenefit: 2500,
+      claimAge: 67,
+      fullRetirementAge: 67,
+    },
   });
 
   const [taxSettings, setTaxSettings] = useState({
@@ -49,10 +56,16 @@ const Index = () => {
       const year = new Date().getFullYear() + i;
       const age = taxSettings.currentAge + i;
 
-      // Calculate Social Security
-      const ssAnnual = age >= ssData.claimAge 
-        ? calculateSocialSecurityBenefit(ssData.estimatedBenefit, ssData.claimAge, ssData.fullRetirementAge) * 12
+      // Calculate Social Security for both spouses
+      const ss1Annual = age >= ssData.spouse1.claimAge 
+        ? calculateSocialSecurityBenefit(ssData.spouse1.estimatedBenefit, ssData.spouse1.claimAge, ssData.spouse1.fullRetirementAge) * 12
         : 0;
+      
+      const ss2Annual = age >= ssData.spouse2.claimAge 
+        ? calculateSocialSecurityBenefit(ssData.spouse2.estimatedBenefit, ssData.spouse2.claimAge, ssData.spouse2.fullRetirementAge) * 12
+        : 0;
+      
+      const ssAnnual = ss1Annual + ss2Annual;
 
       // Calculate RMD if applicable
       const rmd = calculateRMD(tradBalance, age);

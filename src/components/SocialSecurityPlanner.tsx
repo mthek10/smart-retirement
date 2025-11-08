@@ -8,23 +8,30 @@ import { calculateSocialSecurityBenefit } from "@/lib/taxCalculations";
 
 interface SocialSecurityPlannerProps {
   ssData: {
-    estimatedBenefit: number;
-    claimAge: number;
-    fullRetirementAge: number;
+    spouse1: {
+      estimatedBenefit: number;
+      claimAge: number;
+      fullRetirementAge: number;
+    };
+    spouse2: {
+      estimatedBenefit: number;
+      claimAge: number;
+      fullRetirementAge: number;
+    };
   };
   onChange: (data: any) => void;
 }
 
 export function SocialSecurityPlanner({ ssData, onChange }: SocialSecurityPlannerProps) {
-  const handleChange = (field: string, value: number) => {
-    onChange({ ...ssData, [field]: value });
+  const handleChange = (spouse: 'spouse1' | 'spouse2', field: string, value: number) => {
+    onChange({
+      ...ssData,
+      [spouse]: {
+        ...ssData[spouse],
+        [field]: value,
+      },
+    });
   };
-
-  const actualBenefit = calculateSocialSecurityBenefit(
-    ssData.estimatedBenefit,
-    ssData.claimAge,
-    ssData.fullRetirementAge
-  );
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -35,45 +42,47 @@ export function SocialSecurityPlanner({ ssData, onChange }: SocialSecurityPlanne
     }).format(value);
   };
 
-  const benefitChange = ((actualBenefit - ssData.estimatedBenefit) / ssData.estimatedBenefit) * 100;
-  const isDelayed = ssData.claimAge > ssData.fullRetirementAge;
-  const isEarly = ssData.claimAge < ssData.fullRetirementAge;
+  const renderSpouseSection = (spouse: 'spouse1' | 'spouse2', title: string) => {
+    const data = ssData[spouse];
+    const actualBenefit = calculateSocialSecurityBenefit(
+      data.estimatedBenefit,
+      data.claimAge,
+      data.fullRetirementAge
+    );
+    const benefitChange = ((actualBenefit - data.estimatedBenefit) / data.estimatedBenefit) * 100;
+    const isDelayed = data.claimAge > data.fullRetirementAge;
+    const isEarly = data.claimAge < data.fullRetirementAge;
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Social Security Planning</CardTitle>
-        <CardDescription>
-          Model your Social Security claiming strategy and see how timing affects your benefits
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    return (
+      <div className="space-y-4">
+        <h3 className="font-semibold text-lg">{title}</h3>
+        
         <div className="space-y-2">
-          <Label htmlFor="estimatedBenefit">
+          <Label htmlFor={`${spouse}-estimatedBenefit`}>
             Estimated Monthly Benefit at Full Retirement Age
           </Label>
           <Input
-            id="estimatedBenefit"
+            id={`${spouse}-estimatedBenefit`}
             type="number"
             placeholder="3000"
-            value={ssData.estimatedBenefit || ''}
-            onChange={(e) => handleChange('estimatedBenefit', parseFloat(e.target.value) || 0)}
+            value={data.estimatedBenefit || ''}
+            onChange={(e) => handleChange(spouse, 'estimatedBenefit', parseFloat(e.target.value) || 0)}
           />
           <p className="text-sm text-muted-foreground">
-            Annual: {formatCurrency(ssData.estimatedBenefit * 12)}
+            Annual: {formatCurrency(data.estimatedBenefit * 12)}
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label>Claiming Age: {ssData.claimAge}</Label>
+            <Label>Claiming Age: {data.claimAge}</Label>
             <span className="text-sm text-muted-foreground">
               Range: 62-70
             </span>
           </div>
           <Slider
-            value={[ssData.claimAge]}
-            onValueChange={([value]) => handleChange('claimAge', value)}
+            value={[data.claimAge]}
+            onValueChange={([value]) => handleChange(spouse, 'claimAge', value)}
             min={62}
             max={70}
             step={1}
@@ -106,8 +115,8 @@ export function SocialSecurityPlanner({ ssData, onChange }: SocialSecurityPlanne
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Claiming early at age {ssData.claimAge} permanently reduces your monthly benefit by approximately{' '}
-              {Math.abs(benefitChange).toFixed(1)}%. Consider if you need income now or can wait for higher benefits.
+              Claiming early at age {data.claimAge} permanently reduces monthly benefit by approximately{' '}
+              {Math.abs(benefitChange).toFixed(1)}%. Consider if income is needed now or can wait for higher benefits.
             </AlertDescription>
           </Alert>
         )}
@@ -116,25 +125,42 @@ export function SocialSecurityPlanner({ ssData, onChange }: SocialSecurityPlanne
           <Alert className="border-success/50 bg-success/10">
             <TrendingUp className="h-4 w-4 text-success" />
             <AlertDescription className="text-success-foreground">
-              Delaying until age {ssData.claimAge} increases your monthly benefit by{' '}
+              Delaying until age {data.claimAge} increases monthly benefit by{' '}
               {benefitChange.toFixed(1)}% through delayed retirement credits. This increase is permanent and compounds with cost-of-living adjustments.
             </AlertDescription>
           </Alert>
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="fullRetirementAge">Full Retirement Age</Label>
+          <Label htmlFor={`${spouse}-fullRetirementAge`}>Full Retirement Age</Label>
           <Input
-            id="fullRetirementAge"
+            id={`${spouse}-fullRetirementAge`}
             type="number"
             min="66"
             max="67"
-            value={ssData.fullRetirementAge || ''}
-            onChange={(e) => handleChange('fullRetirementAge', parseFloat(e.target.value) || 67)}
+            value={data.fullRetirementAge || ''}
+            onChange={(e) => handleChange(spouse, 'fullRetirementAge', parseFloat(e.target.value) || 67)}
           />
           <p className="text-xs text-muted-foreground">
             Typically 67 for those born in 1960 or later
           </p>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Social Security Planning</CardTitle>
+        <CardDescription>
+          Model Social Security claiming strategies for both spouses and see how timing affects benefits
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        {renderSpouseSection('spouse1', 'Spouse 1')}
+        <div className="border-t pt-6">
+          {renderSpouseSection('spouse2', 'Spouse 2')}
         </div>
       </CardContent>
     </Card>
