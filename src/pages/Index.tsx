@@ -34,6 +34,7 @@ const Index = () => {
     filingStatus: 'married',
     stateRate: 5,
     currentAge: 65,
+    annualExpenses: 60000,
   });
 
   const projections = useMemo(() => {
@@ -42,7 +43,7 @@ const Index = () => {
     let rothBalance = accounts.roth;
     let taxableBalance = accounts.taxable;
 
-    const annualWithdrawal = 60000;
+    const annualWithdrawal = taxSettings.annualExpenses;
 
     for (let i = 0; i < 20; i++) {
       const year = new Date().getFullYear() + i;

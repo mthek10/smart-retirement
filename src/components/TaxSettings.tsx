@@ -8,6 +8,7 @@ interface TaxSettingsProps {
     filingStatus: string;
     stateRate: number;
     currentAge: number;
+    annualExpenses: number;
   };
   onChange: (settings: any) => void;
 }
@@ -51,6 +52,21 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
             value={taxSettings.currentAge || ''}
             onChange={(e) => handleChange('currentAge', parseFloat(e.target.value) || 65)}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="annualExpenses">Annual Expenses (After Taxes)</Label>
+          <Input
+            id="annualExpenses"
+            type="number"
+            step="1000"
+            placeholder="60000"
+            value={taxSettings.annualExpenses || ''}
+            onChange={(e) => handleChange('annualExpenses', parseFloat(e.target.value) || 60000)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Your target annual spending needs
+          </p>
         </div>
 
         <div className="space-y-2">
