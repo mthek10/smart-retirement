@@ -94,9 +94,9 @@ const Index = () => {
       const federalTax = calculateFederalTax(taxableIncome, taxSettings.filingStatus);
       const stateTax = taxableIncome * (taxSettings.stateRate / 100);
 
-      // Calculate IRMAA
+      // Calculate IRMAA (only applies at age 65+ when on Medicare)
       const magi = traditionalWithdrawal + taxableSSIncome + (taxableWithdrawal * 0.5);
-      const irmaa = calculateIRMAA(magi);
+      const irmaa = age >= 65 ? calculateIRMAA(magi) : 0;
 
       // Apply growth to remaining balances
       tradBalance *= (1 + accounts.traditionalReturn / 100);
