@@ -165,9 +165,11 @@ const Index = () => {
   }, [projections]);
 
   const summary = useMemo(() => {
-    const totalTaxes = projections.slice(0, 10).reduce((sum, p) => sum + p.federalTax + p.stateTax, 0);
-    const totalIRMAA = projections.slice(0, 10).reduce((sum, p) => sum + p.irmaa, 0);
-    const avgWithdrawal = projections.slice(0, 10).reduce((sum, p) => sum + p.withdrawals, 0) / 10;
+    const totalTaxes = projections.reduce((sum, p) => sum + p.federalTax + p.stateTax, 0);
+    const totalIRMAA = projections.reduce((sum, p) => sum + p.irmaa, 0);
+    const avgWithdrawal = projections.length > 0 
+      ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 
+      : 0;
     const totalPortfolio = accounts.traditional + accounts.roth + accounts.taxable;
 
     return { totalPortfolio, totalTaxes, totalIRMAA, avgWithdrawal };

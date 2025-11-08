@@ -32,13 +32,13 @@ export function SummaryCards({ totalPortfolio, totalTaxes, totalIRMAA, avgWithdr
       color: "text-secondary",
     },
     {
-      title: "Total Taxes (10yr)",
+      title: "Total Taxes (Lifetime)",
       value: totalTaxes,
       icon: TrendingDown,
       color: "text-destructive",
     },
     {
-      title: "Total IRMAA (10yr)",
+      title: "Total IRMAA (Lifetime)",
       value: totalIRMAA,
       icon: DollarSign,
       color: "text-warning",
