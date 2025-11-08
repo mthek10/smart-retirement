@@ -100,7 +100,10 @@ const Index = () => {
 
       // Calculate RMD if applicable (based on account owner's age - use spouse1)
       const rmd = calculateRMD(tradBalance, spouse1CurrentAge);
-      const requiredWithdrawal = Math.max(annualWithdrawal, rmd);
+      
+      // Apply inflation to annual expenses
+      const adjustedAnnualExpenses = annualWithdrawal * inflationMultiplier;
+      const requiredWithdrawal = Math.max(adjustedAnnualExpenses, rmd);
 
       // Withdrawal sequencing: Taxable first, then Traditional, then Roth
       let withdrawalAmount = requiredWithdrawal;
