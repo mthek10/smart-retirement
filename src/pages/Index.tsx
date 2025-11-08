@@ -12,7 +12,8 @@ import {
   calculateSocialSecurityBenefit,
   calculateTaxableSocialSecurity,
   calculateRMD,
-  calculateCapitalGainsTax 
+  calculateCapitalGainsTax,
+  getMarginalTaxBracket
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -57,6 +58,26 @@ const Index = () => {
 
     const annualWithdrawal = taxSettings.annualExpenses;
     const maxYears = Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age);
+
+    // First pass: Calculate future RMD years to determine target bracket
+    let futureRMDIncome = 0;
+    let rmdYearCount = 0;
+    if (taxSettings.optimizeRothConversions) {
+      let futureBalance = accounts.traditional;
+      for (let i = 0; i <= maxYears; i++) {
+        const futureAge = taxSettings.spouse1Age + i;
+        if (futureAge >= 73 && futureAge <= 85) {
+          const futureRMD = calculateRMD(futureBalance, futureAge);
+          const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, i);
+          const futureSS = (ssData.spouse1.claimAge <= futureAge ? ssData.spouse1.estimatedBenefit * 12 : 0) +
+                          (ssData.spouse2.claimAge <= futureAge ? ssData.spouse2.estimatedBenefit * 12 : 0);
+          futureRMDIncome += futureRMD * inflationMultiplier + futureSS * inflationMultiplier;
+          rmdYearCount++;
+          futureBalance = futureBalance * (1 + accounts.traditionalReturn / 100) - futureRMD;
+        }
+      }
+    }
+    const targetConversionIncome = rmdYearCount > 0 ? futureRMDIncome / rmdYearCount * 0.85 : taxSettings.rothConversionTarget;
 
     for (let i = 0; i <= maxYears; i++) {
       const year = new Date().getFullYear() + i;
@@ -117,8 +138,8 @@ const Index = () => {
         );
         const totalIncomePreConversion = ordinaryIncomePreConversion + taxableSSIncomePreConversion + capitalGainsPreConversion;
         
-        // Calculate room to convert up to target bracket
-        const conversionRoom = Math.max(0, taxSettings.rothConversionTarget - totalIncomePreConversion);
+        // Calculate room to convert up to target income (based on future RMD years)
+        const conversionRoom = Math.max(0, targetConversionIncome - totalIncomePreConversion);
         
         // Convert up to the room available, but not more than Traditional balance
         rothConversion = Math.min(conversionRoom, tradBalance);
@@ -146,6 +167,9 @@ const Index = () => {
       const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
       const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, taxSettings.filingStatus);
       const federalTax = federalTaxOrdinary + federalTaxCapitalGains;
+      
+      // Calculate marginal tax bracket
+      const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
       
       // State tax applies to all income
       const stateTax = (totalOrdinaryIncome + capitalGains) * (taxSettings.stateRate / 100);
@@ -179,6 +203,7 @@ const Index = () => {
         rmd,
         totalIncome: ssAnnual + taxableWithdrawal + traditionalWithdrawal + rothWithdrawal,
         rothConversion,
+        marginalBracket,
       });
     }
 

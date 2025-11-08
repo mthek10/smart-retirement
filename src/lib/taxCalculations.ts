@@ -197,3 +197,28 @@ export function calculateRMD(balance: number, age: number): number {
   const factor = lifetimeFactors[age] || 8.9;
   return balance / factor;
 }
+
+export function getMarginalTaxBracket(
+  income: number,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
+  const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  
+  // Apply inflation to standard deduction
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const standardDeduction = baseDeduction * inflationMultiplier;
+  
+  const taxableIncome = Math.max(0, income - standardDeduction);
+  
+  // Find the bracket that the taxable income falls into
+  for (let i = brackets.length - 1; i >= 0; i--) {
+    if (taxableIncome >= brackets[i].min) {
+      return brackets[i].rate;
+    }
+  }
+  
+  return 0;
+}

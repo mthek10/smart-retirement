@@ -18,6 +18,7 @@ interface YearProjection {
   rmd: number;
   totalIncome: number;
   rothConversion?: number;
+  marginalBracket?: number;
 }
 
 interface ProjectionTableProps {
@@ -58,6 +59,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                 <TableHead className="font-semibold text-right">SS Income</TableHead>
                 <TableHead className="font-semibold text-right">Withdrawals</TableHead>
                 <TableHead className="font-semibold text-right">Conversion</TableHead>
+                <TableHead className="font-semibold text-right">Tax Bracket</TableHead>
                 <TableHead className="font-semibold text-right">Fed Tax</TableHead>
                 <TableHead className="font-semibold text-right">IRMAA</TableHead>
               </TableRow>
@@ -65,7 +67,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
             <TableBody>
               {projections.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground">
                     Enter your account information to see projections
                   </TableCell>
                 </TableRow>
@@ -102,6 +104,12 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       ) : (
                         '-'
                       )}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {projection.marginalBracket ? 
+                        `${(projection.marginalBracket * 100).toFixed(0)}%` : 
+                        '0%'
+                      }
                     </TableCell>
                     <TableCell className="text-right text-destructive">
                       {formatCurrency(projection.federalTax + projection.stateTax)}
