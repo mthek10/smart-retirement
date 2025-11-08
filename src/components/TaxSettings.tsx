@@ -7,7 +7,8 @@ interface TaxSettingsProps {
   taxSettings: {
     filingStatus: string;
     stateRate: number;
-    currentAge: number;
+    spouse1Age: number;
+    spouse2Age: number;
     annualExpenses: number;
   };
   onChange: (settings: any) => void;
@@ -42,17 +43,35 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="currentAge">Current Age</Label>
-          <Input
-            id="currentAge"
-            type="number"
-            min="50"
-            max="100"
-            value={taxSettings.currentAge || ''}
-            onChange={(e) => handleChange('currentAge', parseFloat(e.target.value) || 65)}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="spouse1Age">Spouse 1 Current Age</Label>
+            <Input
+              id="spouse1Age"
+              type="number"
+              min="50"
+              max="100"
+              value={taxSettings.spouse1Age || ''}
+              onChange={(e) => handleChange('spouse1Age', parseFloat(e.target.value) || 65)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="spouse2Age">Spouse 2 Current Age</Label>
+            <Input
+              id="spouse2Age"
+              type="number"
+              min="50"
+              max="100"
+              value={taxSettings.spouse2Age || ''}
+              onChange={(e) => handleChange('spouse2Age', parseFloat(e.target.value) || 65)}
+            />
+          </div>
         </div>
+        
+        <p className="text-xs text-muted-foreground">
+          Projections will run until both spouses reach age 100
+        </p>
 
         <div className="space-y-2">
           <Label htmlFor="annualExpenses">Annual Expenses (After Taxes)</Label>

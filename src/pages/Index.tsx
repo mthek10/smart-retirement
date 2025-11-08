@@ -41,7 +41,8 @@ const Index = () => {
   const [taxSettings, setTaxSettings] = useState({
     filingStatus: 'married',
     stateRate: 5,
-    currentAge: 65,
+    spouse1Age: 65,
+    spouse2Age: 65,
     annualExpenses: 60000,
   });
 
@@ -52,24 +53,27 @@ const Index = () => {
     let taxableBalance = accounts.taxable;
 
     const annualWithdrawal = taxSettings.annualExpenses;
+    const maxYears = Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age);
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i <= maxYears; i++) {
       const year = new Date().getFullYear() + i;
-      const age = taxSettings.currentAge + i;
+      const spouse1CurrentAge = taxSettings.spouse1Age + i;
+      const spouse2CurrentAge = taxSettings.spouse2Age + i;
+      const age = Math.max(spouse1CurrentAge, spouse2CurrentAge); // Use older spouse's age for display
 
-      // Calculate Social Security for both spouses
-      const ss1Annual = age >= ssData.spouse1.claimAge 
+      // Calculate Social Security for both spouses (only if they're alive)
+      const ss1Annual = spouse1CurrentAge >= ssData.spouse1.claimAge && spouse1CurrentAge <= 100
         ? calculateSocialSecurityBenefit(ssData.spouse1.estimatedBenefit, ssData.spouse1.claimAge, ssData.spouse1.fullRetirementAge) * 12
         : 0;
       
-      const ss2Annual = age >= ssData.spouse2.claimAge 
+      const ss2Annual = spouse2CurrentAge >= ssData.spouse2.claimAge && spouse2CurrentAge <= 100
         ? calculateSocialSecurityBenefit(ssData.spouse2.estimatedBenefit, ssData.spouse2.claimAge, ssData.spouse2.fullRetirementAge) * 12
         : 0;
       
       const ssAnnual = ss1Annual + ss2Annual;
 
-      // Calculate RMD if applicable
-      const rmd = calculateRMD(tradBalance, age);
+      // Calculate RMD if applicable (based on account owner's age - use spouse1)
+      const rmd = calculateRMD(tradBalance, spouse1CurrentAge);
       const requiredWithdrawal = Math.max(annualWithdrawal, rmd);
 
       // Withdrawal sequencing: Taxable first, then Traditional, then Roth
@@ -116,9 +120,15 @@ const Index = () => {
       // State tax applies to all income
       const stateTax = (totalOrdinaryIncome + capitalGains) * (taxSettings.stateRate / 100);
 
-      // Calculate IRMAA (only applies at age 65+ when on Medicare)
+      // Calculate IRMAA (only applies at age 65+ when on Medicare) - calculate for both spouses
       const magi = totalOrdinaryIncome + capitalGains;
-      const irmaa = age >= 65 ? calculateIRMAA(magi) : 0;
+      let irmaa = 0;
+      if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+        irmaa += calculateIRMAA(magi);
+      }
+      if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+        irmaa += calculateIRMAA(magi);
+      }
 
       // Apply growth to remaining balances
       tradBalance *= (1 + accounts.traditionalReturn / 100);
