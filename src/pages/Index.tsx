@@ -11,7 +11,8 @@ import {
   calculateIRMAA, 
   calculateSocialSecurityBenefit,
   calculateTaxableSocialSecurity,
-  calculateRMD 
+  calculateRMD,
+  calculateCapitalGainsTax 
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -94,21 +95,29 @@ const Index = () => {
         rothBalance -= rothWithdrawal;
       }
 
-      // Calculate taxable income
+      // Calculate taxable income (ordinary income only for federal tax)
+      // Assume 50% of taxable withdrawal is cost basis, 50% is capital gains
+      const capitalGains = taxableWithdrawal * 0.5;
+      const ordinaryIncome = traditionalWithdrawal;
+      
       const taxableSSIncome = calculateTaxableSocialSecurity(
         ssAnnual, 
-        traditionalWithdrawal + (taxableWithdrawal * 0.5), // Assume 50% of taxable is long-term gains
+        ordinaryIncome + capitalGains,
         taxSettings.filingStatus
       );
       
-      const taxableIncome = traditionalWithdrawal + taxableSSIncome + (taxableWithdrawal * 0.5);
+      const totalOrdinaryIncome = ordinaryIncome + taxableSSIncome;
 
-      // Calculate taxes
-      const federalTax = calculateFederalTax(taxableIncome, taxSettings.filingStatus);
-      const stateTax = taxableIncome * (taxSettings.stateRate / 100);
+      // Calculate taxes - capital gains are taxed separately
+      const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus);
+      const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, taxSettings.filingStatus);
+      const federalTax = federalTaxOrdinary + federalTaxCapitalGains;
+      
+      // State tax applies to all income
+      const stateTax = (totalOrdinaryIncome + capitalGains) * (taxSettings.stateRate / 100);
 
       // Calculate IRMAA (only applies at age 65+ when on Medicare)
-      const magi = traditionalWithdrawal + taxableSSIncome + (taxableWithdrawal * 0.5);
+      const magi = totalOrdinaryIncome + capitalGains;
       const irmaa = age >= 65 ? calculateIRMAA(magi) : 0;
 
       // Apply growth to remaining balances

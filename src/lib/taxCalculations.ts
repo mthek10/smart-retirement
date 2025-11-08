@@ -51,6 +51,24 @@ export const irmaaBrackets2024 = [
   { min: 500000, max: Infinity, premium: 419.30 },
 ];
 
+export const capitalGainsBrackets2024: Record<string, TaxBracket[]> = {
+  single: [
+    { min: 0, max: 47025, rate: 0 },
+    { min: 47025, max: 518900, rate: 0.15 },
+    { min: 518900, max: Infinity, rate: 0.20 },
+  ],
+  married: [
+    { min: 0, max: 94050, rate: 0 },
+    { min: 94050, max: 583750, rate: 0.15 },
+    { min: 583750, max: Infinity, rate: 0.20 },
+  ],
+  hoh: [
+    { min: 0, max: 63000, rate: 0 },
+    { min: 63000, max: 551350, rate: 0.15 },
+    { min: 551350, max: Infinity, rate: 0.20 },
+  ],
+};
+
 export function calculateFederalTax(
   income: number,
   filingStatus: string
@@ -129,6 +147,34 @@ export function calculateTaxableSocialSecurity(
   }
 
   return taxableAmount;
+}
+
+export function calculateCapitalGainsTax(
+  capitalGains: number,
+  ordinaryIncome: number,
+  filingStatus: string
+): number {
+  const brackets = capitalGainsBrackets2024[filingStatus] || capitalGainsBrackets2024.single;
+  const standardDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  
+  // Capital gains are taxed based on total taxable income (ordinary + capital gains)
+  const taxableOrdinaryIncome = Math.max(0, ordinaryIncome - standardDeduction);
+  const totalIncome = taxableOrdinaryIncome + capitalGains;
+  
+  let tax = 0;
+
+  for (const bracket of brackets) {
+    if (totalIncome > bracket.min) {
+      // Only tax the capital gains portion that falls in this bracket
+      const incomeInBracket = Math.min(totalIncome, bracket.max) - bracket.min;
+      const ordinaryInBracket = Math.max(0, Math.min(taxableOrdinaryIncome, bracket.max) - bracket.min);
+      const capitalGainsInBracket = Math.max(0, incomeInBracket - ordinaryInBracket);
+      
+      tax += capitalGainsInBracket * bracket.rate;
+    }
+  }
+
+  return tax;
 }
 
 export function calculateRMD(balance: number, age: number): number {
