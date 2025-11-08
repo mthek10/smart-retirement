@@ -10,6 +10,7 @@ interface TaxSettingsProps {
     spouse1Age: number;
     spouse2Age: number;
     annualExpenses: number;
+    inflationRate: number;
   };
   onChange: (settings: any) => void;
 }
@@ -100,6 +101,21 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           />
           <p className="text-xs text-muted-foreground">
             Enter 0 if you live in a state with no income tax
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="inflationRate">Inflation Rate (%)</Label>
+          <Input
+            id="inflationRate"
+            type="number"
+            step="0.1"
+            placeholder="2.5"
+            value={taxSettings.inflationRate || ''}
+            onChange={(e) => handleChange('inflationRate', parseFloat(e.target.value) || 2.5)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Applied to Social Security benefits and standard deduction
           </p>
         </div>
 

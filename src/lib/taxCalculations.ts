@@ -71,10 +71,16 @@ export const capitalGainsBrackets2024: Record<string, TaxBracket[]> = {
 
 export function calculateFederalTax(
   income: number,
-  filingStatus: string
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
 ): number {
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
-  const standardDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  
+  // Apply inflation to standard deduction
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const standardDeduction = baseDeduction * inflationMultiplier;
   
   const taxableIncome = Math.max(0, income - standardDeduction);
   let tax = 0;

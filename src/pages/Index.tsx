@@ -44,6 +44,7 @@ const Index = () => {
     spouse1Age: 65,
     spouse2Age: 65,
     annualExpenses: 60000,
+    inflationRate: 2.5,
   });
 
   const projections = useMemo(() => {
@@ -61,13 +62,15 @@ const Index = () => {
       const spouse2CurrentAge = taxSettings.spouse2Age + i;
       const age = Math.max(spouse1CurrentAge, spouse2CurrentAge); // Use older spouse's age for display
 
-      // Calculate Social Security for both spouses (only if they're alive)
+      // Calculate Social Security for both spouses (only if they're alive) with inflation adjustment
+      const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, i);
+      
       const ss1Annual = spouse1CurrentAge >= ssData.spouse1.claimAge && spouse1CurrentAge <= 100
-        ? calculateSocialSecurityBenefit(ssData.spouse1.estimatedBenefit, ssData.spouse1.claimAge, ssData.spouse1.fullRetirementAge) * 12
+        ? calculateSocialSecurityBenefit(ssData.spouse1.estimatedBenefit, ssData.spouse1.claimAge, ssData.spouse1.fullRetirementAge) * 12 * inflationMultiplier
         : 0;
       
       const ss2Annual = spouse2CurrentAge >= ssData.spouse2.claimAge && spouse2CurrentAge <= 100
-        ? calculateSocialSecurityBenefit(ssData.spouse2.estimatedBenefit, ssData.spouse2.claimAge, ssData.spouse2.fullRetirementAge) * 12
+        ? calculateSocialSecurityBenefit(ssData.spouse2.estimatedBenefit, ssData.spouse2.claimAge, ssData.spouse2.fullRetirementAge) * 12 * inflationMultiplier
         : 0;
       
       const ssAnnual = ss1Annual + ss2Annual;
@@ -112,8 +115,8 @@ const Index = () => {
       
       const totalOrdinaryIncome = ordinaryIncome + taxableSSIncome;
 
-      // Calculate taxes - capital gains are taxed separately
-      const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus);
+      // Calculate taxes - capital gains are taxed separately (apply inflation to standard deduction)
+      const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
       const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, taxSettings.filingStatus);
       const federalTax = federalTaxOrdinary + federalTaxCapitalGains;
       
