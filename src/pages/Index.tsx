@@ -17,11 +17,11 @@ import {
 const Index = () => {
   const [accounts, setAccounts] = useState({
     traditional: 5000000,
-    roth: 200000,
-    taxable: 100000,
-    traditionalReturn: 7,
-    rothReturn: 7,
-    taxableReturn: 6,
+    roth: 0,
+    taxable: 3000000,
+    traditionalReturn: 4,
+    rothReturn: 4,
+    taxableReturn: 4,
   });
 
   const [ssData, setSsData] = useState({
