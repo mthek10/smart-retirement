@@ -16,7 +16,7 @@ import {
 
 const Index = () => {
   const [accounts, setAccounts] = useState({
-    traditional: 500000,
+    traditional: 5000000,
     roth: 200000,
     taxable: 100000,
     traditionalReturn: 7,
