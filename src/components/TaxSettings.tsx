@@ -11,12 +11,14 @@ interface TaxSettingsProps {
     spouse2Age: number;
     annualExpenses: number;
     inflationRate: number;
+    optimizeRothConversions: boolean;
+    rothConversionTarget: number;
   };
   onChange: (settings: any) => void;
 }
 
 export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | number | boolean) => {
     onChange({ ...taxSettings, [field]: value });
   };
 
@@ -117,6 +119,41 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           <p className="text-xs text-muted-foreground">
             Applied to Social Security benefits and standard deduction
           </p>
+        </div>
+
+        <div className="pt-4 border-t space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="optimizeRothConversions">Optimize Roth Conversions</Label>
+              <input
+                id="optimizeRothConversions"
+                type="checkbox"
+                className="h-4 w-4 rounded border-input"
+                checked={taxSettings.optimizeRothConversions || false}
+                onChange={(e) => handleChange('optimizeRothConversions', e.target.checked)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Automatically convert Traditional to Roth in early retirement to minimize lifetime taxes
+            </p>
+          </div>
+
+          {taxSettings.optimizeRothConversions && (
+            <div className="space-y-2">
+              <Label htmlFor="rothConversionTarget">Target Tax Bracket (Income Limit)</Label>
+              <Input
+                id="rothConversionTarget"
+                type="number"
+                step="1000"
+                placeholder="94300"
+                value={taxSettings.rothConversionTarget || ''}
+                onChange={(e) => handleChange('rothConversionTarget', parseFloat(e.target.value) || 94300)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Convert up to this income level (e.g., top of 12% bracket: $94,300 for married)
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="pt-4 border-t space-y-2">

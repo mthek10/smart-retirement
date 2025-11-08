@@ -17,6 +17,7 @@ interface YearProjection {
   irmaa: number;
   rmd: number;
   totalIncome: number;
+  rothConversion?: number;
 }
 
 interface ProjectionTableProps {
@@ -56,6 +57,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                 <TableHead className="font-semibold text-right">Taxable</TableHead>
                 <TableHead className="font-semibold text-right">SS Income</TableHead>
                 <TableHead className="font-semibold text-right">Withdrawals</TableHead>
+                <TableHead className="font-semibold text-right">Conversion</TableHead>
                 <TableHead className="font-semibold text-right">Fed Tax</TableHead>
                 <TableHead className="font-semibold text-right">IRMAA</TableHead>
               </TableRow>
@@ -63,7 +65,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
             <TableBody>
               {projections.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground">
                     Enter your account information to see projections
                   </TableCell>
                 </TableRow>
@@ -91,6 +93,15 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(projection.withdrawals)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {projection.rothConversion && projection.rothConversion > 0 ? (
+                        <span className="text-primary font-medium">
+                          {formatCurrency(projection.rothConversion)}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell className="text-right text-destructive">
                       {formatCurrency(projection.federalTax + projection.stateTax)}

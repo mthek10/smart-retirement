@@ -45,6 +45,8 @@ const Index = () => {
     spouse2Age: 65,
     annualExpenses: 60000,
     inflationRate: 2.5,
+    optimizeRothConversions: false,
+    rothConversionTarget: 94300,
   });
 
   const projections = useMemo(() => {
@@ -102,10 +104,35 @@ const Index = () => {
         rothBalance -= rothWithdrawal;
       }
 
+      // Roth conversion optimization (before RMDs and in low-income years)
+      let rothConversion = 0;
+      if (taxSettings.optimizeRothConversions && spouse1CurrentAge < 73 && tradBalance > 0) {
+        // Calculate current income before conversion
+        const capitalGainsPreConversion = taxableWithdrawal * 0.5;
+        const ordinaryIncomePreConversion = traditionalWithdrawal;
+        const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
+          ssAnnual,
+          ordinaryIncomePreConversion + capitalGainsPreConversion,
+          taxSettings.filingStatus
+        );
+        const totalIncomePreConversion = ordinaryIncomePreConversion + taxableSSIncomePreConversion + capitalGainsPreConversion;
+        
+        // Calculate room to convert up to target bracket
+        const conversionRoom = Math.max(0, taxSettings.rothConversionTarget - totalIncomePreConversion);
+        
+        // Convert up to the room available, but not more than Traditional balance
+        rothConversion = Math.min(conversionRoom, tradBalance);
+        
+        if (rothConversion > 0) {
+          tradBalance -= rothConversion;
+          rothBalance += rothConversion;
+        }
+      }
+
       // Calculate taxable income (ordinary income only for federal tax)
       // Assume 50% of taxable withdrawal is cost basis, 50% is capital gains
       const capitalGains = taxableWithdrawal * 0.5;
-      const ordinaryIncome = traditionalWithdrawal;
+      const ordinaryIncome = traditionalWithdrawal + rothConversion;
       
       const taxableSSIncome = calculateTaxableSocialSecurity(
         ssAnnual, 
@@ -151,6 +178,7 @@ const Index = () => {
         irmaa,
         rmd,
         totalIncome: ssAnnual + taxableWithdrawal + traditionalWithdrawal + rothWithdrawal,
+        rothConversion,
       });
     }
 
