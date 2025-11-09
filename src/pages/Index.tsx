@@ -174,8 +174,9 @@ const Index = () => {
       // Calculate marginal tax bracket
       const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
       
-      // State tax applies to all income
-      const stateTax = (totalOrdinaryIncome + capitalGains) * (taxSettings.stateRate / 100);
+      // State tax split: ordinary income tax and capital gains tax
+      const stateTax = totalOrdinaryIncome * (taxSettings.stateRate / 100);
+      const stateCapitalGainsTax = capitalGains * (taxSettings.stateRate / 100);
 
       // Calculate IRMAA (only applies at age 65+ when on Medicare) - calculate for both spouses
       const magi = totalOrdinaryIncome + capitalGains;
@@ -202,6 +203,7 @@ const Index = () => {
         withdrawals: taxableWithdrawal + traditionalWithdrawal + rothWithdrawal,
         federalTax,
         stateTax,
+        stateCapitalGainsTax,
         irmaa,
         rmd,
         totalIncome: ssAnnual + taxableWithdrawal + traditionalWithdrawal + rothWithdrawal,
@@ -224,7 +226,7 @@ const Index = () => {
   }, [projections]);
 
   const summary = useMemo(() => {
-    const totalTaxes = projections.reduce((sum, p) => sum + p.federalTax + p.stateTax, 0);
+    const totalTaxes = projections.reduce((sum, p) => sum + p.federalTax + p.stateTax + p.stateCapitalGainsTax, 0);
     const totalIRMAA = projections.reduce((sum, p) => sum + p.irmaa, 0);
     const avgWithdrawal = projections.length > 0 
       ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 

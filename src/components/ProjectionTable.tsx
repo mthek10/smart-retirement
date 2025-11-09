@@ -14,6 +14,7 @@ interface YearProjection {
   withdrawals: number;
   federalTax: number;
   stateTax: number;
+  stateCapitalGainsTax: number;
   irmaa: number;
   rmd: number;
   totalIncome: number;
@@ -61,13 +62,15 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                 <TableHead className="font-semibold text-right">Conversion</TableHead>
                 <TableHead className="font-semibold text-right">Tax Bracket</TableHead>
                 <TableHead className="font-semibold text-right">Fed Tax</TableHead>
+                <TableHead className="font-semibold text-right">State Tax</TableHead>
+                <TableHead className="font-semibold text-right">State CG Tax</TableHead>
                 <TableHead className="font-semibold text-right">IRMAA</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {projections.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground">
+                  <TableCell colSpan={13} className="text-center text-muted-foreground">
                     Enter your account information to see projections
                   </TableCell>
                 </TableRow>
@@ -112,7 +115,13 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       }
                     </TableCell>
                     <TableCell className="text-right text-destructive">
-                      {formatCurrency(projection.federalTax + projection.stateTax)}
+                      {formatCurrency(projection.federalTax)}
+                    </TableCell>
+                    <TableCell className="text-right text-destructive">
+                      {formatCurrency(projection.stateTax)}
+                    </TableCell>
+                    <TableCell className="text-right text-destructive">
+                      {formatCurrency(projection.stateCapitalGainsTax)}
                     </TableCell>
                     <TableCell className="text-right">
                       {hasIRMAAWarning(projection.irmaa) ? (
