@@ -56,7 +56,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                 <TableHead className="font-semibold">Age</TableHead>
                 <TableHead className="font-semibold text-right">Traditional</TableHead>
                 <TableHead className="font-semibold text-right">Roth</TableHead>
-                <TableHead className="font-semibold text-right">Taxable</TableHead>
+                <TableHead className="font-semibold text-right">Brokerage</TableHead>
                 <TableHead className="font-semibold text-right">SS Income</TableHead>
                 <TableHead className="font-semibold text-right">Withdrawals</TableHead>
                 <TableHead className="font-semibold text-right">Conversion</TableHead>

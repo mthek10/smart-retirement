@@ -92,7 +92,7 @@ export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="taxable">Taxable Brokerage</Label>
+            <Label htmlFor="taxable">Brokerage</Label>
             <Input
               id="taxable"
               type="number"
