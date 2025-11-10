@@ -343,6 +343,7 @@ const Index = () => {
         tradDepletionAge: null,
         taxableDepletionAge: null,
         rothUsageAge: null,
+        rothDepletionAge: null,
         bracketConsistency: null,
         avgBracket: 0,
         yearsInTarget: 0,
@@ -352,6 +353,7 @@ const Index = () => {
     // Find when each account depletes
     const tradDepletionYear = projections.find(p => p.traditionalBalance < 1000)?.year;
     const taxableDepletionYear = projections.find(p => p.taxableBalance < 1000)?.year;
+    const rothDepletionYear = projections.find(p => p.rothBalance < 1000)?.year;
     
     // Find when Roth starts being used (balance decreases)
     const initialRothBalance = accounts.roth;
@@ -364,6 +366,7 @@ const Index = () => {
       tradDepletionAge: tradDepletionYear ? (tradDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
       taxableDepletionAge: taxableDepletionYear ? (taxableDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
       rothUsageAge: rothUsageYear ? (rothUsageYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
+      rothDepletionAge: rothDepletionYear ? (rothDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
       bracketConsistency: consistency,
       avgBracket: consistency.avgBracket,
       yearsInTarget: consistency.yearsInTarget,

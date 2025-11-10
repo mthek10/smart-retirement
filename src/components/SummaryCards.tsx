@@ -9,6 +9,7 @@ interface SummaryCardsProps {
   tradDepletionAge?: number | null;
   taxableDepletionAge?: number | null;
   rothUsageAge?: number | null;
+  rothDepletionAge?: number | null;
   bracketConsistency?: any;
 }
 
@@ -20,6 +21,7 @@ export function SummaryCards({
   tradDepletionAge,
   taxableDepletionAge,
   rothUsageAge,
+  rothDepletionAge,
   bracketConsistency
 }: SummaryCardsProps) {
   const formatCurrency = (value: number) => {
@@ -38,7 +40,6 @@ export function SummaryCards({
       icon: Landmark,
       color: "text-primary",
       isAge: false,
-      isScore: false,
       subtitle: undefined,
     },
     {
@@ -47,7 +48,6 @@ export function SummaryCards({
       icon: Activity,
       color: "text-secondary",
       isAge: false,
-      isScore: false,
       subtitle: undefined,
     },
     {
@@ -56,7 +56,6 @@ export function SummaryCards({
       icon: TrendingDown,
       color: "text-destructive",
       isAge: false,
-      isScore: false,
       subtitle: undefined,
     },
     {
@@ -65,21 +64,11 @@ export function SummaryCards({
       icon: DollarSign,
       color: "text-warning",
       isAge: false,
-      isScore: false,
       subtitle: undefined,
     },
   ];
 
   const optimizationCards = bracketConsistency ? [
-    {
-      title: "Bracket Consistency Score",
-      value: bracketConsistency.score,
-      subtitle: `${(bracketConsistency.avgBracket * 100).toFixed(0)}% avg bracket`,
-      icon: Activity,
-      color: bracketConsistency.score < 3 ? "text-success" : bracketConsistency.score < 6 ? "text-warning" : "text-destructive",
-      isAge: false,
-      isScore: true,
-    },
     {
       title: "Traditional Depleted",
       value: tradDepletionAge || 0,
@@ -94,6 +83,14 @@ export function SummaryCards({
       subtitle: rothUsageAge ? `Age ${rothUsageAge}` : "Not used",
       icon: Landmark,
       color: "text-success",
+      isAge: true,
+    },
+    {
+      title: "Roth Fully Depleted",
+      value: rothDepletionAge || 0,
+      subtitle: rothDepletionAge ? `Age ${rothDepletionAge}` : "Not depleted",
+      icon: DollarSign,
+      color: "text-warning",
       isAge: true,
     },
   ] : [];
@@ -114,9 +111,7 @@ export function SummaryCards({
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${card.color}`}>
-                {card.isScore ? (
-                  <span>{card.value.toFixed(1)}/10</span>
-                ) : card.isAge ? (
+                {card.isAge ? (
                   card.value > 0 ? `Age ${card.value}` : "N/A"
                 ) : (
                   formatCurrency(card.value)
