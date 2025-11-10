@@ -141,25 +141,34 @@ export function calculateTaxableSocialSecurity(
   otherIncome: number,
   filingStatus: string
 ): number {
+  // Married Filing Separately: Up to 85% taxable at any income level
+  if (filingStatus === 'separate') {
+    return ssIncome * 0.85;
+  }
+
   const provisionalIncome = ssIncome * 0.5 + otherIncome;
   
+  // Set thresholds based on filing status
   const thresholds = filingStatus === 'married' 
-    ? { first: 32000, second: 44000 }
-    : { first: 25000, second: 34000 };
+    ? { first: 32000, second: 44000 }  // Married Filing Jointly
+    : { first: 25000, second: 34000 };  // Single
 
   let taxableAmount = 0;
 
   if (provisionalIncome > thresholds.second) {
+    // Over $34,000 (Single) or $44,000 (Married): Up to 85% taxable
     taxableAmount = Math.min(
       ssIncome * 0.85,
       0.85 * (provisionalIncome - thresholds.second) + 0.5 * (thresholds.second - thresholds.first)
     );
   } else if (provisionalIncome > thresholds.first) {
+    // $25,000-$34,000 (Single) or $32,000-$44,000 (Married): Up to 50% taxable
     taxableAmount = Math.min(
       ssIncome * 0.5,
       0.5 * (provisionalIncome - thresholds.first)
     );
   }
+  // Below thresholds: No tax (taxableAmount remains 0)
 
   return taxableAmount;
 }
