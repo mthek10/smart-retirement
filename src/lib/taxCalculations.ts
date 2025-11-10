@@ -78,7 +78,7 @@ export function calculateFederalTax(
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
   
-  // Apply inflation to standard deduction
+  // Apply inflation to standard deduction and bracket thresholds
   const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   
@@ -86,10 +86,13 @@ export function calculateFederalTax(
   let tax = 0;
 
   for (const bracket of brackets) {
-    if (taxableIncome > bracket.min) {
+    const inflatedMin = bracket.min * inflationMultiplier;
+    const inflatedMax = bracket.max * inflationMultiplier;
+    
+    if (taxableIncome > inflatedMin) {
       const taxableInBracket = Math.min(
-        taxableIncome - bracket.min,
-        bracket.max - bracket.min
+        taxableIncome - inflatedMin,
+        inflatedMax - inflatedMin
       );
       tax += taxableInBracket * bracket.rate;
     }
@@ -98,11 +101,17 @@ export function calculateFederalTax(
   return tax;
 }
 
-export function calculateIRMAA(magi: number): number {
+export function calculateIRMAA(
+  magi: number,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  
   const bracket = irmaaBrackets2024.find(
-    (b) => magi >= b.min && magi < b.max
+    (b) => magi >= b.min * inflationMultiplier && magi < b.max * inflationMultiplier
   );
-  return bracket ? bracket.premium * 12 : 0;
+  return bracket ? bracket.premium * 12 * inflationMultiplier : 0;
 }
 
 export function calculateSocialSecurityBenefit(
@@ -158,10 +167,16 @@ export function calculateTaxableSocialSecurity(
 export function calculateCapitalGainsTax(
   capitalGains: number,
   ordinaryIncome: number,
-  filingStatus: string
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
 ): number {
   const brackets = capitalGainsBrackets2024[filingStatus] || capitalGainsBrackets2024.single;
-  const standardDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  
+  // Apply inflation adjustments
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const standardDeduction = baseDeduction * inflationMultiplier;
   
   // Capital gains are taxed based on total taxable income (ordinary + capital gains)
   const taxableOrdinaryIncome = Math.max(0, ordinaryIncome - standardDeduction);
@@ -170,10 +185,13 @@ export function calculateCapitalGainsTax(
   let tax = 0;
 
   for (const bracket of brackets) {
-    if (totalIncome > bracket.min) {
+    const inflatedMin = bracket.min * inflationMultiplier;
+    const inflatedMax = bracket.max * inflationMultiplier;
+    
+    if (totalIncome > inflatedMin) {
       // Only tax the capital gains portion that falls in this bracket
-      const incomeInBracket = Math.min(totalIncome, bracket.max) - bracket.min;
-      const ordinaryInBracket = Math.max(0, Math.min(taxableOrdinaryIncome, bracket.max) - bracket.min);
+      const incomeInBracket = Math.min(totalIncome, inflatedMax) - inflatedMin;
+      const ordinaryInBracket = Math.max(0, Math.min(taxableOrdinaryIncome, inflatedMax) - inflatedMin);
       const capitalGainsInBracket = Math.max(0, incomeInBracket - ordinaryInBracket);
       
       tax += capitalGainsInBracket * bracket.rate;
@@ -207,7 +225,7 @@ export function getMarginalTaxBracket(
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
   
-  // Apply inflation to standard deduction
+  // Apply inflation to standard deduction and bracket thresholds
   const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   
@@ -215,7 +233,8 @@ export function getMarginalTaxBracket(
   
   // Find the bracket that the taxable income falls into
   for (let i = brackets.length - 1; i >= 0; i--) {
-    if (taxableIncome >= brackets[i].min) {
+    const inflatedMin = brackets[i].min * inflationMultiplier;
+    if (taxableIncome >= inflatedMin) {
       return brackets[i].rate;
     }
   }

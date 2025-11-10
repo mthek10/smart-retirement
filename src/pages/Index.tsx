@@ -280,7 +280,7 @@ const Index = () => {
 
       // Calculate taxes - capital gains are taxed separately (apply inflation to standard deduction)
       const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
-      const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, taxSettings.filingStatus);
+      const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
       const federalTax = federalTaxOrdinary + federalTaxCapitalGains;
       
       // Calculate marginal tax bracket
@@ -294,10 +294,10 @@ const Index = () => {
       const magi = totalOrdinaryIncome + capitalGains;
       let irmaa = 0;
       if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-        irmaa += calculateIRMAA(magi);
+        irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate);
       }
       if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-        irmaa += calculateIRMAA(magi);
+        irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate);
       }
 
       // Apply growth to remaining balances
