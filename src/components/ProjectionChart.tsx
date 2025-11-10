@@ -45,6 +45,12 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               className="text-xs"
               tick={{ fill: 'hsl(var(--foreground))' }}
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+              label={{ 
+                value: 'Account Balances', 
+                angle: -90, 
+                position: 'insideLeft',
+                style: { fill: 'hsl(var(--foreground))' }
+              }}
             />
             <YAxis 
               yAxisId="right"
@@ -52,6 +58,12 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               className="text-xs"
               tick={{ fill: 'hsl(var(--foreground))' }}
               tickFormatter={(value) => formatCurrency(value)}
+              label={{ 
+                value: 'Annual Social Security', 
+                angle: 90, 
+                position: 'insideRight',
+                style: { fill: 'hsl(var(--foreground))' }
+              }}
             />
             <Tooltip 
               formatter={(value: number) => formatCurrency(value)}
