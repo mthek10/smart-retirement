@@ -33,7 +33,7 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <LineChart data={data} margin={{ top: 5, right: 80, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis 
               dataKey="year" 
@@ -41,9 +41,17 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               tick={{ fill: 'hsl(var(--foreground))' }}
             />
             <YAxis 
+              yAxisId="left"
               className="text-xs"
               tick={{ fill: 'hsl(var(--foreground))' }}
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            />
+            <YAxis 
+              yAxisId="right"
+              orientation="right"
+              className="text-xs"
+              tick={{ fill: 'hsl(var(--foreground))' }}
+              tickFormatter={(value) => formatCurrency(value)}
             />
             <Tooltip 
               formatter={(value: number) => formatCurrency(value)}
@@ -60,6 +68,7 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               stroke="hsl(var(--chart-1))" 
               strokeWidth={2}
               dot={false}
+              yAxisId="left"
             />
             <Line 
               type="monotone" 
@@ -67,6 +76,7 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               stroke="hsl(var(--chart-2))" 
               strokeWidth={2}
               dot={false}
+              yAxisId="left"
             />
             <Line 
               type="monotone" 
@@ -74,6 +84,7 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               stroke="hsl(var(--chart-3))" 
               strokeWidth={2}
               dot={false}
+              yAxisId="left"
             />
             <Line 
               type="monotone" 
@@ -81,6 +92,7 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               stroke="hsl(var(--chart-4))" 
               strokeWidth={2}
               dot={false}
+              yAxisId="right"
             />
           </LineChart>
         </ResponsiveContainer>
