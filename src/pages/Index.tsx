@@ -17,7 +17,8 @@ import {
   getBracketLimit,
   calculateBracketConsistency,
   calculateStateSocialSecurityTax,
-  getStateIncomeRate
+  calculateStateIncomeTax,
+  calculateStateCapitalGainsTax
 } from "@/lib/taxCalculations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
@@ -311,11 +312,14 @@ const Index = () => {
           olderSpouseAge
         );
         
-        // For states with income tax, apply it to non-SS income
+        // Calculate state income tax on non-SS ordinary income
         const nonSSIncome = ordinaryIncome;
-        const stateIncomeRate = getStateIncomeRate(taxSettings.state);
-        stateTax = (nonSSIncome * stateIncomeRate) + stateSSTax;
-        stateCapitalGainsTax = capitalGains * stateIncomeRate;
+        const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, taxSettings.state, taxSettings.filingStatus);
+        
+        // Calculate state capital gains tax
+        stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, taxSettings.state, taxSettings.filingStatus);
+        
+        stateTax = stateSSTax + stateIncomeTax;
       }
 
       // Calculate IRMAA (only applies at age 65+ when on Medicare) - calculate for both spouses
