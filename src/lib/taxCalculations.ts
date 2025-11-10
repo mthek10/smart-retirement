@@ -173,6 +173,124 @@ export function calculateTaxableSocialSecurity(
   return taxableAmount;
 }
 
+export function calculateStateSocialSecurityTax(
+  ssIncome: number,
+  agi: number,
+  filingStatus: string,
+  state: string,
+  age: number = 65
+): number {
+  if (!state || state === 'none') return 0;
+
+  // Colorado: Full exemption for 65+, partial for 55-64
+  if (state === 'colorado') {
+    if (age >= 65) return 0; // Full exemption
+    
+    const limit = filingStatus === 'married' ? 95000 : 75000;
+    if (agi <= limit) return 0;
+    
+    // Deduct $20,000 if over threshold
+    const taxableSS = Math.max(0, ssIncome - 20000);
+    return taxableSS * 0.044; // 4.4% flat rate
+  }
+
+  // Connecticut: Exempt below thresholds, max 25% taxable above
+  if (state === 'connecticut') {
+    const threshold = (filingStatus === 'married' || filingStatus === 'hoh') ? 100000 : 75000;
+    if (agi < threshold) return 0;
+    
+    const taxableSS = Math.min(ssIncome * 0.25, ssIncome);
+    return taxableSS * 0.05; // Approximate 5% rate
+  }
+
+  // Minnesota: Complex subtraction method
+  if (state === 'minnesota') {
+    let threshold: number;
+    if (filingStatus === 'married') threshold = 105380;
+    else if (filingStatus === 'separate') threshold = 52690;
+    else threshold = 82190; // Single and HOH
+    
+    if (agi <= threshold) return 0;
+    
+    // 10% reduction for each $4,000 over threshold
+    const over = agi - threshold;
+    const reductionSteps = filingStatus === 'separate' ? over / 2000 : over / 4000;
+    const reductionPercent = Math.min(1, reductionSteps * 0.10);
+    
+    const taxableSS = ssIncome * reductionPercent;
+    return taxableSS * 0.0585; // Approximate 5.85% rate
+  }
+
+  // Montana: $5,500 deduction for 65+
+  if (state === 'montana') {
+    if (age < 65) return ssIncome * 0.059;
+    
+    const taxableSS = Math.max(0, ssIncome - 5500);
+    return taxableSS * 0.059; // 5.9% rate
+  }
+
+  // New Mexico: High exemption thresholds
+  if (state === 'newmexico') {
+    const threshold = filingStatus === 'married' ? 150000 : 100000;
+    if (agi <= threshold) return 0;
+    
+    return ssIncome * 0.049; // 4.9% rate
+  }
+
+  // Rhode Island: High exemption thresholds at full retirement age
+  if (state === 'rhodeisland') {
+    const threshold = filingStatus === 'married' ? 130250 : 104200;
+    if (agi < threshold) return 0;
+    
+    return ssIncome * 0.0475; // 4.75% rate
+  }
+
+  // Utah: Credit system (simplified)
+  if (state === 'utah') {
+    const tax = ssIncome * 0.045; // 4.5% flat rate
+    // Simplified: $450 credit reduces the tax
+    return Math.max(0, tax - 450);
+  }
+
+  // Vermont: Full exemption below thresholds, partial above
+  if (state === 'vermont') {
+    const fullThreshold = filingStatus === 'married' ? 65000 : 50000;
+    const partialThreshold = filingStatus === 'married' ? 74999 : 59999;
+    
+    if (agi <= fullThreshold) return 0;
+    if (agi <= partialThreshold) {
+      // Partial exemption (simplified: 50% taxable)
+      return ssIncome * 0.5 * 0.0535; // 5.35% rate
+    }
+    
+    return ssIncome * 0.0535;
+  }
+
+  // West Virginia: 65% subtraction in 2025
+  if (state === 'westvirginia') {
+    const taxableSS = ssIncome * 0.35; // 65% subtracted
+    return taxableSS * 0.05; // Approximate 5% rate
+  }
+
+  return 0;
+}
+
+export function getStateIncomeRate(state: string): number {
+  const stateRates: Record<string, number> = {
+    colorado: 0.044,
+    connecticut: 0.05,
+    minnesota: 0.0585,
+    montana: 0.059,
+    newmexico: 0.049,
+    rhodeisland: 0.0475,
+    utah: 0.045,
+    vermont: 0.0535,
+    westvirginia: 0.05,
+  };
+  
+  return stateRates[state] || 0;
+}
+
 export function calculateCapitalGainsTax(
   capitalGains: number,
   ordinaryIncome: number,

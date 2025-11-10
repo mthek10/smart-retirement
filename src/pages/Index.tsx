@@ -15,7 +15,9 @@ import {
   calculateCapitalGainsTax,
   getMarginalTaxBracket,
   getBracketLimit,
-  calculateBracketConsistency
+  calculateBracketConsistency,
+  calculateStateSocialSecurityTax,
+  getStateIncomeRate
 } from "@/lib/taxCalculations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
@@ -45,6 +47,7 @@ const Index = () => {
 
   const [taxSettings, setTaxSettings] = useState({
     filingStatus: 'married',
+    state: 'none',
     stateRate: 5,
     spouse1Age: 65,
     spouse2Age: 65,
@@ -286,9 +289,34 @@ const Index = () => {
       // Calculate marginal tax bracket
       const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
       
-      // State tax split: ordinary income tax and capital gains tax
-      const stateTax = totalOrdinaryIncome * (taxSettings.stateRate / 100);
-      const stateCapitalGainsTax = capitalGains * (taxSettings.stateRate / 100);
+      // Calculate AGI for state tax purposes
+      const agi = totalOrdinaryIncome + capitalGains;
+      
+      // State tax calculation with state-specific social security taxation
+      let stateTax = 0;
+      let stateCapitalGainsTax = 0;
+      
+      if (taxSettings.state === 'other') {
+        // Use custom state rate
+        stateTax = totalOrdinaryIncome * (taxSettings.stateRate / 100);
+        stateCapitalGainsTax = capitalGains * (taxSettings.stateRate / 100);
+      } else if (taxSettings.state && taxSettings.state !== 'none') {
+        // Calculate state-specific social security tax
+        const olderSpouseAge = Math.max(spouse1CurrentAge, spouse2CurrentAge);
+        const stateSSTax = calculateStateSocialSecurityTax(
+          ssAnnual,
+          agi,
+          taxSettings.filingStatus,
+          taxSettings.state,
+          olderSpouseAge
+        );
+        
+        // For states with income tax, apply it to non-SS income
+        const nonSSIncome = ordinaryIncome;
+        const stateIncomeRate = getStateIncomeRate(taxSettings.state);
+        stateTax = (nonSSIncome * stateIncomeRate) + stateSSTax;
+        stateCapitalGainsTax = capitalGains * stateIncomeRate;
+      }
 
       // Calculate IRMAA (only applies at age 65+ when on Medicare) - calculate for both spouses
       const magi = totalOrdinaryIncome + capitalGains;

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 interface TaxSettingsProps {
   taxSettings: {
     filingStatus: string;
+    state: string;
     stateRate: number;
     spouse1Age: number;
     spouse2Age: number;
@@ -95,19 +96,49 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="stateRate">State Income Tax Rate (%)</Label>
-          <Input
-            id="stateRate"
-            type="number"
-            step="0.1"
-            placeholder="0.0"
-            value={taxSettings.stateRate || ''}
-            onChange={(e) => handleChange('stateRate', parseFloat(e.target.value) || 0)}
-          />
+          <Label htmlFor="state">State</Label>
+          <Select
+            value={taxSettings.state || 'none'}
+            onValueChange={(value) => handleChange('state', value)}
+          >
+            <SelectTrigger id="state">
+              <SelectValue placeholder="Select state" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No State Income Tax</SelectItem>
+              <SelectItem value="colorado">Colorado</SelectItem>
+              <SelectItem value="connecticut">Connecticut</SelectItem>
+              <SelectItem value="minnesota">Minnesota</SelectItem>
+              <SelectItem value="montana">Montana</SelectItem>
+              <SelectItem value="newmexico">New Mexico</SelectItem>
+              <SelectItem value="rhodeisland">Rhode Island</SelectItem>
+              <SelectItem value="utah">Utah</SelectItem>
+              <SelectItem value="vermont">Vermont</SelectItem>
+              <SelectItem value="westvirginia">West Virginia</SelectItem>
+              <SelectItem value="other">Other (Custom Rate)</SelectItem>
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted-foreground">
-            Enter 0 if you live in a state with no income tax
+            Select your state for accurate Social Security taxation
           </p>
         </div>
+
+        {taxSettings.state === 'other' && (
+          <div className="space-y-2">
+            <Label htmlFor="stateRate">State Income Tax Rate (%)</Label>
+            <Input
+              id="stateRate"
+              type="number"
+              step="0.1"
+              placeholder="0.0"
+              value={taxSettings.stateRate || ''}
+              onChange={(e) => handleChange('stateRate', parseFloat(e.target.value) || 0)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Custom state income tax rate (does not include SS-specific rules)
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="inflationRate">Inflation Rate (%)</Label>
