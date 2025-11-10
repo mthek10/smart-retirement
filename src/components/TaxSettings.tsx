@@ -13,6 +13,9 @@ interface TaxSettingsProps {
     inflationRate: number;
     optimizeRothConversions: boolean;
     rothConversionTarget: number;
+    optimizeBracketConsistency: boolean;
+    targetBracketStrategy: string;
+    customBracketLimit: number;
   };
   onChange: (settings: any) => void;
 }
@@ -124,35 +127,98 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
         <div className="pt-4 border-t space-y-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="optimizeRothConversions">Optimize Roth Conversions</Label>
+              <Label htmlFor="optimizeBracketConsistency">Optimize for Consistent Tax Bracket</Label>
               <input
-                id="optimizeRothConversions"
+                id="optimizeBracketConsistency"
                 type="checkbox"
                 className="h-4 w-4 rounded border-input"
-                checked={taxSettings.optimizeRothConversions || false}
-                onChange={(e) => handleChange('optimizeRothConversions', e.target.checked)}
+                checked={taxSettings.optimizeBracketConsistency || false}
+                onChange={(e) => handleChange('optimizeBracketConsistency', e.target.checked)}
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Automatically convert Traditional to Roth in early retirement to minimize lifetime taxes
+              Maintain steady tax brackets by intelligently timing withdrawals and conversions
             </p>
           </div>
 
-          {taxSettings.optimizeRothConversions && (
-            <div className="space-y-2">
-              <Label htmlFor="rothConversionTarget">Target Tax Bracket (Income Limit)</Label>
-              <Input
-                id="rothConversionTarget"
-                type="number"
-                step="1000"
-                placeholder="94300"
-                value={taxSettings.rothConversionTarget || ''}
-                onChange={(e) => handleChange('rothConversionTarget', parseFloat(e.target.value) || 94300)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Convert up to this income level (e.g., top of 12% bracket: $94,300 for married)
-              </p>
+          {taxSettings.optimizeBracketConsistency && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="targetBracketStrategy">Target Bracket Strategy</Label>
+                <Select
+                  value={taxSettings.targetBracketStrategy || 'auto'}
+                  onValueChange={(value) => handleChange('targetBracketStrategy', value)}
+                >
+                  <SelectTrigger id="targetBracketStrategy">
+                    <SelectValue placeholder="Select strategy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto-calculate optimal</SelectItem>
+                    <SelectItem value="12%">Stay in 12% bracket (up to $94,300 MFJ)</SelectItem>
+                    <SelectItem value="22%">Stay in 22% bracket (up to $201,050 MFJ)</SelectItem>
+                    <SelectItem value="24%">Stay in 24% bracket (up to $383,900 MFJ)</SelectItem>
+                    <SelectItem value="custom">Custom income limit</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose how aggressively to convert Traditional to Roth
+                </p>
+              </div>
+
+              {taxSettings.targetBracketStrategy === 'custom' && (
+                <div className="space-y-2">
+                  <Label htmlFor="customBracketLimit">Custom Income Limit</Label>
+                  <Input
+                    id="customBracketLimit"
+                    type="number"
+                    step="1000"
+                    placeholder="150000"
+                    value={taxSettings.customBracketLimit || ''}
+                    onChange={(e) => handleChange('customBracketLimit', parseFloat(e.target.value) || 150000)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Target maximum income for each year
+                  </p>
+                </div>
+              )}
             </div>
+          )}
+
+          {!taxSettings.optimizeBracketConsistency && (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="optimizeRothConversions">Optimize Roth Conversions</Label>
+                  <input
+                    id="optimizeRothConversions"
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-input"
+                    checked={taxSettings.optimizeRothConversions || false}
+                    onChange={(e) => handleChange('optimizeRothConversions', e.target.checked)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Automatically convert Traditional to Roth in early retirement to minimize lifetime taxes
+                </p>
+              </div>
+
+              {taxSettings.optimizeRothConversions && (
+                <div className="space-y-2">
+                  <Label htmlFor="rothConversionTarget">Target Tax Bracket (Income Limit)</Label>
+                  <Input
+                    id="rothConversionTarget"
+                    type="number"
+                    step="1000"
+                    placeholder="94300"
+                    value={taxSettings.rothConversionTarget || ''}
+                    onChange={(e) => handleChange('rothConversionTarget', parseFloat(e.target.value) || 94300)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Convert up to this income level (e.g., top of 12% bracket: $94,300 for married)
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 

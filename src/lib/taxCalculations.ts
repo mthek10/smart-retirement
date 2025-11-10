@@ -222,3 +222,75 @@ export function getMarginalTaxBracket(
   
   return 0;
 }
+
+export function getBracketLimit(
+  bracketStrategy: string,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  
+  // Map strategy to bracket rate
+  const bracketRateMap: Record<string, number> = {
+    '10%': 0.10,
+    '12%': 0.12,
+    '22%': 0.22,
+    '24%': 0.24,
+    '32%': 0.32,
+  };
+  
+  const targetRate = bracketRateMap[bracketStrategy];
+  if (!targetRate) return 0;
+  
+  // Find the max value for this bracket
+  const bracket = brackets.find(b => b.rate === targetRate);
+  if (!bracket) return 0;
+  
+  // Return the top of the bracket, adjusted for inflation
+  return bracket.max * inflationMultiplier;
+}
+
+export function calculateBracketConsistency(projections: any[]): {
+  score: number;
+  avgBracket: number;
+  yearsInTarget: number;
+  targetBracket: number;
+} {
+  if (projections.length === 0) {
+    return { score: 0, avgBracket: 0, yearsInTarget: 0, targetBracket: 0 };
+  }
+  
+  // Calculate average bracket (weighted by income)
+  const totalIncome = projections.reduce((sum, p) => sum + (p.totalIncome || 0), 0);
+  const weightedBracket = projections.reduce((sum, p) => {
+    const weight = (p.totalIncome || 0) / totalIncome;
+    return sum + (p.marginalBracket * weight);
+  }, 0);
+  
+  // Calculate standard deviation
+  const variance = projections.reduce((sum, p) => {
+    const diff = p.marginalBracket - weightedBracket;
+    return sum + (diff * diff);
+  }, 0) / projections.length;
+  
+  const stdDev = Math.sqrt(variance);
+  
+  // Calculate score (0-10 scale, lower is better)
+  // Standard deviation of 0.05 (5 percentage points) = score of 5
+  const score = Math.min(10, stdDev * 100);
+  
+  // Count years within ±2% of target
+  const targetBracket = weightedBracket;
+  const yearsInTarget = projections.filter(p => 
+    Math.abs(p.marginalBracket - targetBracket) <= 0.02
+  ).length;
+  
+  return {
+    score,
+    avgBracket: weightedBracket,
+    yearsInTarget,
+    targetBracket,
+  };
+}

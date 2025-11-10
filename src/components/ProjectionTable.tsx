@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Target } from "lucide-react";
 
 interface YearProjection {
   year: number;
@@ -75,8 +75,18 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                projections.map((projection) => (
-                  <TableRow key={projection.year}>
+                projections.map((projection, index) => {
+                  const hasIRMAAWarning = (irmaaAmount: number) => irmaaAmount > 0;
+                  const tradDepleted = projection.traditionalBalance < 1000 && index > 0 && projections[index - 1].traditionalBalance >= 1000;
+                  const taxableDepleted = projection.taxableBalance < 1000 && index > 0 && projections[index - 1].taxableBalance >= 1000;
+                  const rothUsageStart = index > 0 && projection.rothBalance < projections[0].rothBalance - 1000 && projections[index - 1].rothBalance >= projections[0].rothBalance - 1000;
+                  const isKeyTransition = tradDepleted || taxableDepleted || rothUsageStart;
+
+                  return (
+                    <TableRow 
+                      key={projection.year} 
+                      className={isKeyTransition ? "bg-accent/50" : ""}
+                    >
                     <TableCell className="font-medium">{projection.year}</TableCell>
                     <TableCell>{projection.age}</TableCell>
                     <TableCell className="text-right">
@@ -108,11 +118,20 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                         '-'
                       )}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {projection.marginalBracket ? 
-                        `${(projection.marginalBracket * 100).toFixed(0)}%` : 
-                        '0%'
-                      }
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="font-medium">
+                          {projection.marginalBracket ? 
+                            `${(projection.marginalBracket * 100).toFixed(0)}%` : 
+                            '0%'
+                          }
+                        </span>
+                        {projection.rothConversion && projection.rothConversion > 10000 && (
+                          <div title="Targeted conversion">
+                            <Target className="h-3 w-3 text-primary" />
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right text-destructive">
                       {formatCurrency(projection.federalTax)}
@@ -134,7 +153,8 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       )}
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
