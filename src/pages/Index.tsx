@@ -346,6 +346,7 @@ const Index = () => {
         ssIncome: ssAnnual,
         withdrawals: taxableWithdrawal + traditionalWithdrawal + rothWithdrawal,
         federalTax,
+        federalCapitalGainsTax: federalTaxCapitalGains,
         stateTax,
         stateCapitalGainsTax,
         irmaa,
