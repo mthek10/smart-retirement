@@ -337,6 +337,9 @@ const Index = () => {
       rothBalance *= (1 + accounts.rothReturn / 100);
       taxableBalance *= (1 + accounts.taxableReturn / 100);
 
+      const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
+      const takeHome = totalWithdrawals + ssAnnual - federalTax - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa;
+      
       results.push({
         year,
         age,
@@ -344,14 +347,15 @@ const Index = () => {
         rothBalance,
         taxableBalance,
         ssIncome: ssAnnual,
-        withdrawals: taxableWithdrawal + traditionalWithdrawal + rothWithdrawal,
+        withdrawals: totalWithdrawals,
         federalTax,
         federalCapitalGainsTax: federalTaxCapitalGains,
         stateTax,
         stateCapitalGainsTax,
         irmaa,
+        takeHome,
         rmd,
-        totalIncome: ssAnnual + taxableWithdrawal + traditionalWithdrawal + rothWithdrawal,
+        totalIncome: ssAnnual + totalWithdrawals,
         rothConversion,
         marginalBracket,
       });

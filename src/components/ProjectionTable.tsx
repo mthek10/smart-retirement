@@ -17,6 +17,7 @@ interface YearProjection {
   stateTax: number;
   stateCapitalGainsTax: number;
   irmaa: number;
+  takeHome: number;
   rmd: number;
   totalIncome: number;
   rothConversion?: number;
@@ -67,12 +68,13 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                 <TableHead className="font-semibold text-right">State Tax</TableHead>
                 <TableHead className="font-semibold text-right">State CG Tax</TableHead>
                 <TableHead className="font-semibold text-right">IRMAA</TableHead>
+                <TableHead className="font-semibold text-right">Take Home</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {projections.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={14} className="text-center text-muted-foreground">
+                  <TableCell colSpan={15} className="text-center text-muted-foreground">
                     Enter your account information to see projections
                   </TableCell>
                 </TableRow>
@@ -156,6 +158,9 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       ) : (
                         formatCurrency(projection.irmaa)
                       )}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-primary">
+                      {formatCurrency(projection.takeHome)}
                     </TableCell>
                   </TableRow>
                   );
