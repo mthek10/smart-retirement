@@ -10,8 +10,6 @@ interface TaxSettingsProps {
     stateRate: number;
     spouse1Age: number;
     spouse2Age: number;
-    calculationMode: 'expenses' | 'takeHome';
-    annualExpenses: number;
     targetTakeHome: number;
     inflationRate: number;
     optimizeRothConversions: boolean;
@@ -82,71 +80,20 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           Projections will run until both spouses reach age 100
         </p>
 
-        <div className="space-y-4">
-          <Label>Calculation Mode</Label>
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => handleChange('calculationMode', 'expenses')}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                taxSettings.calculationMode === 'expenses'
-                  ? 'border-primary bg-primary/10 text-primary font-semibold'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <div className="text-sm font-medium">Expense Mode</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Specify desired spending
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleChange('calculationMode', 'takeHome')}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
-                taxSettings.calculationMode === 'takeHome'
-                  ? 'border-primary bg-primary/10 text-primary font-semibold'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <div className="text-sm font-medium">Take Home Mode</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Specify after-tax income
-              </div>
-            </button>
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="targetTakeHome">Annual Take Home (First Year)</Label>
+          <Input
+            id="targetTakeHome"
+            type="number"
+            step="1000"
+            placeholder="80000"
+            value={taxSettings.targetTakeHome || ''}
+            onChange={(e) => handleChange('targetTakeHome', parseFloat(e.target.value) || 80000)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Your desired after-tax income (including Social Security). Model will calculate withdrawals needed to achieve this.
+          </p>
         </div>
-
-        {taxSettings.calculationMode === 'expenses' ? (
-          <div className="space-y-2">
-            <Label htmlFor="annualExpenses">Annual Expenses (After Taxes)</Label>
-            <Input
-              id="annualExpenses"
-              type="number"
-              step="1000"
-              placeholder="60000"
-              value={taxSettings.annualExpenses || ''}
-              onChange={(e) => handleChange('annualExpenses', parseFloat(e.target.value) || 60000)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Your target annual spending needs
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <Label htmlFor="targetTakeHome">Target Take Home Income</Label>
-            <Input
-              id="targetTakeHome"
-              type="number"
-              step="1000"
-              placeholder="80000"
-              value={taxSettings.targetTakeHome || ''}
-              onChange={(e) => handleChange('targetTakeHome', parseFloat(e.target.value) || 80000)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Your desired after-tax income (including Social Security). The model will calculate required withdrawals.
-            </p>
-          </div>
-        )}
 
         <div className="space-y-2">
           <Label htmlFor="state">State</Label>
