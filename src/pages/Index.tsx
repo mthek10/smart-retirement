@@ -52,7 +52,9 @@ const Index = () => {
     stateRate: 5,
     spouse1Age: 65,
     spouse2Age: 65,
+    calculationMode: 'expenses' as 'expenses' | 'takeHome',
     annualExpenses: 60000,
+    targetTakeHome: 80000,
     inflationRate: 2.5,
     optimizeRothConversions: false,
     rothConversionTarget: 94300,
@@ -69,6 +71,110 @@ const Index = () => {
 
     const annualWithdrawal = taxSettings.annualExpenses;
     const maxYears = Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age);
+
+    // Iterative solver to find withdrawal amount that achieves target take home
+    const calculateRequiredWithdrawal = (
+      targetTakeHome: number,
+      ssAnnual: number,
+      currentBalances: { tradBalance: number; rothBalance: number; taxableBalance: number },
+      currentRMD: number,
+      yearIndex: number,
+      spouse1Age: number,
+      spouse2Age: number
+    ): number => {
+      // Binary search to find required withdrawal
+      let low = Math.max(0, currentRMD); // Can't go below RMD
+      let high = Math.max(
+        targetTakeHome * 3, // Upper bound estimate
+        currentBalances.tradBalance + currentBalances.rothBalance + currentBalances.taxableBalance
+      );
+      
+      const tolerance = 100; // Within $100 of target
+      const maxIterations = 30;
+      
+      for (let iter = 0; iter < maxIterations; iter++) {
+        const testWithdrawal = (low + high) / 2;
+        
+        // Simulate withdrawals with this amount
+        let testTaxable = currentBalances.taxableBalance;
+        let testTrad = currentBalances.tradBalance;
+        let testRoth = currentBalances.rothBalance;
+        
+        let remaining = testWithdrawal;
+        let capitalGainsRealized = 0;
+        let traditionalWithdrawn = 0;
+        let rothWithdrawn = 0;
+        
+        // Withdrawal sequencing: Taxable -> Traditional -> Roth
+        if (remaining > 0 && testTaxable > 0) {
+          const fromTaxable = Math.min(remaining, testTaxable);
+          capitalGainsRealized = fromTaxable * 0.3; // 30% gains
+          testTaxable -= fromTaxable;
+          remaining -= fromTaxable;
+        }
+        
+        if (remaining > 0 && testTrad > 0) {
+          const fromTrad = Math.min(remaining, testTrad);
+          traditionalWithdrawn = fromTrad;
+          testTrad -= fromTrad;
+          remaining -= fromTrad;
+        }
+        
+        if (remaining > 0 && testRoth > 0) {
+          const fromRoth = Math.min(remaining, testRoth);
+          rothWithdrawn = fromRoth;
+          testRoth -= fromRoth;
+          remaining -= fromRoth;
+        }
+        
+        // Calculate taxes
+        const ordinaryIncome = traditionalWithdrawn;
+        const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome, taxSettings.filingStatus);
+        const totalOrdinaryIncome = ordinaryIncome + taxableSS;
+        
+        const federalTax = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
+        const federalCapitalGainsTax = calculateCapitalGainsTax(capitalGainsRealized, totalOrdinaryIncome, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
+        
+        const stateTax = taxSettings.state !== 'none' 
+          ? calculateStateIncomeTax(totalOrdinaryIncome, taxSettings.state, taxSettings.filingStatus)
+          : 0;
+        const stateCapitalGainsTax = taxSettings.state !== 'none'
+          ? calculateStateCapitalGainsTax(capitalGainsRealized, totalOrdinaryIncome, taxSettings.state, taxSettings.filingStatus)
+          : 0;
+        
+        // Calculate IRMAA
+        const magi = totalOrdinaryIncome + capitalGainsRealized;
+        let irmaa = 0;
+        if (spouse1Age >= 65 && spouse1Age <= 100) {
+          irmaa += calculateIRMAA(magi, yearIndex, taxSettings.inflationRate / 100);
+        }
+        if (spouse2Age >= 65 && spouse2Age <= 100) {
+          irmaa += calculateIRMAA(magi, yearIndex, taxSettings.inflationRate / 100);
+        }
+        
+        // Calculate actual take home
+        const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa;
+        
+        // Check if we're within tolerance
+        if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
+          return testWithdrawal;
+        }
+        
+        // Adjust search range
+        if (calculatedTakeHome < targetTakeHome) {
+          low = testWithdrawal;
+        } else {
+          high = testWithdrawal;
+        }
+        
+        // Safety check: if we can't achieve target even with max withdrawal
+        if (iter === maxIterations - 1) {
+          return testWithdrawal;
+        }
+      }
+      
+      return (low + high) / 2;
+    };
 
     // PASS 1: Calculate optimal target bracket if using auto strategy
     let autoTargetBracket = 0.22; // Default to 22% bracket
@@ -174,9 +280,28 @@ const Index = () => {
       // Calculate RMD if applicable (based on account owner's age - use spouse1)
       const rmd = calculateRMD(tradBalance, spouse1CurrentAge);
       
-      // Apply inflation to annual expenses
-      const adjustedAnnualExpenses = annualWithdrawal * inflationMultiplier;
-      const requiredWithdrawal = Math.max(adjustedAnnualExpenses, rmd);
+      // Determine required withdrawal based on calculation mode
+      let requiredWithdrawal: number;
+      let adjustedAnnualExpenses: number;
+      
+      if (taxSettings.calculationMode === 'takeHome') {
+        // Use iterative solver to find withdrawal that achieves target take home
+        const adjustedTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
+        requiredWithdrawal = calculateRequiredWithdrawal(
+          adjustedTargetTakeHome,
+          ssAnnual,
+          { tradBalance, rothBalance, taxableBalance },
+          rmd,
+          i,
+          spouse1CurrentAge,
+          spouse2CurrentAge
+        );
+        adjustedAnnualExpenses = adjustedTargetTakeHome; // For display purposes
+      } else {
+        // Original expense mode
+        adjustedAnnualExpenses = annualWithdrawal * inflationMultiplier;
+        requiredWithdrawal = Math.max(adjustedAnnualExpenses, rmd);
+      }
 
       // BRACKET-AWARE WITHDRAWAL SEQUENCING
       let withdrawalAmount = requiredWithdrawal;
