@@ -241,7 +241,7 @@ const Index = () => {
         }
       }
 
-      // ROTH CONVERSION OPTIMIZATION
+      // ROTH CONVERSION OPTIMIZATION (IRMAA-AWARE)
       let rothConversion = 0;
       const shouldOptimize = taxSettings.optimizeBracketConsistency || taxSettings.optimizeRothConversions;
       
@@ -260,8 +260,74 @@ const Index = () => {
         const targetLimit = getTargetIncomeLimit(i);
         const conversionRoom = Math.max(0, targetLimit - totalOrdinaryIncomePreConversion);
         
-        // Convert aggressively up to bracket limit
-        rothConversion = Math.min(conversionRoom, tradBalance);
+        // Propose initial conversion amount
+        let proposedConversion = Math.min(conversionRoom, tradBalance);
+        
+        // IRMAA-aware optimization: Check if conversion triggers excessive IRMAA
+        const isIRMAAAge = (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) || 
+                           (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100);
+        
+        if (proposedConversion > 0 && isIRMAAAge) {
+          // Calculate IRMAA without conversion
+          const magiWithoutConversion = totalOrdinaryIncomePreConversion + capitalGains;
+          let irmaaWithoutConversion = 0;
+          if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+            irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate);
+          }
+          if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+            irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate);
+          }
+          
+          // Calculate IRMAA with full conversion
+          const magiWithConversion = totalOrdinaryIncomePreConversion + proposedConversion + capitalGains;
+          let irmaaWithConversion = 0;
+          if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+            irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate);
+          }
+          if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+            irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate);
+          }
+          
+          const irmaaIncrease = irmaaWithConversion - irmaaWithoutConversion;
+          
+          // Calculate tax cost of conversion
+          const marginalRate = getMarginalTaxBracket(totalOrdinaryIncomePreConversion + proposedConversion, taxSettings.filingStatus, i, taxSettings.inflationRate);
+          const conversionTaxCost = proposedConversion * marginalRate;
+          
+          // If IRMAA increase is significant relative to conversion tax cost, it's not worth it
+          // Rule: If IRMAA increase > 50% of conversion tax, reduce or skip conversion
+          if (irmaaIncrease > conversionTaxCost * 0.5) {
+            // Try to find optimal conversion amount that doesn't cross IRMAA threshold
+            // Binary search for the conversion amount that maximizes efficiency
+            let optimalConversion = 0;
+            let step = proposedConversion / 10;
+            
+            for (let testConversion = step; testConversion <= proposedConversion; testConversion += step) {
+              const testMagi = totalOrdinaryIncomePreConversion + testConversion + capitalGains;
+              let testIrmaa = 0;
+              if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+                testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate);
+              }
+              if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+                testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate);
+              }
+              
+              const testIrmaaIncrease = testIrmaa - irmaaWithoutConversion;
+              const testTaxCost = testConversion * getMarginalTaxBracket(totalOrdinaryIncomePreConversion + testConversion, taxSettings.filingStatus, i, taxSettings.inflationRate);
+              
+              // Keep conversion if IRMAA increase is reasonable
+              if (testIrmaaIncrease <= testTaxCost * 0.5) {
+                optimalConversion = testConversion;
+              } else {
+                break; // Stop if we hit IRMAA threshold
+              }
+            }
+            
+            proposedConversion = optimalConversion;
+          }
+        }
+        
+        rothConversion = proposedConversion;
         
         if (rothConversion > 0) {
           tradBalance -= rothConversion;
