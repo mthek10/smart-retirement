@@ -516,7 +516,7 @@ const Index = () => {
       taxableBalance *= (1 + accounts.taxableReturn / 100);
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-      const takeHome = totalWithdrawals + ssAnnual - federalTax - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa;
+      const takeHome = totalWithdrawals + ssAnnual - federalTax - stateTax - stateCapitalGainsTax - irmaa;
       
       results.push({
         year,
