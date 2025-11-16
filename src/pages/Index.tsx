@@ -52,8 +52,6 @@ const Index = () => {
     stateRate: 5,
     spouse1Age: 65,
     spouse2Age: 65,
-    calculationMode: 'expenses' as 'expenses' | 'takeHome',
-    annualExpenses: 60000,
     targetTakeHome: 80000,
     inflationRate: 2.5,
     optimizeRothConversions: false,
@@ -69,7 +67,6 @@ const Index = () => {
     let rothBalance = accounts.roth;
     let taxableBalance = accounts.taxable;
 
-    const annualWithdrawal = taxSettings.annualExpenses;
     const maxYears = Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age);
 
     // Iterative solver to find withdrawal amount that achieves target take home
@@ -194,7 +191,7 @@ const Index = () => {
         const ssAnnual = ss1 + ss2;
         
         const rmd = calculateRMD(simTradBalance, spouse1Age);
-        const adjustedExpenses = annualWithdrawal * inflationMultiplier;
+        const adjustedExpenses = taxSettings.targetTakeHome * inflationMultiplier;
         const required = Math.max(adjustedExpenses, rmd);
         
         let taxableW = Math.min(required, simTaxableBalance);
@@ -280,28 +277,18 @@ const Index = () => {
       // Calculate RMD if applicable (based on account owner's age - use spouse1)
       const rmd = calculateRMD(tradBalance, spouse1CurrentAge);
       
-      // Determine required withdrawal based on calculation mode
-      let requiredWithdrawal: number;
-      let adjustedAnnualExpenses: number;
-      
-      if (taxSettings.calculationMode === 'takeHome') {
-        // Use iterative solver to find withdrawal that achieves target take home
-        const adjustedTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
-        requiredWithdrawal = calculateRequiredWithdrawal(
-          adjustedTargetTakeHome,
-          ssAnnual,
-          { tradBalance, rothBalance, taxableBalance },
-          rmd,
-          i,
-          spouse1CurrentAge,
-          spouse2CurrentAge
-        );
-        adjustedAnnualExpenses = adjustedTargetTakeHome; // For display purposes
-      } else {
-        // Original expense mode
-        adjustedAnnualExpenses = annualWithdrawal * inflationMultiplier;
-        requiredWithdrawal = Math.max(adjustedAnnualExpenses, rmd);
-      }
+      // Use iterative solver to find withdrawal that achieves target take home
+      const adjustedTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
+      let requiredWithdrawal = calculateRequiredWithdrawal(
+        adjustedTargetTakeHome,
+        ssAnnual,
+        { tradBalance, rothBalance, taxableBalance },
+        rmd,
+        i,
+        spouse1CurrentAge,
+        spouse2CurrentAge
+      );
+      let adjustedAnnualExpenses = adjustedTargetTakeHome; // For display purposes
 
       // BRACKET-AWARE WITHDRAWAL SEQUENCING
       let withdrawalAmount = requiredWithdrawal;
