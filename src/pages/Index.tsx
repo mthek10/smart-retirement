@@ -573,6 +573,7 @@ const Index = () => {
   const summary = useMemo(() => {
     const totalTaxes = projections.reduce((sum, p) => sum + p.federalTax + p.stateTax + p.stateCapitalGainsTax, 0);
     const totalIRMAA = projections.reduce((sum, p) => sum + p.irmaa, 0);
+    const totalNIIT = projections.reduce((sum, p) => sum + p.niit, 0);
     const avgWithdrawal = projections.length > 0 
       ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 
       : 0;
@@ -582,6 +583,7 @@ const Index = () => {
       totalPortfolio, 
       totalTaxes, 
       totalIRMAA, 
+      totalNIIT,
       avgWithdrawal,
       ...detailedMetrics
     };
