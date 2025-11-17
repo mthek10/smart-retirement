@@ -69,6 +69,14 @@ export const capitalGainsBrackets2024: Record<string, TaxBracket[]> = {
   ],
 };
 
+// Net Investment Income Tax (NIIT) thresholds for 2024
+export const niitThresholds2024: Record<string, number> = {
+  single: 200000,
+  married: 250000,
+  hoh: 200000,
+  separate: 125000,
+};
+
 // State tax data structure
 interface StateTaxBracket {
   min: number;
@@ -542,6 +550,31 @@ export function calculateRMD(balance: number, age: number): number {
   
   const factor = lifetimeFactors[age] || 8.9;
   return balance / factor;
+}
+
+export function calculateNIIT(
+  netInvestmentIncome: number,
+  magi: number,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  // 3.8% Net Investment Income Tax (NIIT) applies to the lesser of:
+  // 1. Net investment income, or
+  // 2. MAGI exceeding the threshold
+  
+  const baseThreshold = niitThresholds2024[filingStatus] || niitThresholds2024.single;
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const threshold = baseThreshold * inflationMultiplier;
+  
+  if (magi <= threshold) {
+    return 0;
+  }
+  
+  const excessMAGI = magi - threshold;
+  const taxableAmount = Math.min(netInvestmentIncome, excessMAGI);
+  
+  return taxableAmount * 0.038; // 3.8% NIIT rate
 }
 
 export function getMarginalTaxBracket(

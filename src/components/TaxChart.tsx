@@ -8,6 +8,7 @@ interface TaxChartDataPoint {
   "Federal CG Tax": number;
   "State CG Tax": number;
   "IRMAA": number;
+  "NIIT": number;
 }
 
 interface TaxChartProps {
@@ -95,6 +96,14 @@ export function TaxChart({ data }: TaxChartProps) {
               stroke="hsl(var(--chart-5))" 
               strokeWidth={2}
               dot={false}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="NIIT" 
+              stroke="hsl(var(--chart-1))" 
+              strokeWidth={2}
+              dot={false}
+              strokeDasharray="5 5"
             />
           </LineChart>
         </ResponsiveContainer>
