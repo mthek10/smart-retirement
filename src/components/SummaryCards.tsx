@@ -78,9 +78,9 @@ export function SummaryCards({
       isAge: true,
     },
     {
-      title: "Roth Usage Begins",
-      value: rothUsageAge || 0,
-      subtitle: rothUsageAge ? `Age ${rothUsageAge}` : "Not used",
+      title: "Brokerage Fully Depleted",
+      value: taxableDepletionAge || 0,
+      subtitle: taxableDepletionAge ? `Age ${taxableDepletionAge}` : "Not depleted",
       icon: Landmark,
       color: "text-success",
       isAge: true,
