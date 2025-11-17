@@ -20,9 +20,10 @@ interface SocialSecurityPlannerProps {
     };
   };
   onChange: (data: any) => void;
+  filingStatus: string;
 }
 
-export function SocialSecurityPlanner({ ssData, onChange }: SocialSecurityPlannerProps) {
+export function SocialSecurityPlanner({ ssData, onChange, filingStatus }: SocialSecurityPlannerProps) {
   const handleChange = (spouse: 'spouse1' | 'spouse2', field: string, value: number) => {
     onChange({
       ...ssData,
@@ -149,19 +150,23 @@ export function SocialSecurityPlanner({ ssData, onChange }: SocialSecurityPlanne
     );
   };
 
+  const isSingleFiler = filingStatus === 'single' || filingStatus === 'hoh';
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Social Security Planning</CardTitle>
         <CardDescription>
-          Model Social Security claiming strategies for both spouses and see how timing affects benefits
+          Model Social Security claiming strategies {isSingleFiler ? '' : 'for both spouses '}and see how timing affects benefits
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
-        {renderSpouseSection('spouse1', 'Spouse 1')}
-        <div className="border-t pt-6">
-          {renderSpouseSection('spouse2', 'Spouse 2')}
-        </div>
+        {renderSpouseSection('spouse1', isSingleFiler ? 'Your Benefits' : 'Spouse 1')}
+        {!isSingleFiler && (
+          <div className="border-t pt-6">
+            {renderSpouseSection('spouse2', 'Spouse 2')}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

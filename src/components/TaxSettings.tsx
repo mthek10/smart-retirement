@@ -50,9 +50,11 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           </Select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className={taxSettings.filingStatus === 'married' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
           <div className="space-y-2">
-            <Label htmlFor="spouse1Age">Spouse 1 Current Age</Label>
+            <Label htmlFor="spouse1Age">
+              {taxSettings.filingStatus === 'married' ? 'Spouse 1 Current Age' : 'Current Age'}
+            </Label>
             <Input
               id="spouse1Age"
               type="number"
@@ -63,21 +65,25 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="spouse2Age">Spouse 2 Current Age</Label>
-            <Input
-              id="spouse2Age"
-              type="number"
-              min="50"
-              max="100"
-              value={taxSettings.spouse2Age || ''}
-              onChange={(e) => handleChange('spouse2Age', parseFloat(e.target.value) || 65)}
-            />
-          </div>
+          {taxSettings.filingStatus === 'married' && (
+            <div className="space-y-2">
+              <Label htmlFor="spouse2Age">Spouse 2 Current Age</Label>
+              <Input
+                id="spouse2Age"
+                type="number"
+                min="50"
+                max="100"
+                value={taxSettings.spouse2Age || ''}
+                onChange={(e) => handleChange('spouse2Age', parseFloat(e.target.value) || 65)}
+              />
+            </div>
+          )}
         </div>
         
         <p className="text-xs text-muted-foreground">
-          Projections will run until both spouses reach age 100
+          {taxSettings.filingStatus === 'married' 
+            ? 'Projections will run until both spouses reach age 100'
+            : 'Projections will run until age 100'}
         </p>
 
         <div className="space-y-2">
