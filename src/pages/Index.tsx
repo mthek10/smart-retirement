@@ -279,6 +279,7 @@ const Index = () => {
       
       // Use iterative solver to find withdrawal that achieves target take home
       const adjustedTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
+      console.log(`Year ${i}: Target Take Home = $${adjustedTargetTakeHome.toFixed(2)}`);
       let requiredWithdrawal = calculateRequiredWithdrawal(
         adjustedTargetTakeHome,
         ssAnnual,
@@ -288,6 +289,7 @@ const Index = () => {
         spouse1CurrentAge,
         spouse2CurrentAge
       );
+      console.log(`Year ${i}: Required Withdrawal = $${requiredWithdrawal.toFixed(2)}, SS = $${ssAnnual.toFixed(2)}`);
       let adjustedAnnualExpenses = adjustedTargetTakeHome; // For display purposes
 
       // BRACKET-AWARE WITHDRAWAL SEQUENCING
@@ -517,6 +519,18 @@ const Index = () => {
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
       const takeHome = totalWithdrawals + ssAnnual - federalTax - stateTax - stateCapitalGainsTax - irmaa;
+      
+      if (i === 0) {
+        console.log(`Year ${i} Final Calculation:`);
+        console.log(`  Total Withdrawals: $${totalWithdrawals.toFixed(2)}`);
+        console.log(`  SS Income: $${ssAnnual.toFixed(2)}`);
+        console.log(`  Federal Tax: $${federalTax.toFixed(2)} (Ordinary: $${federalTaxOrdinary.toFixed(2)}, CG: $${federalTaxCapitalGains.toFixed(2)})`);
+        console.log(`  State Tax: $${stateTax.toFixed(2)}`);
+        console.log(`  State CG Tax: $${stateCapitalGainsTax.toFixed(2)}`);
+        console.log(`  IRMAA: $${irmaa.toFixed(2)}`);
+        console.log(`  Actual Take Home: $${takeHome.toFixed(2)}`);
+        console.log(`  Target Take Home: $${taxSettings.targetTakeHome.toFixed(2)}`);
+      }
       
       results.push({
         year,
