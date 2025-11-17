@@ -40,7 +40,7 @@ const Index = () => {
       fullRetirementAge: 67,
     },
     spouse2: {
-      estimatedBenefit: 2500,
+      estimatedBenefit: 3000,
       claimAge: 67,
       fullRetirementAge: 67,
     },
