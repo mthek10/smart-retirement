@@ -4,6 +4,7 @@ import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
 import { ProjectionTable } from "@/components/ProjectionTable";
 import { ProjectionChart } from "@/components/ProjectionChart";
+import { TaxChart } from "@/components/TaxChart";
 import { SummaryCards } from "@/components/SummaryCards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -496,6 +497,17 @@ const Index = () => {
     }));
   }, [projections]);
 
+  const taxChartData = useMemo(() => {
+    return projections.map(p => ({
+      year: p.year,
+      "Federal Tax": p.federalTax,
+      "State Tax": p.stateTax,
+      "Federal CG Tax": p.capitalGainsTax,
+      "State CG Tax": p.stateCapitalGainsTax,
+      "IRMAA": p.irmaa,
+    }));
+  }, [projections]);
+
   const detailedMetrics = useMemo(() => {
     if (projections.length === 0) {
       return {
@@ -591,8 +603,9 @@ const Index = () => {
               <ProjectionTable projections={projections} />
             </TabsContent>
 
-            <TabsContent value="charts" className="mt-6">
+            <TabsContent value="charts" className="mt-6 space-y-6">
               <ProjectionChart data={chartData} />
+              <TaxChart data={taxChartData} />
             </TabsContent>
           </Tabs>
         </div>
