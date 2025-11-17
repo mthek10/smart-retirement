@@ -105,7 +105,7 @@ const Index = () => {
         // Withdrawal sequencing: Taxable -> Traditional -> Roth
         if (remaining > 0 && testTaxable > 0) {
           const fromTaxable = Math.min(remaining, testTaxable);
-          capitalGainsRealized = fromTaxable * 0.3; // 30% gains
+          capitalGainsRealized = fromTaxable * 0.5; // 50% gains (match main projection)
           testTaxable -= fromTaxable;
           remaining -= fromTaxable;
         }
@@ -126,7 +126,7 @@ const Index = () => {
         
         // Calculate taxes
         const ordinaryIncome = traditionalWithdrawn;
-        const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome, taxSettings.filingStatus);
+        const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGainsRealized, taxSettings.filingStatus);
         const totalOrdinaryIncome = ordinaryIncome + taxableSS;
         
         const federalTax = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
