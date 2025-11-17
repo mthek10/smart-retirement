@@ -19,7 +19,8 @@ import {
   calculateStateSocialSecurityTax,
   calculateStateIncomeTax,
   calculateStateCapitalGainsTax,
-  calculateFullRetirementAge
+  calculateFullRetirementAge,
+  calculateNIIT
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -181,8 +182,11 @@ const Index = () => {
           irmaa += calculateIRMAA(magi, yearIndex, taxSettings.inflationRate / 100);
         }
         
+        // Calculate NIIT (Net Investment Income Tax)
+        const niit = calculateNIIT(capitalGainsRealized, magi, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
+        
         // Calculate actual take home
-        const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa;
+        const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - niit;
         
         // Check if we're within tolerance
         if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
@@ -443,13 +447,16 @@ const Index = () => {
         irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate);
       }
 
+      // Calculate NIIT (Net Investment Income Tax - 3.8% on investment income when MAGI exceeds thresholds)
+      const niit = calculateNIIT(capitalGains, magi, taxSettings.filingStatus, i, taxSettings.inflationRate);
+
       // Apply growth to remaining balances
       tradBalance *= (1 + accounts.traditionalReturn / 100);
       rothBalance *= (1 + accounts.rothReturn / 100);
       taxableBalance *= (1 + accounts.taxableReturn / 100);
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-      const takeHome = totalWithdrawals + ssAnnual - federalTax - stateTax - stateCapitalGainsTax - irmaa;
+      const takeHome = totalWithdrawals + ssAnnual - federalTax - stateTax - stateCapitalGainsTax - irmaa - niit;
       
       if (i === 0) {
         console.log(`Year ${i} Final Calculation:`);
@@ -459,6 +466,7 @@ const Index = () => {
         console.log(`  State Tax: $${stateTax.toFixed(2)}`);
         console.log(`  State CG Tax: $${stateCapitalGainsTax.toFixed(2)}`);
         console.log(`  IRMAA: $${irmaa.toFixed(2)}`);
+        console.log(`  NIIT: $${niit.toFixed(2)}`);
         console.log(`  Actual Take Home: $${takeHome.toFixed(2)}`);
         console.log(`  Target Take Home: $${taxSettings.targetTakeHome.toFixed(2)}`);
       }
@@ -476,6 +484,7 @@ const Index = () => {
         stateTax,
         stateCapitalGainsTax,
         irmaa,
+        niit,
         takeHome,
         rmd,
         totalIncome: ssAnnual + totalWithdrawals,
@@ -502,18 +511,19 @@ const Index = () => {
       year: p.year,
       "Federal Tax": p.federalTax,
       "State Tax": p.stateTax,
-      "Federal CG Tax": p.capitalGainsTax,
+      "Federal CG Tax": p.federalCapitalGainsTax,
       "State CG Tax": p.stateCapitalGainsTax,
       "IRMAA": p.irmaa,
+      "NIIT": p.niit,
     }));
 
-    // Find the last year where any tax/IRMAA is greater than zero
+    // Find the last year where any tax/IRMAA/NIIT is greater than zero
     let lastNonZeroIndex = -1;
     for (let i = allTaxData.length - 1; i >= 0; i--) {
       const data = allTaxData[i];
       if (data["Federal Tax"] > 0 || data["State Tax"] > 0 || 
           data["Federal CG Tax"] > 0 || data["State CG Tax"] > 0 || 
-          data["IRMAA"] > 0) {
+          data["IRMAA"] > 0 || data["NIIT"] > 0) {
         lastNonZeroIndex = i;
         break;
       }
