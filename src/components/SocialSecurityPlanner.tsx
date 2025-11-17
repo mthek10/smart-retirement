@@ -4,26 +4,26 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, TrendingUp } from "lucide-react";
-import { calculateSocialSecurityBenefit } from "@/lib/taxCalculations";
+import { calculateSocialSecurityBenefit, calculateFullRetirementAge } from "@/lib/taxCalculations";
 
 interface SocialSecurityPlannerProps {
   ssData: {
     spouse1: {
       estimatedBenefit: number;
       claimAge: number;
-      fullRetirementAge: number;
     };
     spouse2: {
       estimatedBenefit: number;
       claimAge: number;
-      fullRetirementAge: number;
     };
   };
   onChange: (data: any) => void;
   filingStatus: string;
+  spouse1Age: number;
+  spouse2Age: number;
 }
 
-export function SocialSecurityPlanner({ ssData, onChange, filingStatus }: SocialSecurityPlannerProps) {
+export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1Age, spouse2Age }: SocialSecurityPlannerProps) {
   const handleChange = (spouse: 'spouse1' | 'spouse2', field: string, value: number) => {
     onChange({
       ...ssData,
@@ -43,16 +43,17 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus }: Social
     }).format(value);
   };
 
-  const renderSpouseSection = (spouse: 'spouse1' | 'spouse2', title: string) => {
+  const renderSpouseSection = (spouse: 'spouse1' | 'spouse2', title: string, currentAge: number) => {
     const data = ssData[spouse];
+    const fullRetirementAge = calculateFullRetirementAge(currentAge);
     const actualBenefit = calculateSocialSecurityBenefit(
       data.estimatedBenefit,
       data.claimAge,
-      data.fullRetirementAge
+      fullRetirementAge
     );
     const benefitChange = ((actualBenefit - data.estimatedBenefit) / data.estimatedBenefit) * 100;
-    const isDelayed = data.claimAge > data.fullRetirementAge;
-    const isEarly = data.claimAge < data.fullRetirementAge;
+    const isDelayed = data.claimAge > fullRetirementAge;
+    const isEarly = data.claimAge < fullRetirementAge;
 
     return (
       <div className="space-y-4">
@@ -132,18 +133,11 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus }: Social
           </Alert>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor={`${spouse}-fullRetirementAge`}>Full Retirement Age</Label>
-          <Input
-            id={`${spouse}-fullRetirementAge`}
-            type="number"
-            min="66"
-            max="67"
-            value={data.fullRetirementAge || ''}
-            onChange={(e) => handleChange(spouse, 'fullRetirementAge', parseFloat(e.target.value) || 67)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Typically 67 for those born in 1960 or later
+        <div className="p-3 bg-muted/50 rounded-md">
+          <p className="text-sm text-muted-foreground">
+            Full Retirement Age: <span className="font-medium text-foreground">{fullRetirementAge === Math.floor(fullRetirementAge) ? fullRetirementAge : `${Math.floor(fullRetirementAge)} years ${Math.round((fullRetirementAge % 1) * 12)} months`}</span>
+            <br />
+            <span className="text-xs">Automatically calculated based on current age ({currentAge})</span>
           </p>
         </div>
       </div>
@@ -161,10 +155,10 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus }: Social
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
-        {renderSpouseSection('spouse1', isSingleFiler ? 'Your Benefits' : 'Spouse 1')}
+        {renderSpouseSection('spouse1', isSingleFiler ? 'Your Benefits' : 'Spouse 1', spouse1Age)}
         {!isSingleFiler && (
           <div className="border-t pt-6">
-            {renderSpouseSection('spouse2', 'Spouse 2')}
+            {renderSpouseSection('spouse2', 'Spouse 2', spouse2Age)}
           </div>
         )}
       </CardContent>
