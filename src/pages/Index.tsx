@@ -17,7 +17,8 @@ import {
   calculateBracketConsistency,
   calculateStateSocialSecurityTax,
   calculateStateIncomeTax,
-  calculateStateCapitalGainsTax
+  calculateStateCapitalGainsTax,
+  calculateFullRetirementAge
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -34,12 +35,10 @@ const Index = () => {
     spouse1: {
       estimatedBenefit: 3000,
       claimAge: 67,
-      fullRetirementAge: 67,
     },
     spouse2: {
       estimatedBenefit: 3000,
       claimAge: 67,
-      fullRetirementAge: 67,
     },
   });
 
@@ -229,11 +228,19 @@ const Index = () => {
       const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, i);
       
       const ss1Annual = spouse1CurrentAge >= ssData.spouse1.claimAge && spouse1CurrentAge <= 100
-        ? calculateSocialSecurityBenefit(ssData.spouse1.estimatedBenefit, ssData.spouse1.claimAge, ssData.spouse1.fullRetirementAge) * 12 * inflationMultiplier
+        ? calculateSocialSecurityBenefit(
+            ssData.spouse1.estimatedBenefit, 
+            ssData.spouse1.claimAge, 
+            calculateFullRetirementAge(taxSettings.spouse1Age + i)
+          ) * 12 * inflationMultiplier
         : 0;
       
       const ss2Annual = spouse2CurrentAge >= ssData.spouse2.claimAge && spouse2CurrentAge <= 100
-        ? calculateSocialSecurityBenefit(ssData.spouse2.estimatedBenefit, ssData.spouse2.claimAge, ssData.spouse2.fullRetirementAge) * 12 * inflationMultiplier
+        ? calculateSocialSecurityBenefit(
+            ssData.spouse2.estimatedBenefit, 
+            ssData.spouse2.claimAge, 
+            calculateFullRetirementAge(taxSettings.spouse2Age + i)
+          ) * 12 * inflationMultiplier
         : 0;
       
       const ssAnnual = ss1Annual + ss2Annual;
@@ -568,7 +575,13 @@ const Index = () => {
               <div className="grid gap-6 lg:grid-cols-2">
                 <AccountInputs accounts={accounts} onChange={setAccounts} />
                 <div className="space-y-6">
-                  <SocialSecurityPlanner ssData={ssData} onChange={setSsData} filingStatus={taxSettings.filingStatus} />
+                  <SocialSecurityPlanner 
+                    ssData={ssData} 
+                    onChange={setSsData} 
+                    filingStatus={taxSettings.filingStatus} 
+                    spouse1Age={taxSettings.spouse1Age}
+                    spouse2Age={taxSettings.spouse2Age}
+                  />
                   <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
                 </div>
               </div>

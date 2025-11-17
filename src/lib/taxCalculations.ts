@@ -259,6 +259,20 @@ export function calculateIRMAA(
   return bracket ? bracket.premium * 12 * inflationMultiplier : 0;
 }
 
+// Calculate Full Retirement Age based on birth year
+export function calculateFullRetirementAge(currentAge: number): number {
+  const currentYear = new Date().getFullYear();
+  const birthYear = currentYear - currentAge;
+  
+  // SSA Full Retirement Age rules
+  if (birthYear <= 1954) return 66;
+  if (birthYear >= 1960) return 67;
+  
+  // For birth years 1955-1959, FRA increases by 2 months per year
+  const monthsToAdd = (birthYear - 1954) * 2;
+  return 66 + monthsToAdd / 12;
+}
+
 export function calculateSocialSecurityBenefit(
   baseAmount: number,
   claimAge: number,
