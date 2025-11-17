@@ -710,7 +710,7 @@ const Index = () => {
               <div className="grid gap-6 lg:grid-cols-2">
                 <AccountInputs accounts={accounts} onChange={setAccounts} />
                 <div className="space-y-6">
-                  <SocialSecurityPlanner ssData={ssData} onChange={setSsData} />
+                  <SocialSecurityPlanner ssData={ssData} onChange={setSsData} filingStatus={taxSettings.filingStatus} />
                   <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
                 </div>
               </div>
