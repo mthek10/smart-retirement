@@ -132,12 +132,34 @@ const Index = () => {
         const federalTax = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
         const federalCapitalGainsTax = calculateCapitalGainsTax(capitalGainsRealized, totalOrdinaryIncome, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
         
-        const stateTax = taxSettings.state !== 'none' 
-          ? calculateStateIncomeTax(totalOrdinaryIncome, taxSettings.state, taxSettings.filingStatus)
-          : 0;
-        const stateCapitalGainsTax = taxSettings.state !== 'none'
-          ? calculateStateCapitalGainsTax(capitalGainsRealized, totalOrdinaryIncome, taxSettings.state, taxSettings.filingStatus)
-          : 0;
+        // State tax calculation - must match main projection logic
+        let stateTax = 0;
+        let stateCapitalGainsTax = 0;
+        
+        if (taxSettings.state === 'other') {
+          // Use custom state rate
+          stateTax = totalOrdinaryIncome * (taxSettings.stateRate / 100);
+          stateCapitalGainsTax = capitalGainsRealized * (taxSettings.stateRate / 100);
+        } else if (taxSettings.state && taxSettings.state !== 'none') {
+          // Calculate state-specific social security tax
+          const agi = totalOrdinaryIncome + capitalGainsRealized;
+          const stateSSTax = calculateStateSocialSecurityTax(
+            ssAnnual,
+            agi,
+            taxSettings.filingStatus,
+            taxSettings.state,
+            spouse1Age
+          );
+          
+          // Calculate state income tax on non-SS ordinary income
+          const nonSSIncome = ordinaryIncome;
+          const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, taxSettings.state, taxSettings.filingStatus);
+          
+          // Calculate state capital gains tax
+          stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGainsRealized, nonSSIncome, taxSettings.state, taxSettings.filingStatus);
+          
+          stateTax = stateSSTax + stateIncomeTax;
+        }
         
         // Calculate IRMAA
         const magi = totalOrdinaryIncome + capitalGainsRealized;
