@@ -114,9 +114,9 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
         </div>
 
         {isEarly && (
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
+          <Alert className="border-none bg-transparent">
+            <Info className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive">
               Claiming early at age {data.claimAge} permanently reduces monthly benefit by approximately{' '}
               {Math.abs(benefitChange).toFixed(1)}%. Consider if income is needed now or can wait for higher benefits.
             </AlertDescription>
@@ -124,9 +124,9 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
         )}
 
         {isDelayed && (
-          <Alert className="border-success/50 bg-success/10">
-            <TrendingUp className="h-4 w-4 text-success" />
-            <AlertDescription className="text-success-foreground">
+          <Alert className="border-none bg-transparent">
+            <TrendingUp className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-600">
               Delaying until age {data.claimAge} increases monthly benefit by{' '}
               {benefitChange.toFixed(1)}% through delayed retirement credits. This increase is permanent and compounds with cost-of-living adjustments.
             </AlertDescription>
