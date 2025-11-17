@@ -14,14 +14,11 @@ import {
   calculateRMD,
   calculateCapitalGainsTax,
   getMarginalTaxBracket,
-  getBracketLimit,
   calculateBracketConsistency,
   calculateStateSocialSecurityTax,
   calculateStateIncomeTax,
   calculateStateCapitalGainsTax
 } from "@/lib/taxCalculations";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
 
 const Index = () => {
   const [accounts, setAccounts] = useState({
@@ -56,9 +53,6 @@ const Index = () => {
     inflationRate: 2.5,
     optimizeRothConversions: false,
     rothConversionTarget: 94300,
-    optimizeBracketConsistency: false,
-    targetBracketStrategy: 'auto',
-    customBracketLimit: 150000,
   });
 
   const projections = useMemo(() => {
@@ -126,9 +120,8 @@ const Index = () => {
         
         // Simulate Roth conversions (if optimization is enabled)
         let rothConversion = 0;
-        const shouldOptimize = taxSettings.optimizeBracketConsistency || taxSettings.optimizeRothConversions;
         
-        if (shouldOptimize && spouse1Age < 73 && testTrad > 0) {
+        if (taxSettings.optimizeRothConversions && spouse1Age < 73 && testTrad > 0) {
           const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
             ssAnnual,
             traditionalWithdrawn + capitalGainsRealized,
@@ -136,17 +129,7 @@ const Index = () => {
           );
           const totalOrdinaryIncomePreConversion = traditionalWithdrawn + taxableSSIncomePreConversion;
           
-          const targetLimit = taxSettings.optimizeBracketConsistency
-            ? (taxSettings.targetBracketStrategy === 'custom'
-                ? taxSettings.customBracketLimit * Math.pow(1 + taxSettings.inflationRate / 100, yearIndex)
-                : getBracketLimit(
-                    taxSettings.targetBracketStrategy === 'auto' ? '24%' : taxSettings.targetBracketStrategy,
-                    taxSettings.filingStatus,
-                    yearIndex,
-                    taxSettings.inflationRate
-                  ))
-            : taxSettings.rothConversionTarget * Math.pow(1 + taxSettings.inflationRate / 100, yearIndex);
-          
+          const targetLimit = taxSettings.rothConversionTarget * Math.pow(1 + taxSettings.inflationRate / 100, yearIndex);
           const conversionRoom = Math.max(0, targetLimit - totalOrdinaryIncomePreConversion);
           rothConversion = Math.min(conversionRoom, testTrad);
         }
@@ -222,77 +205,9 @@ const Index = () => {
       return (low + high) / 2;
     };
 
-    // PASS 1: Calculate optimal target bracket if using auto strategy
-    let autoTargetBracket = 0.22; // Default to 22% bracket
-    
-    if (taxSettings.optimizeBracketConsistency && taxSettings.targetBracketStrategy === 'auto') {
-      // Simulate to find optimal consistent bracket
-      let simTradBalance = accounts.traditional;
-      let simTaxableBalance = accounts.taxable;
-      const simResults = [];
-      
-      for (let i = 0; i <= maxYears && (simTradBalance > 1000 || simTaxableBalance > 1000); i++) {
-        const spouse1Age = taxSettings.spouse1Age + i;
-        const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, i);
-        
-        const ss1 = spouse1Age >= ssData.spouse1.claimAge ? ssData.spouse1.estimatedBenefit * 12 * inflationMultiplier : 0;
-        const ss2 = spouse1Age >= ssData.spouse2.claimAge ? ssData.spouse2.estimatedBenefit * 12 * inflationMultiplier : 0;
-        const ssAnnual = ss1 + ss2;
-        
-        const rmd = calculateRMD(simTradBalance, spouse1Age);
-        const adjustedExpenses = taxSettings.targetTakeHome * inflationMultiplier;
-        const required = Math.max(adjustedExpenses, rmd);
-        
-        let taxableW = Math.min(required, simTaxableBalance);
-        simTaxableBalance -= taxableW;
-        let tradW = Math.min(required - taxableW, simTradBalance);
-        simTradBalance -= tradW;
-        
-        const cg = taxableW * 0.5;
-        const ordinaryIncome = tradW;
-        const taxableSSIncome = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + cg, taxSettings.filingStatus);
-        const totalOrdinaryIncome = ordinaryIncome + taxableSSIncome;
-        const totalIncome = totalOrdinaryIncome + cg + ssAnnual;
-        
-        simResults.push({ totalOrdinaryIncome, totalIncome });
-        
-        simTradBalance *= (1 + accounts.traditionalReturn / 100);
-        simTaxableBalance *= (1 + accounts.taxableReturn / 100);
-      }
-      
-      // Calculate weighted average income
-      const totalIncome = simResults.reduce((sum, r) => sum + r.totalIncome, 0);
-      const avgOrdinaryIncome = simResults.reduce((sum, r) => {
-        const weight = r.totalIncome / totalIncome;
-        return sum + (r.totalOrdinaryIncome * weight);
-      }, 0);
-      
-      // Find bracket that fits this income level
-      if (avgOrdinaryIncome < 50000) autoTargetBracket = 0.12;
-      else if (avgOrdinaryIncome < 120000) autoTargetBracket = 0.22;
-      else if (avgOrdinaryIncome < 250000) autoTargetBracket = 0.24;
-      else autoTargetBracket = 0.32;
-    }
-    
     // Determine target conversion income for the year
     const getTargetIncomeLimit = (yearIndex: number): number => {
-      if (taxSettings.optimizeBracketConsistency) {
-        const strategy = taxSettings.targetBracketStrategy;
-        if (strategy === 'custom') {
-          const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, yearIndex);
-          return taxSettings.customBracketLimit * inflationMultiplier;
-        } else if (strategy === 'auto') {
-          return getBracketLimit(
-            autoTargetBracket === 0.12 ? '12%' : autoTargetBracket === 0.22 ? '22%' : autoTargetBracket === 0.24 ? '24%' : '32%',
-            taxSettings.filingStatus,
-            yearIndex,
-            taxSettings.inflationRate
-          );
-        } else {
-          return getBracketLimit(strategy, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate);
-        }
-      } else if (taxSettings.optimizeRothConversions) {
-        // Legacy logic for simple Roth conversion
+      if (taxSettings.optimizeRothConversions) {
         const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, yearIndex);
         return taxSettings.rothConversionTarget * inflationMultiplier;
       }
@@ -341,74 +256,33 @@ const Index = () => {
       console.log(`Year ${i}: Required Withdrawal = $${requiredWithdrawal.toFixed(2)}, SS = $${ssAnnual.toFixed(2)}`);
       let adjustedAnnualExpenses = adjustedTargetTakeHome; // For display purposes
 
-      // BRACKET-AWARE WITHDRAWAL SEQUENCING
+      // WITHDRAWAL SEQUENCING: Taxable → Traditional → Roth
       let withdrawalAmount = requiredWithdrawal;
       let taxableWithdrawal = 0;
       let traditionalWithdrawal = 0;
       let rothWithdrawal = 0;
 
-      if (taxSettings.optimizeBracketConsistency) {
-        // Smart withdrawal: Fill to target bracket, deplete Traditional and Taxable first
-        
-        // Start with Taxable (generates capital gains, not ordinary income)
-        if (taxableBalance > 0) {
-          taxableWithdrawal = Math.min(withdrawalAmount, taxableBalance);
-          withdrawalAmount -= taxableWithdrawal;
-          taxableBalance -= taxableWithdrawal;
-        }
+      if (taxableBalance > 0) {
+        taxableWithdrawal = Math.min(withdrawalAmount, taxableBalance);
+        withdrawalAmount -= taxableWithdrawal;
+        taxableBalance -= taxableWithdrawal;
+      }
 
-        // Calculate current ordinary income from mandatory sources
-        const capitalGains = taxableWithdrawal * 0.5;
-        let ordinaryIncome = rmd; // RMDs are mandatory
-        const taxableSSIncome = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGains, taxSettings.filingStatus);
-        ordinaryIncome += taxableSSIncome;
+      if (withdrawalAmount > 0 && tradBalance > 0) {
+        traditionalWithdrawal = Math.min(withdrawalAmount, tradBalance);
+        withdrawalAmount -= traditionalWithdrawal;
+        tradBalance -= traditionalWithdrawal;
+      }
 
-        // Check if we have room to target bracket
-        const targetLimit = getTargetIncomeLimit(i);
-        const roomInBracket = Math.max(0, targetLimit - ordinaryIncome);
-
-        // Fill bracket with additional Traditional withdrawals (reduces future RMDs)
-        if (roomInBracket > 0 && tradBalance > 0 && spouse1CurrentAge < 73) {
-          const additionalTrad = Math.min(roomInBracket, tradBalance);
-          traditionalWithdrawal += additionalTrad;
-          tradBalance -= additionalTrad;
-        } else if (withdrawalAmount > 0 && tradBalance > 0) {
-          // Need more for expenses
-          traditionalWithdrawal = Math.min(withdrawalAmount, tradBalance);
-          withdrawalAmount -= traditionalWithdrawal;
-          tradBalance -= traditionalWithdrawal;
-        }
-
-        // Use Roth only if both Traditional and Taxable are depleted
-        if (withdrawalAmount > 0 && rothBalance > 0) {
-          rothWithdrawal = Math.min(withdrawalAmount, rothBalance);
-          rothBalance -= rothWithdrawal;
-        }
-      } else {
-        // Original sequencing: Taxable → Traditional → Roth
-        if (taxableBalance > 0) {
-          taxableWithdrawal = Math.min(withdrawalAmount, taxableBalance);
-          withdrawalAmount -= taxableWithdrawal;
-          taxableBalance -= taxableWithdrawal;
-        }
-
-        if (withdrawalAmount > 0 && tradBalance > 0) {
-          traditionalWithdrawal = Math.min(withdrawalAmount, tradBalance);
-          withdrawalAmount -= traditionalWithdrawal;
-          tradBalance -= traditionalWithdrawal;
-        }
-
-        if (withdrawalAmount > 0 && rothBalance > 0) {
-          rothWithdrawal = Math.min(withdrawalAmount, rothBalance);
-          rothBalance -= rothWithdrawal;
-        }
+      if (withdrawalAmount > 0 && rothBalance > 0) {
+        rothWithdrawal = Math.min(withdrawalAmount, rothBalance);
+        rothBalance -= rothWithdrawal;
       }
 
       // ROTH CONVERSION OPTIMIZATION (IRMAA-AWARE)
       let rothConversion = 0;
-      const shouldOptimize = taxSettings.optimizeBracketConsistency || taxSettings.optimizeRothConversions;
       
-      if (shouldOptimize && spouse1CurrentAge < 73 && tradBalance > 0) {
+      if (taxSettings.optimizeRothConversions && spouse1CurrentAge < 73 && tradBalance > 0) {
         // Calculate current income before conversion
         const capitalGains = taxableWithdrawal * 0.5;
         const ordinaryIncomePreConversion = traditionalWithdrawal;
@@ -682,22 +556,6 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
           <SummaryCards {...summary} />
-
-          {taxSettings.optimizeBracketConsistency && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Bracket Optimization Active</AlertTitle>
-              <AlertDescription>
-                Withdrawals and conversions are optimized to maintain consistent tax brackets. 
-                Traditional and Taxable accounts will be strategically depleted first, preserving Roth for maximum tax-free growth.
-                {taxSettings.targetBracketStrategy === 'auto' && detailedMetrics.bracketConsistency && (
-                  <span className="block mt-1 font-medium">
-                    Target: {(detailedMetrics.avgBracket * 100).toFixed(0)}% bracket
-                  </span>
-                )}
-              </AlertDescription>
-            </Alert>
-          )}
 
           <Tabs defaultValue="inputs" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
