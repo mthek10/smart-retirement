@@ -191,9 +191,11 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
             id="inflationRate"
             type="number"
             step="0.1"
-            placeholder="2.5"
+            min="0"
+            max="15"
+            placeholder="3.0"
             value={taxSettings.inflationRate || ''}
-            onChange={(e) => handleChange('inflationRate', parseFloat(e.target.value) || 2.5)}
+            onChange={(e) => handleChange('inflationRate', parseFloat(e.target.value) || 3)}
           />
           <p className="text-xs text-muted-foreground">
             Applied to Social Security benefits and standard deduction

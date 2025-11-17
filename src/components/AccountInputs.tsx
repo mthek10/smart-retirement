@@ -56,7 +56,9 @@ export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
               id="traditionalReturn"
               type="number"
               step="0.1"
-              placeholder="7.0"
+              min="0"
+              max="15"
+              placeholder="3.0"
               value={accounts.traditionalReturn || ''}
               onChange={(e) => handleChange('traditionalReturn', e.target.value)}
             />
@@ -83,7 +85,9 @@ export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
               id="rothReturn"
               type="number"
               step="0.1"
-              placeholder="7.0"
+              min="0"
+              max="15"
+              placeholder="3.0"
               value={accounts.rothReturn || ''}
               onChange={(e) => handleChange('rothReturn', e.target.value)}
             />
@@ -110,7 +114,9 @@ export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
               id="taxableReturn"
               type="number"
               step="0.1"
-              placeholder="6.0"
+              min="0"
+              max="15"
+              placeholder="3.0"
               value={accounts.taxableReturn || ''}
               onChange={(e) => handleChange('taxableReturn', e.target.value)}
             />
