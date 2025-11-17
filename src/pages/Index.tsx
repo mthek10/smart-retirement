@@ -27,9 +27,9 @@ const Index = () => {
     traditional: 5000000,
     roth: 0,
     taxable: 3000000,
-    traditionalReturn: 4,
-    rothReturn: 4,
-    taxableReturn: 4,
+    traditionalReturn: 3,
+    rothReturn: 3,
+    taxableReturn: 3,
   });
 
   const [ssData, setSsData] = useState({
@@ -50,7 +50,7 @@ const Index = () => {
     spouse1Age: 60,
     spouse2Age: 58,
     targetTakeHome: 80000,
-    inflationRate: 2.5,
+    inflationRate: 3,
     optimizeRothConversions: false,
     rothConversionTarget: 94300,
   });
