@@ -498,7 +498,7 @@ const Index = () => {
   }, [projections]);
 
   const taxChartData = useMemo(() => {
-    return projections.map(p => ({
+    const allTaxData = projections.map(p => ({
       year: p.year,
       "Federal Tax": p.federalTax,
       "State Tax": p.stateTax,
@@ -506,6 +506,22 @@ const Index = () => {
       "State CG Tax": p.stateCapitalGainsTax,
       "IRMAA": p.irmaa,
     }));
+
+    // Find the last year where any tax/IRMAA is greater than zero
+    let lastNonZeroIndex = -1;
+    for (let i = allTaxData.length - 1; i >= 0; i--) {
+      const data = allTaxData[i];
+      if (data["Federal Tax"] > 0 || data["State Tax"] > 0 || 
+          data["Federal CG Tax"] > 0 || data["State CG Tax"] > 0 || 
+          data["IRMAA"] > 0) {
+        lastNonZeroIndex = i;
+        break;
+      }
+    }
+
+    // Return data up to 2 years after the last non-zero year
+    if (lastNonZeroIndex === -1) return allTaxData;
+    return allTaxData.slice(0, Math.min(lastNonZeroIndex + 3, allTaxData.length));
   }, [projections]);
 
   const detailedMetrics = useMemo(() => {
