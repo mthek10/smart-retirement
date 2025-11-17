@@ -43,13 +43,27 @@ export function TaxChart({ data }: TaxChartProps) {
               tick={{ fill: 'hsl(var(--foreground))' }}
             />
             <YAxis 
+              yAxisId="left"
               className="text-xs"
               tick={{ fill: 'hsl(var(--foreground))' }}
               tickFormatter={(value) => formatCurrency(value)}
               label={{ 
-                value: 'Annual Amount', 
+                value: 'Other Taxes & IRMAA', 
                 angle: -90, 
                 position: 'insideLeft',
+                style: { fill: 'hsl(var(--foreground))' }
+              }}
+            />
+            <YAxis 
+              yAxisId="right"
+              orientation="right"
+              className="text-xs"
+              tick={{ fill: 'hsl(var(--foreground))' }}
+              tickFormatter={(value) => formatCurrency(value)}
+              label={{ 
+                value: 'Federal Tax', 
+                angle: 90, 
+                position: 'insideRight',
                 style: { fill: 'hsl(var(--foreground))' }
               }}
             />
@@ -66,8 +80,9 @@ export function TaxChart({ data }: TaxChartProps) {
               type="monotone" 
               dataKey="Federal Tax" 
               stroke="hsl(var(--chart-1))" 
-              strokeWidth={2}
+              strokeWidth={3}
               dot={false}
+              yAxisId="right"
             />
             <Line 
               type="monotone" 
@@ -75,6 +90,7 @@ export function TaxChart({ data }: TaxChartProps) {
               stroke="hsl(var(--chart-2))" 
               strokeWidth={2}
               dot={false}
+              yAxisId="left"
             />
             <Line 
               type="monotone" 
@@ -82,6 +98,7 @@ export function TaxChart({ data }: TaxChartProps) {
               stroke="hsl(var(--chart-3))" 
               strokeWidth={2}
               dot={false}
+              yAxisId="left"
             />
             <Line 
               type="monotone" 
@@ -89,6 +106,7 @@ export function TaxChart({ data }: TaxChartProps) {
               stroke="hsl(var(--chart-4))" 
               strokeWidth={2}
               dot={false}
+              yAxisId="left"
             />
             <Line 
               type="monotone" 
@@ -96,6 +114,7 @@ export function TaxChart({ data }: TaxChartProps) {
               stroke="hsl(var(--chart-5))" 
               strokeWidth={2}
               dot={false}
+              yAxisId="left"
             />
             <Line 
               type="monotone" 
@@ -104,6 +123,7 @@ export function TaxChart({ data }: TaxChartProps) {
               strokeWidth={2}
               dot={false}
               strokeDasharray="5 5"
+              yAxisId="left"
             />
           </LineChart>
         </ResponsiveContainer>
