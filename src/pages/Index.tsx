@@ -124,8 +124,35 @@ const Index = () => {
           remaining -= fromRoth;
         }
         
-        // Calculate taxes
-        const ordinaryIncome = traditionalWithdrawn;
+        // Simulate Roth conversions (if optimization is enabled)
+        let rothConversion = 0;
+        const shouldOptimize = taxSettings.optimizeBracketConsistency || taxSettings.optimizeRothConversions;
+        
+        if (shouldOptimize && spouse1Age < 73 && testTrad > 0) {
+          const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
+            ssAnnual,
+            traditionalWithdrawn + capitalGainsRealized,
+            taxSettings.filingStatus
+          );
+          const totalOrdinaryIncomePreConversion = traditionalWithdrawn + taxableSSIncomePreConversion;
+          
+          const targetLimit = taxSettings.optimizeBracketConsistency
+            ? (taxSettings.targetBracketStrategy === 'custom'
+                ? taxSettings.customBracketLimit * Math.pow(1 + taxSettings.inflationRate / 100, yearIndex)
+                : getBracketLimit(
+                    taxSettings.targetBracketStrategy === 'auto' ? '24%' : taxSettings.targetBracketStrategy,
+                    taxSettings.filingStatus,
+                    yearIndex,
+                    taxSettings.inflationRate
+                  ))
+            : taxSettings.rothConversionTarget * Math.pow(1 + taxSettings.inflationRate / 100, yearIndex);
+          
+          const conversionRoom = Math.max(0, targetLimit - totalOrdinaryIncomePreConversion);
+          rothConversion = Math.min(conversionRoom, testTrad);
+        }
+        
+        // Calculate taxes (including Roth conversion in ordinary income)
+        const ordinaryIncome = traditionalWithdrawn + rothConversion;
         const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGainsRealized, taxSettings.filingStatus);
         const totalOrdinaryIncome = ordinaryIncome + taxableSS;
         
