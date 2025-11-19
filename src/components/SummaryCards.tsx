@@ -6,6 +6,7 @@ interface SummaryCardsProps {
   totalTaxes: number;
   totalIRMAA: number;
   totalNIIT: number;
+  totalAMT: number;
   avgWithdrawal: number;
   tradDepletionAge?: number | null;
   taxableDepletionAge?: number | null;
@@ -19,6 +20,7 @@ export function SummaryCards({
   totalTaxes, 
   totalIRMAA, 
   totalNIIT,
+  totalAMT,
   avgWithdrawal,
   tradDepletionAge,
   taxableDepletionAge,
@@ -71,6 +73,14 @@ export function SummaryCards({
     {
       title: "Total NIIT (Lifetime)",
       value: totalNIIT,
+      icon: TrendingDown,
+      color: "text-destructive",
+      isAge: false,
+      subtitle: undefined,
+    },
+    {
+      title: "Total AMT (Lifetime)",
+      value: totalAMT,
       icon: TrendingDown,
       color: "text-destructive",
       isAge: false,

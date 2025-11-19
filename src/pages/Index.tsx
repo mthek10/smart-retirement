@@ -20,7 +20,8 @@ import {
   calculateStateIncomeTax,
   calculateStateCapitalGainsTax,
   calculateFullRetirementAge,
-  calculateNIIT
+  calculateNIIT,
+  calculateAMT
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -185,8 +186,11 @@ const Index = () => {
         // Calculate NIIT (Net Investment Income Tax)
         const niit = calculateNIIT(capitalGainsRealized, magi, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
         
+        // Calculate AMT (Alternative Minimum Tax)
+        const amt = calculateAMT(totalOrdinaryIncome, capitalGainsRealized, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
+        
         // Calculate actual take home
-        const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - niit;
+        const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - niit - amt;
         
         // Check if we're within tolerance
         if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
@@ -450,13 +454,16 @@ const Index = () => {
       // Calculate NIIT (Net Investment Income Tax - 3.8% on investment income when MAGI exceeds thresholds)
       const niit = calculateNIIT(capitalGains, magi, taxSettings.filingStatus, i, taxSettings.inflationRate);
 
+      // Calculate AMT (Alternative Minimum Tax)
+      const amt = calculateAMT(totalOrdinaryIncome, capitalGains, taxSettings.filingStatus, i, taxSettings.inflationRate);
+
       // Apply growth to remaining balances
       tradBalance *= (1 + accounts.traditionalReturn / 100);
       rothBalance *= (1 + accounts.rothReturn / 100);
       taxableBalance *= (1 + accounts.taxableReturn / 100);
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-      const takeHome = totalWithdrawals + ssAnnual - federalTax - stateTax - stateCapitalGainsTax - irmaa - niit;
+      const takeHome = totalWithdrawals + ssAnnual - federalTax - stateTax - stateCapitalGainsTax - irmaa - niit - amt;
       
       if (i === 0) {
         console.log(`Year ${i} Final Calculation:`);
@@ -467,6 +474,7 @@ const Index = () => {
         console.log(`  State CG Tax: $${stateCapitalGainsTax.toFixed(2)}`);
         console.log(`  IRMAA: $${irmaa.toFixed(2)}`);
         console.log(`  NIIT: $${niit.toFixed(2)}`);
+        console.log(`  AMT: $${amt.toFixed(2)}`);
         console.log(`  Actual Take Home: $${takeHome.toFixed(2)}`);
         console.log(`  Target Take Home: $${taxSettings.targetTakeHome.toFixed(2)}`);
       }
@@ -485,6 +493,7 @@ const Index = () => {
         stateCapitalGainsTax,
         irmaa,
         niit,
+        amt,
         takeHome,
         rmd,
         totalIncome: ssAnnual + totalWithdrawals,
@@ -515,15 +524,16 @@ const Index = () => {
       "State CG Tax": p.stateCapitalGainsTax,
       "IRMAA": p.irmaa,
       "NIIT": p.niit,
+      "AMT": p.amt,
     }));
 
-    // Find the last year where any tax/IRMAA/NIIT is greater than zero
+    // Find the last year where any tax/IRMAA/NIIT/AMT is greater than zero
     let lastNonZeroIndex = -1;
     for (let i = allTaxData.length - 1; i >= 0; i--) {
       const data = allTaxData[i];
       if (data["Federal Tax"] > 0 || data["State Tax"] > 0 || 
           data["Federal CG Tax"] > 0 || data["State CG Tax"] > 0 || 
-          data["IRMAA"] > 0 || data["NIIT"] > 0) {
+          data["IRMAA"] > 0 || data["NIIT"] > 0 || data["AMT"] > 0) {
         lastNonZeroIndex = i;
         break;
       }
@@ -574,6 +584,7 @@ const Index = () => {
     const totalTaxes = projections.reduce((sum, p) => sum + p.federalTax + p.stateTax + p.stateCapitalGainsTax, 0);
     const totalIRMAA = projections.reduce((sum, p) => sum + p.irmaa, 0);
     const totalNIIT = projections.reduce((sum, p) => sum + p.niit, 0);
+    const totalAMT = projections.reduce((sum, p) => sum + p.amt, 0);
     const avgWithdrawal = projections.length > 0 
       ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 
       : 0;
@@ -584,6 +595,7 @@ const Index = () => {
       totalTaxes, 
       totalIRMAA, 
       totalNIIT,
+      totalAMT,
       avgWithdrawal,
       ...detailedMetrics
     };
