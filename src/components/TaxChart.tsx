@@ -9,6 +9,7 @@ interface TaxChartDataPoint {
   "State CG Tax": number;
   "IRMAA": number;
   "NIIT": number;
+  "AMT": number;
 }
 
 interface TaxChartProps {
@@ -123,6 +124,15 @@ export function TaxChart({ data }: TaxChartProps) {
               strokeWidth={2}
               dot={false}
               strokeDasharray="5 5"
+              yAxisId="left"
+            />
+            <Line 
+              type="monotone" 
+              dataKey="AMT" 
+              stroke="hsl(var(--chart-2))" 
+              strokeWidth={2}
+              dot={false}
+              strokeDasharray="3 3"
               yAxisId="left"
             />
           </LineChart>

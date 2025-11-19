@@ -77,6 +77,20 @@ export const niitThresholds2024: Record<string, number> = {
   separate: 125000,
 };
 
+// Alternative Minimum Tax (AMT) brackets for 2024
+export const amtBrackets2024: TaxBracket[] = [
+  { min: 0, max: 220700, rate: 0.26 },
+  { min: 220700, max: Infinity, rate: 0.28 },
+];
+
+// AMT exemption amounts and phase-out thresholds for 2024
+export const amtExemptions2024: Record<string, { exemption: number; phaseoutStart: number }> = {
+  single: { exemption: 85700, phaseoutStart: 609350 },
+  married: { exemption: 133300, phaseoutStart: 1218700 },
+  hoh: { exemption: 85700, phaseoutStart: 609350 },
+  separate: { exemption: 66650, phaseoutStart: 609350 },
+};
+
 // State tax data structure
 interface StateTaxBracket {
   min: number;
@@ -673,4 +687,92 @@ export function calculateBracketConsistency(projections: any[]): {
     yearsInTarget,
     targetBracket,
   };
+}
+
+/**
+ * Calculate Alternative Minimum Taxable Income (AMTI)
+ * AMTI = Regular taxable income + AMT adjustments and preferences
+ */
+export function calculateAMTI(
+  income: number,
+  capitalGains: number,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const standardDeduction = baseDeduction * inflationMultiplier;
+  
+  // Start with regular taxable income
+  const regularTaxableIncome = Math.max(0, income - standardDeduction);
+  
+  // AMT Adjustments and Preferences:
+  // 1. Add back state and local taxes (not applicable in this model)
+  // 2. Add back miscellaneous deductions (not applicable in this model)
+  // 3. Standard deduction is added back for AMT
+  // 4. Personal exemptions are added back (not applicable post-TCJA)
+  
+  // For retirement planning, key adjustments are:
+  // - State/local tax deduction added back (we don't model itemized deductions)
+  // - Standard deduction added back
+  const amti = regularTaxableIncome + standardDeduction;
+  
+  return amti;
+}
+
+/**
+ * Calculate Alternative Minimum Tax (AMT)
+ * Returns the AMT liability or 0 if regular tax is higher
+ */
+export function calculateAMT(
+  income: number,
+  capitalGains: number,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  
+  // Calculate AMTI
+  const amti = calculateAMTI(income, capitalGains, filingStatus, yearIndex, inflationRate);
+  
+  // Get exemption and phase-out threshold
+  const exemptionData = amtExemptions2024[filingStatus] || amtExemptions2024.single;
+  const exemption = exemptionData.exemption * inflationMultiplier;
+  const phaseoutStart = exemptionData.phaseoutStart * inflationMultiplier;
+  
+  // Calculate AMT exemption with phase-out
+  // Phase-out rate is 25 cents per dollar over threshold
+  let applicableExemption = exemption;
+  if (amti > phaseoutStart) {
+    const phaseoutAmount = (amti - phaseoutStart) * 0.25;
+    applicableExemption = Math.max(0, exemption - phaseoutAmount);
+  }
+  
+  // Calculate AMT taxable income
+  const amtTaxableIncome = Math.max(0, amti - applicableExemption);
+  
+  // Calculate tentative minimum tax using AMT brackets
+  let tentativeMinimumTax = 0;
+  for (const bracket of amtBrackets2024) {
+    const inflatedMin = bracket.min * inflationMultiplier;
+    const inflatedMax = bracket.max * inflationMultiplier;
+    
+    if (amtTaxableIncome > inflatedMin) {
+      const taxableInBracket = Math.min(
+        amtTaxableIncome - inflatedMin,
+        inflatedMax - inflatedMin
+      );
+      tentativeMinimumTax += taxableInBracket * bracket.rate;
+    }
+  }
+  
+  // Calculate regular tax for comparison
+  const regularTax = calculateFederalTax(income, filingStatus, yearIndex, inflationRate);
+  
+  // AMT is the excess of tentative minimum tax over regular tax
+  const amtLiability = Math.max(0, tentativeMinimumTax - regularTax);
+  
+  return amtLiability;
 }
