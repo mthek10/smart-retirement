@@ -587,6 +587,8 @@ const Index = () => {
         console.log(`  Target Take Home: $${taxSettings.targetTakeHome.toFixed(2)}`);
       }
       
+      const totalTaxes = federalTax + federalTaxCapitalGains + stateTax + stateCapitalGainsTax + irmaa + niit + amt;
+      
       results.push({
         year,
         age,
@@ -607,6 +609,7 @@ const Index = () => {
         irmaa,
         niit,
         amt,
+        totalTaxes,
         takeHome,
         rmd,
         totalIncome: ssAnnual + totalWithdrawals + netWages,

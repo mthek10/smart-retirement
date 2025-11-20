@@ -24,6 +24,7 @@ interface YearProjection {
   irmaa: number;
   niit: number;
   amt: number;
+  totalTaxes: number;
   takeHome: number;
   rmd: number;
   totalIncome: number;
@@ -79,13 +80,14 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                 <TableHead className="font-semibold text-right">IRMAA</TableHead>
                 <TableHead className="font-semibold text-right">NIIT</TableHead>
                 <TableHead className="font-semibold text-right">AMT</TableHead>
+                <TableHead className="font-semibold text-right">Total Taxes</TableHead>
                 <TableHead className="font-semibold text-right">Take Home</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {projections.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={19} className="text-center text-muted-foreground">
+                  <TableCell colSpan={20} className="text-center text-muted-foreground">
                     Enter your account information to see projections
                   </TableCell>
                 </TableRow>
@@ -193,6 +195,9 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                     </TableCell>
                     <TableCell className="text-right text-destructive">
                       {formatCurrency(projection.amt)}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-destructive">
+                      {formatCurrency(projection.totalTaxes)}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-primary">
                       {formatCurrency(projection.takeHome)}
