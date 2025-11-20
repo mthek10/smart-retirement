@@ -261,7 +261,7 @@ const Index = () => {
         ? calculateSocialSecurityBenefit(
             ssData.spouse1.estimatedBenefit, 
             ssData.spouse1.claimAge, 
-            calculateFullRetirementAge(taxSettings.spouse1Age + i)
+            calculateFullRetirementAge(taxSettings.spouse1Age)
           ) * 12 * inflationMultiplier
         : 0;
       
@@ -269,7 +269,7 @@ const Index = () => {
         ? calculateSocialSecurityBenefit(
             ssData.spouse2.estimatedBenefit, 
             ssData.spouse2.claimAge, 
-            calculateFullRetirementAge(taxSettings.spouse2Age + i)
+            calculateFullRetirementAge(taxSettings.spouse2Age)
           ) * 12 * inflationMultiplier
         : 0;
       
