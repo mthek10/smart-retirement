@@ -11,6 +11,11 @@ interface YearProjection {
   rothBalance: number;
   taxableBalance: number;
   ssIncome: number;
+  employmentIncome?: number;
+  netWages?: number;
+  payrollTax?: number;
+  contributions401k?: number;
+  employerMatch?: number;
   withdrawals: number;
   federalTax: number;
   federalCapitalGainsTax: number;
@@ -62,6 +67,8 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                 <TableHead className="font-semibold text-right">Roth</TableHead>
                 <TableHead className="font-semibold text-right">Brokerage</TableHead>
                 <TableHead className="font-semibold text-right">SS Income</TableHead>
+                <TableHead className="font-semibold text-right">Wages</TableHead>
+                <TableHead className="font-semibold text-right">Payroll Tax</TableHead>
                 <TableHead className="font-semibold text-right">Withdrawals</TableHead>
                 <TableHead className="font-semibold text-right">Conversion</TableHead>
                 <TableHead className="font-semibold text-right">Tax Bracket</TableHead>
@@ -78,7 +85,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
             <TableBody>
               {projections.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={17} className="text-center text-muted-foreground">
+                  <TableCell colSpan={19} className="text-center text-muted-foreground">
                     Enter your account information to see projections
                   </TableCell>
                 </TableRow>
@@ -113,6 +120,24 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                     </TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(projection.ssIncome)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {projection.employmentIncome && projection.employmentIncome > 0 ? (
+                        <span className="text-green-600 dark:text-green-400">
+                          {formatCurrency(projection.employmentIncome)}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {projection.payrollTax && projection.payrollTax > 0 ? (
+                        <span className="text-destructive">
+                          {formatCurrency(projection.payrollTax)}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(projection.withdrawals)}

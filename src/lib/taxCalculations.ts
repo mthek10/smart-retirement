@@ -91,6 +91,22 @@ export const amtExemptions2024: Record<string, { exemption: number; phaseoutStar
   separate: { exemption: 66650, phaseoutStart: 609350 },
 };
 
+// Social Security and Medicare tax rates
+export const socialSecurityWageBase2024 = 168600;
+export const socialSecurityRate = 0.062;
+export const medicareRate = 0.0145;
+export const additionalMedicareRate = 0.009;
+export const additionalMedicareThreshold: Record<string, number> = {
+  single: 200000,
+  married: 250000,
+  hoh: 200000,
+  separate: 125000,
+};
+
+// 401(k) contribution limits
+export const contribution401kLimit2024 = 23000;
+export const contribution401kCatchup2024 = 7500; // Age 50+
+
 // State tax data structure
 interface StateTaxBracket {
   min: number;
@@ -775,4 +791,70 @@ export function calculateAMT(
   const amtLiability = Math.max(0, tentativeMinimumTax - regularTax);
   
   return amtLiability;
+}
+
+// Calculate Social Security (FICA) tax on wages
+export function calculateFICATax(
+  wages: number,
+  yearIndex: number = 0,
+  inflationRate: number = 0.03
+): number {
+  const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
+  const wageBase = socialSecurityWageBase2024 * inflationFactor;
+  
+  const taxableWages = Math.min(wages, wageBase);
+  return taxableWages * socialSecurityRate;
+}
+
+// Calculate Medicare tax on wages (includes Additional Medicare Tax)
+export function calculateMedicareTax(
+  wages: number,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0.03
+): number {
+  const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
+  const additionalThreshold = (additionalMedicareThreshold[filingStatus] || additionalMedicareThreshold.single) * inflationFactor;
+  
+  // Base Medicare tax on all wages
+  let medicareTax = wages * medicareRate;
+  
+  // Additional Medicare Tax on wages over threshold
+  if (wages > additionalThreshold) {
+    medicareTax += (wages - additionalThreshold) * additionalMedicareRate;
+  }
+  
+  return medicareTax;
+}
+
+// Calculate 401(k) contribution with limits
+export function calculate401kContribution(
+  wages: number,
+  contributionPercent: number,
+  age: number,
+  yearIndex: number = 0,
+  inflationRate: number = 0.03
+): number {
+  if (contributionPercent <= 0 || wages <= 0) return 0;
+  
+  const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
+  const baseLimit = contribution401kLimit2024 * inflationFactor;
+  const catchupLimit = age >= 50 ? contribution401kCatchup2024 * inflationFactor : 0;
+  const totalLimit = baseLimit + catchupLimit;
+  
+  const desiredContribution = wages * (contributionPercent / 100);
+  return Math.min(desiredContribution, totalLimit);
+}
+
+// Calculate employer 401(k) match
+export function calculate401kEmployerMatch(
+  wages: number,
+  employeeContribution: number,
+  matchPercent: number,
+  matchLimit: number = 100 // Default: match up to 100% of employee contribution
+): number {
+  if (matchPercent <= 0) return 0;
+  
+  const matchBasis = Math.min(employeeContribution, wages * (matchLimit / 100));
+  return matchBasis * (matchPercent / 100);
 }

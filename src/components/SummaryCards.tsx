@@ -7,6 +7,9 @@ interface SummaryCardsProps {
   totalIRMAA: number;
   totalNIIT: number;
   totalAMT: number;
+  totalEmploymentIncome?: number;
+  totalPayrollTax?: number;
+  total401kContributions?: number;
   avgWithdrawal: number;
   tradDepletionAge?: number | null;
   taxableDepletionAge?: number | null;
@@ -21,6 +24,9 @@ export function SummaryCards({
   totalIRMAA, 
   totalNIIT,
   totalAMT,
+  totalEmploymentIncome,
+  totalPayrollTax,
+  total401kContributions,
   avgWithdrawal,
   tradDepletionAge,
   taxableDepletionAge,
@@ -54,6 +60,30 @@ export function SummaryCards({
       isAge: false,
       subtitle: undefined,
     },
+    ...(totalEmploymentIncome && totalEmploymentIncome > 0 ? [{
+      title: "Total Employment Income",
+      value: totalEmploymentIncome,
+      icon: DollarSign,
+      color: "text-green-600",
+      isAge: false,
+      subtitle: undefined,
+    }] : []),
+    ...(totalPayrollTax && totalPayrollTax > 0 ? [{
+      title: "Total Payroll Tax",
+      value: totalPayrollTax,
+      icon: TrendingDown,
+      color: "text-destructive",
+      isAge: false,
+      subtitle: undefined,
+    }] : []),
+    ...(total401kContributions && total401kContributions > 0 ? [{
+      title: "Total 401(k) Contributions",
+      value: total401kContributions,
+      icon: Landmark,
+      color: "text-primary",
+      isAge: false,
+      subtitle: undefined,
+    }] : []),
     {
       title: "Total Taxes (Lifetime)",
       value: totalTaxes,
