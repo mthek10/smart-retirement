@@ -698,12 +698,16 @@ const Index = () => {
   }, [projections, taxSettings.spouse1Age, accounts.roth]);
 
   const summary = useMemo(() => {
-    const totalTaxes = projections.reduce((sum, p) => sum + p.federalTax + p.stateTax + p.stateCapitalGainsTax, 0);
+    const totalFederalTax = projections.reduce((sum, p) => sum + p.federalTax, 0);
+    const totalFederalCGTax = projections.reduce((sum, p) => sum + p.federalCapitalGainsTax, 0);
+    const totalStateTax = projections.reduce((sum, p) => sum + p.stateTax, 0);
+    const totalStateCGTax = projections.reduce((sum, p) => sum + p.stateCapitalGainsTax, 0);
     const totalIRMAA = projections.reduce((sum, p) => sum + p.irmaa, 0);
     const totalNIIT = projections.reduce((sum, p) => sum + p.niit, 0);
     const totalAMT = projections.reduce((sum, p) => sum + p.amt, 0);
-    const totalEmploymentIncome = projections.reduce((sum, p) => sum + (p.employmentIncome || 0), 0);
     const totalPayrollTax = projections.reduce((sum, p) => sum + (p.payrollTax || 0), 0);
+    const lifetimeTotalTaxes = totalFederalTax + totalFederalCGTax + totalStateTax + totalStateCGTax + totalIRMAA + totalNIIT + totalAMT + totalPayrollTax;
+    const totalEmploymentIncome = projections.reduce((sum, p) => sum + (p.employmentIncome || 0), 0);
     const total401kContributions = projections.reduce((sum, p) => sum + (p.contributions401k || 0), 0);
     const avgWithdrawal = projections.length > 0 
       ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 
@@ -712,12 +716,16 @@ const Index = () => {
 
     return { 
       totalPortfolio, 
-      totalTaxes, 
+      lifetimeTotalTaxes,
+      totalFederalTax,
+      totalFederalCGTax,
+      totalStateTax,
+      totalStateCGTax,
       totalIRMAA, 
       totalNIIT,
       totalAMT,
-      totalEmploymentIncome,
       totalPayrollTax,
+      totalEmploymentIncome,
       total401kContributions,
       avgWithdrawal,
       ...detailedMetrics
