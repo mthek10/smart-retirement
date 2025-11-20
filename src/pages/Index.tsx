@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { AccountInputs } from "@/components/AccountInputs";
 import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
+import { EmploymentInputs } from "@/components/EmploymentInputs";
 import { ProjectionTable } from "@/components/ProjectionTable";
 import { ProjectionChart } from "@/components/ProjectionChart";
 import { TaxChart } from "@/components/TaxChart";
@@ -21,7 +22,11 @@ import {
   calculateStateCapitalGainsTax,
   calculateFullRetirementAge,
   calculateNIIT,
-  calculateAMT
+  calculateAMT,
+  calculateFICATax,
+  calculateMedicareTax,
+  calculate401kContribution,
+  calculate401kEmployerMatch
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -55,6 +60,22 @@ const Index = () => {
     inflationRate: 3,
     optimizeRothConversions: false,
     rothConversionTarget: 94300,
+    spouse1Employment: {
+      currentIncome: 0,
+      retirementAge: 65,
+      contributes401k: false,
+      contribution401kPercent: 0,
+      employerMatchPercent: 0,
+      employerMatchLimit: 0,
+    },
+    spouse2Employment: {
+      currentIncome: 0,
+      retirementAge: 65,
+      contributes401k: false,
+      contribution401kPercent: 0,
+      employerMatchPercent: 0,
+      employerMatchLimit: 0,
+    },
   });
 
   const projections = useMemo(() => {
@@ -254,13 +275,82 @@ const Index = () => {
       
       const ssAnnual = ss1Annual + ss2Annual;
 
+      // Calculate employment income if spouses are still working
+      const spouse1Working = spouse1CurrentAge < taxSettings.spouse1Employment.retirementAge;
+      const spouse2Working = spouse2CurrentAge < taxSettings.spouse2Employment.retirementAge;
+      
+      const spouse1Wages = spouse1Working 
+        ? taxSettings.spouse1Employment.currentIncome * inflationMultiplier 
+        : 0;
+      const spouse2Wages = spouse2Working
+        ? taxSettings.spouse2Employment.currentIncome * inflationMultiplier
+        : 0;
+      
+      const totalWages = spouse1Wages + spouse2Wages;
+      
+      // Calculate 401(k) contributions
+      const spouse1_401k = spouse1Working && taxSettings.spouse1Employment.contributes401k
+        ? calculate401kContribution(
+            spouse1Wages,
+            taxSettings.spouse1Employment.contribution401kPercent,
+            spouse1CurrentAge,
+            i,
+            taxSettings.inflationRate / 100
+          )
+        : 0;
+      
+      const spouse2_401k = spouse2Working && taxSettings.spouse2Employment.contributes401k
+        ? calculate401kContribution(
+            spouse2Wages,
+            taxSettings.spouse2Employment.contribution401kPercent,
+            spouse2CurrentAge,
+            i,
+            taxSettings.inflationRate / 100
+          )
+        : 0;
+      
+      const total401kContributions = spouse1_401k + spouse2_401k;
+      
+      // Calculate employer match
+      const spouse1Match = spouse1Working && taxSettings.spouse1Employment.contributes401k
+        ? calculate401kEmployerMatch(
+            spouse1Wages,
+            spouse1_401k,
+            taxSettings.spouse1Employment.employerMatchPercent,
+            taxSettings.spouse1Employment.employerMatchLimit
+          )
+        : 0;
+      
+      const spouse2Match = spouse2Working && taxSettings.spouse2Employment.contributes401k
+        ? calculate401kEmployerMatch(
+            spouse2Wages,
+            spouse2_401k,
+            taxSettings.spouse2Employment.employerMatchPercent,
+            taxSettings.spouse2Employment.employerMatchLimit
+          )
+        : 0;
+      
+      const totalEmployerMatch = spouse1Match + spouse2Match;
+      
+      // Calculate payroll taxes
+      const ficaTax = calculateFICATax(totalWages, i, taxSettings.inflationRate / 100);
+      const medicareTax = calculateMedicareTax(totalWages, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
+      const totalPayrollTax = ficaTax + medicareTax;
+      
+      // Net wages after payroll taxes and 401k contributions
+      const netWages = totalWages - totalPayrollTax - total401kContributions;
+      
+      // Add 401k contributions and employer match to traditional balance
+      tradBalance += total401kContributions + totalEmployerMatch;
+
       // Calculate RMD if applicable (based on account owner's age - use spouse1)
       const rmd = calculateRMD(tradBalance, spouse1CurrentAge);
       
       // Use iterative solver to find withdrawal that achieves target take home
-      const adjustedTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
-      console.log(`Year ${i}: Target Take Home = $${adjustedTargetTakeHome.toFixed(2)}`);
-      let requiredWithdrawal = calculateRequiredWithdrawal(
+      // Adjust target by subtracting net wages (employment income already covers part of living expenses)
+      const adjustedTargetTakeHome = (taxSettings.targetTakeHome * inflationMultiplier) - netWages;
+      console.log(`Year ${i}: Target Take Home = $${adjustedTargetTakeHome.toFixed(2)}, Net Wages = $${netWages.toFixed(2)}`);
+      let requiredWithdrawal = adjustedTargetTakeHome > 0 ? calculateRequiredWithdrawal(
         adjustedTargetTakeHome,
         ssAnnual,
         { tradBalance, rothBalance, taxableBalance },
@@ -268,7 +358,7 @@ const Index = () => {
         i,
         spouse1CurrentAge,
         spouse2CurrentAge
-      );
+      ) : 0;
       console.log(`Year ${i}: Required Withdrawal = $${requiredWithdrawal.toFixed(2)}, SS = $${ssAnnual.toFixed(2)}`);
       let adjustedAnnualExpenses = adjustedTargetTakeHome; // For display purposes
 
@@ -463,10 +553,11 @@ const Index = () => {
       taxableBalance *= (1 + accounts.taxableReturn / 100);
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-      const takeHome = totalWithdrawals + ssAnnual - federalTax - stateTax - stateCapitalGainsTax - irmaa - niit - amt;
+      const takeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - niit - amt;
       
       if (i === 0) {
         console.log(`Year ${i} Final Calculation:`);
+        console.log(`  Employment Income (Net): $${netWages.toFixed(2)}`);
         console.log(`  Total Withdrawals: $${totalWithdrawals.toFixed(2)}`);
         console.log(`  SS Income: $${ssAnnual.toFixed(2)}`);
         console.log(`  Federal Tax: $${federalTax.toFixed(2)} (Ordinary: $${federalTaxOrdinary.toFixed(2)}, CG: $${federalTaxCapitalGains.toFixed(2)})`);
@@ -475,6 +566,7 @@ const Index = () => {
         console.log(`  IRMAA: $${irmaa.toFixed(2)}`);
         console.log(`  NIIT: $${niit.toFixed(2)}`);
         console.log(`  AMT: $${amt.toFixed(2)}`);
+        console.log(`  Payroll Tax: $${totalPayrollTax.toFixed(2)}`);
         console.log(`  Actual Take Home: $${takeHome.toFixed(2)}`);
         console.log(`  Target Take Home: $${taxSettings.targetTakeHome.toFixed(2)}`);
       }
@@ -486,6 +578,11 @@ const Index = () => {
         rothBalance,
         taxableBalance,
         ssIncome: ssAnnual,
+        employmentIncome: totalWages,
+        netWages,
+        payrollTax: totalPayrollTax,
+        contributions401k: total401kContributions,
+        employerMatch: totalEmployerMatch,
         withdrawals: totalWithdrawals,
         federalTax,
         federalCapitalGainsTax: federalTaxCapitalGains,
@@ -496,7 +593,7 @@ const Index = () => {
         amt,
         takeHome,
         rmd,
-        totalIncome: ssAnnual + totalWithdrawals,
+        totalIncome: ssAnnual + totalWithdrawals + netWages,
         rothConversion,
         marginalBracket,
       });
@@ -525,6 +622,7 @@ const Index = () => {
       "IRMAA": p.irmaa,
       "NIIT": p.niit,
       "AMT": p.amt,
+      "Payroll Tax": p.payrollTax,
     }));
 
     // Find the last year where any tax/IRMAA/NIIT/AMT is greater than zero
@@ -585,6 +683,9 @@ const Index = () => {
     const totalIRMAA = projections.reduce((sum, p) => sum + p.irmaa, 0);
     const totalNIIT = projections.reduce((sum, p) => sum + p.niit, 0);
     const totalAMT = projections.reduce((sum, p) => sum + p.amt, 0);
+    const totalEmploymentIncome = projections.reduce((sum, p) => sum + (p.employmentIncome || 0), 0);
+    const totalPayrollTax = projections.reduce((sum, p) => sum + (p.payrollTax || 0), 0);
+    const total401kContributions = projections.reduce((sum, p) => sum + (p.contributions401k || 0), 0);
     const avgWithdrawal = projections.length > 0 
       ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 
       : 0;
@@ -596,6 +697,9 @@ const Index = () => {
       totalIRMAA, 
       totalNIIT,
       totalAMT,
+      totalEmploymentIncome,
+      totalPayrollTax,
+      total401kContributions,
       avgWithdrawal,
       ...detailedMetrics
     };
@@ -637,6 +741,7 @@ const Index = () => {
                   <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
                 </div>
               </div>
+              <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} />
             </TabsContent>
 
             <TabsContent value="projections" className="mt-6">
