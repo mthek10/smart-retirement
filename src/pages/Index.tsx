@@ -254,15 +254,31 @@ const Index = () => {
       const spouse2CurrentAge = taxSettings.spouse2Age + i;
       const age = Math.max(spouse1CurrentAge, spouse2CurrentAge); // Use older spouse's age for display
 
-      // Calculate Social Security for both spouses (only if they're alive)
+      // Calculate Social Security for both spouses (only if they're alive) with COLA adjustments
       const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, i);
+      
+      // Calculate years since claiming for COLA adjustment (starts after first year of claiming)
+      const spouse1YearsSinceClaiming = spouse1CurrentAge >= ssData.spouse1.claimAge 
+        ? spouse1CurrentAge - ssData.spouse1.claimAge 
+        : 0;
+      const spouse2YearsSinceClaiming = spouse2CurrentAge >= ssData.spouse2.claimAge 
+        ? spouse2CurrentAge - ssData.spouse2.claimAge 
+        : 0;
+      
+      // COLA multiplier (applies only after first year of claiming)
+      const spouse1ColaMultiplier = spouse1YearsSinceClaiming > 0 
+        ? Math.pow(1 + taxSettings.inflationRate / 100, spouse1YearsSinceClaiming) 
+        : 1;
+      const spouse2ColaMultiplier = spouse2YearsSinceClaiming > 0 
+        ? Math.pow(1 + taxSettings.inflationRate / 100, spouse2YearsSinceClaiming) 
+        : 1;
       
       const ss1Annual = spouse1CurrentAge >= ssData.spouse1.claimAge && spouse1CurrentAge <= 100
         ? calculateSocialSecurityBenefit(
             ssData.spouse1.estimatedBenefit, 
             ssData.spouse1.claimAge, 
             calculateFullRetirementAge(taxSettings.spouse1Age)
-          ) * 12
+          ) * 12 * spouse1ColaMultiplier
         : 0;
       
       const ss2Annual = spouse2CurrentAge >= ssData.spouse2.claimAge && spouse2CurrentAge <= 100
@@ -270,7 +286,7 @@ const Index = () => {
             ssData.spouse2.estimatedBenefit, 
             ssData.spouse2.claimAge, 
             calculateFullRetirementAge(taxSettings.spouse2Age)
-          ) * 12
+          ) * 12 * spouse2ColaMultiplier
         : 0;
       
       const ssAnnual = ss1Annual + ss2Annual;
