@@ -3,12 +3,16 @@ import { DollarSign, TrendingDown, Landmark, Activity } from "lucide-react";
 
 interface SummaryCardsProps {
   totalPortfolio: number;
-  totalTaxes: number;
+  lifetimeTotalTaxes: number;
+  totalFederalTax: number;
+  totalFederalCGTax: number;
+  totalStateTax: number;
+  totalStateCGTax: number;
   totalIRMAA: number;
   totalNIIT: number;
   totalAMT: number;
+  totalPayrollTax: number;
   totalEmploymentIncome?: number;
-  totalPayrollTax?: number;
   total401kContributions?: number;
   avgWithdrawal: number;
   tradDepletionAge?: number | null;
@@ -20,12 +24,16 @@ interface SummaryCardsProps {
 
 export function SummaryCards({ 
   totalPortfolio, 
-  totalTaxes, 
+  lifetimeTotalTaxes,
+  totalFederalTax,
+  totalFederalCGTax,
+  totalStateTax,
+  totalStateCGTax,
   totalIRMAA, 
   totalNIIT,
   totalAMT,
-  totalEmploymentIncome,
   totalPayrollTax,
+  totalEmploymentIncome,
   total401kContributions,
   avgWithdrawal,
   tradDepletionAge,
@@ -68,14 +76,6 @@ export function SummaryCards({
       isAge: false,
       subtitle: undefined,
     }] : []),
-    ...(totalPayrollTax && totalPayrollTax > 0 ? [{
-      title: "Total Payroll Tax",
-      value: totalPayrollTax,
-      icon: TrendingDown,
-      color: "text-destructive",
-      isAge: false,
-      subtitle: undefined,
-    }] : []),
     ...(total401kContributions && total401kContributions > 0 ? [{
       title: "Total 401(k) Contributions",
       value: total401kContributions,
@@ -84,16 +84,59 @@ export function SummaryCards({
       isAge: false,
       subtitle: undefined,
     }] : []),
+  ];
+
+  const taxCards = [
     {
-      title: "Total Taxes (Lifetime)",
-      value: totalTaxes,
+      title: "Lifetime Total Taxes",
+      value: lifetimeTotalTaxes,
+      icon: TrendingDown,
+      color: "text-destructive",
+      isAge: false,
+      subtitle: "All taxes combined",
+    },
+    {
+      title: "Federal Income Tax",
+      value: totalFederalTax,
       icon: TrendingDown,
       color: "text-destructive",
       isAge: false,
       subtitle: undefined,
     },
     {
-      title: "Total IRMAA (Lifetime)",
+      title: "Federal Cap Gains Tax",
+      value: totalFederalCGTax,
+      icon: TrendingDown,
+      color: "text-destructive",
+      isAge: false,
+      subtitle: undefined,
+    },
+    {
+      title: "State Income Tax",
+      value: totalStateTax,
+      icon: TrendingDown,
+      color: "text-destructive",
+      isAge: false,
+      subtitle: undefined,
+    },
+    {
+      title: "State Cap Gains Tax",
+      value: totalStateCGTax,
+      icon: TrendingDown,
+      color: "text-destructive",
+      isAge: false,
+      subtitle: undefined,
+    },
+    ...(totalPayrollTax > 0 ? [{
+      title: "Payroll Tax",
+      value: totalPayrollTax,
+      icon: TrendingDown,
+      color: "text-destructive",
+      isAge: false,
+      subtitle: undefined,
+    }] : []),
+    {
+      title: "IRMAA",
       value: totalIRMAA,
       icon: DollarSign,
       color: "text-warning",
@@ -101,7 +144,7 @@ export function SummaryCards({
       subtitle: undefined,
     },
     {
-      title: "Total NIIT (Lifetime)",
+      title: "NIIT",
       value: totalNIIT,
       icon: TrendingDown,
       color: "text-destructive",
@@ -109,7 +152,7 @@ export function SummaryCards({
       subtitle: undefined,
     },
     {
-      title: "Total AMT (Lifetime)",
+      title: "AMT",
       value: totalAMT,
       icon: TrendingDown,
       color: "text-destructive",
@@ -145,7 +188,7 @@ export function SummaryCards({
     },
   ] : [];
 
-  const cards = [...baseCards, ...optimizationCards];
+  const cards = [...baseCards, ...taxCards, ...optimizationCards];
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
