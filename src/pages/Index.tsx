@@ -26,7 +26,8 @@ import {
   calculateFICATax,
   calculateMedicareTax,
   calculate401kContribution,
-  calculate401kEmployerMatch
+  calculate401kEmployerMatch,
+  getRothConversionLimit
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -58,8 +59,8 @@ const Index = () => {
     spouse2Age: 58,
     targetTakeHome: 80000,
     inflationRate: 3,
-    optimizeRothConversions: false,
-    rothConversionTarget: 94300,
+    rothConversionStrategy: 'none',
+    rothConversionCustom: 94300,
     spouse1Employment: {
       currentIncome: 0,
       retirementAge: 65,
@@ -142,19 +143,23 @@ const Index = () => {
           remaining -= fromRoth;
         }
         
-        // Simulate Roth conversions (if optimization is enabled)
+        // Roth conversion optimization - works at any age
         let rothConversion = 0;
-        
-        if (taxSettings.optimizeRothConversions && spouse1Age < 73 && testTrad > 0) {
-          const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
-            ssAnnual,
-            traditionalWithdrawn + capitalGainsRealized,
-            taxSettings.filingStatus
-          );
-          const totalOrdinaryIncomePreConversion = traditionalWithdrawn + taxableSSIncomePreConversion;
+        const targetIncomeLimit = getRothConversionLimit(
+          taxSettings.rothConversionStrategy,
+          taxSettings.filingStatus,
+          yearIndex,
+          taxSettings.inflationRate / 100,
+          taxSettings.rothConversionCustom
+        );
+        if (targetIncomeLimit > 0 && testTrad > 0) {
+          // Calculate current income (before conversions)
+          const currentIncome = ssAnnual + traditionalWithdrawn;
           
-          const targetLimit = taxSettings.rothConversionTarget * Math.pow(1 + taxSettings.inflationRate / 100, yearIndex);
-          const conversionRoom = Math.max(0, targetLimit - totalOrdinaryIncomePreConversion);
+          // Room available up to target limit
+          const conversionRoom = Math.max(0, targetIncomeLimit - currentIncome);
+          
+          // Convert as much as possible without exceeding target or available balance
           rothConversion = Math.min(conversionRoom, testTrad);
         }
         
@@ -235,14 +240,6 @@ const Index = () => {
       return (low + high) / 2;
     };
 
-    // Determine target conversion income for the year
-    const getTargetIncomeLimit = (yearIndex: number): number => {
-      if (taxSettings.optimizeRothConversions) {
-        const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, yearIndex);
-        return taxSettings.rothConversionTarget * inflationMultiplier;
-      }
-      return 0;
-    };
     
     // Reset balances for actual projection
     tradBalance = accounts.traditional;
@@ -406,13 +403,20 @@ const Index = () => {
         rothBalance -= rothWithdrawal;
       }
 
-      // ROTH CONVERSION OPTIMIZATION (IRMAA-AWARE)
+      // ROTH CONVERSION OPTIMIZATION (IRMAA-AWARE) - Works at any age
       let rothConversion = 0;
+      const targetIncomeLimit = getRothConversionLimit(
+        taxSettings.rothConversionStrategy,
+        taxSettings.filingStatus,
+        i,
+        taxSettings.inflationRate / 100,
+        taxSettings.rothConversionCustom
+      );
       
-      if (taxSettings.optimizeRothConversions && spouse1CurrentAge < 73 && tradBalance > 0) {
+      if (targetIncomeLimit > 0 && tradBalance > 0) {
         // Calculate current income before conversion
         const capitalGains = taxableWithdrawal * 0.5;
-        const ordinaryIncomePreConversion = traditionalWithdrawal;
+        const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages;
         const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
           ssAnnual,
           ordinaryIncomePreConversion + capitalGains,
@@ -421,8 +425,7 @@ const Index = () => {
         const totalOrdinaryIncomePreConversion = ordinaryIncomePreConversion + taxableSSIncomePreConversion;
         
         // Calculate room to convert up to target bracket
-        const targetLimit = getTargetIncomeLimit(i);
-        const conversionRoom = Math.max(0, targetLimit - totalOrdinaryIncomePreConversion);
+        const conversionRoom = Math.max(0, targetIncomeLimit - totalOrdinaryIncomePreConversion);
         
         // Propose initial conversion amount
         let proposedConversion = Math.min(conversionRoom, tradBalance);
@@ -436,26 +439,26 @@ const Index = () => {
           const magiWithoutConversion = totalOrdinaryIncomePreConversion + capitalGains;
           let irmaaWithoutConversion = 0;
           if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-            irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate);
+            irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100);
           }
           if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-            irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate);
+            irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100);
           }
           
           // Calculate IRMAA with full conversion
           const magiWithConversion = totalOrdinaryIncomePreConversion + proposedConversion + capitalGains;
           let irmaaWithConversion = 0;
           if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-            irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate);
+            irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100);
           }
           if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-            irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate);
+            irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100);
           }
           
           const irmaaIncrease = irmaaWithConversion - irmaaWithoutConversion;
           
           // Calculate tax cost of conversion
-          const marginalRate = getMarginalTaxBracket(totalOrdinaryIncomePreConversion + proposedConversion, taxSettings.filingStatus, i, taxSettings.inflationRate);
+          const marginalRate = getMarginalTaxBracket(totalOrdinaryIncomePreConversion + proposedConversion, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
           const conversionTaxCost = proposedConversion * marginalRate;
           
           // If IRMAA increase is significant relative to conversion tax cost, it's not worth it
@@ -470,14 +473,14 @@ const Index = () => {
               const testMagi = totalOrdinaryIncomePreConversion + testConversion + capitalGains;
               let testIrmaa = 0;
               if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-                testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate);
+                testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100);
               }
               if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-                testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate);
+                testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100);
               }
               
               const testIrmaaIncrease = testIrmaa - irmaaWithoutConversion;
-              const testTaxCost = testConversion * getMarginalTaxBracket(totalOrdinaryIncomePreConversion + testConversion, taxSettings.filingStatus, i, taxSettings.inflationRate);
+              const testTaxCost = testConversion * getMarginalTaxBracket(totalOrdinaryIncomePreConversion + testConversion, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
               
               // Keep conversion if IRMAA increase is reasonable
               if (testIrmaaIncrease <= testTaxCost * 0.5) {
@@ -556,17 +559,17 @@ const Index = () => {
       const magi = totalOrdinaryIncome + capitalGains;
       let irmaa = 0;
       if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-        irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate);
+        irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100);
       }
       if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-        irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate);
+        irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100);
       }
 
       // Calculate NIIT (Net Investment Income Tax - 3.8% on investment income when MAGI exceeds thresholds)
-      const niit = calculateNIIT(capitalGains, magi, taxSettings.filingStatus, i, taxSettings.inflationRate);
+      const niit = calculateNIIT(capitalGains, magi, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
 
       // Calculate AMT (Alternative Minimum Tax)
-      const amt = calculateAMT(totalOrdinaryIncome, capitalGains, taxSettings.filingStatus, i, taxSettings.inflationRate);
+      const amt = calculateAMT(totalOrdinaryIncome, capitalGains, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
 
       // Apply growth to remaining balances
       tradBalance *= (1 + accounts.traditionalReturn / 100);

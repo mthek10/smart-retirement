@@ -12,8 +12,8 @@ interface TaxSettingsProps {
     spouse2Age: number;
     targetTakeHome: number;
     inflationRate: number;
-    optimizeRothConversions: boolean;
-    rothConversionTarget: number;
+    rothConversionStrategy: string;
+    rothConversionCustom: number;
   };
   onChange: (settings: any) => void;
 }
@@ -204,34 +204,41 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
 
         <div className="pt-4 border-t space-y-4">
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="optimizeRothConversions">Optimize Roth Conversions</Label>
-              <input
-                id="optimizeRothConversions"
-                type="checkbox"
-                className="h-4 w-4 rounded border-input"
-                checked={taxSettings.optimizeRothConversions || false}
-                onChange={(e) => handleChange('optimizeRothConversions', e.target.checked)}
-              />
-            </div>
+            <Label htmlFor="rothConversionStrategy">Roth Conversion Strategy</Label>
+            <Select
+              value={taxSettings.rothConversionStrategy || 'none'}
+              onValueChange={(value) => handleChange('rothConversionStrategy', value)}
+            >
+              <SelectTrigger id="rothConversionStrategy">
+                <SelectValue placeholder="Select conversion strategy" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Conversions</SelectItem>
+                <SelectItem value="fill_10">Fill to 10% Bracket</SelectItem>
+                <SelectItem value="fill_12">Fill to 12% Bracket</SelectItem>
+                <SelectItem value="fill_22">Fill to 22% Bracket</SelectItem>
+                <SelectItem value="fill_24">Fill to 24% Bracket</SelectItem>
+                <SelectItem value="custom">Custom Amount</SelectItem>
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
-              Automatically convert Traditional to Roth in early retirement to minimize lifetime taxes
+              Automatically convert Traditional to Roth to fill your target tax bracket. Works at any age, including after RMDs start.
             </p>
           </div>
 
-          {taxSettings.optimizeRothConversions && (
+          {taxSettings.rothConversionStrategy === 'custom' && (
             <div className="space-y-2">
-              <Label htmlFor="rothConversionTarget">Target Income Limit for Conversions</Label>
+              <Label htmlFor="rothConversionCustom">Custom Target Income Limit</Label>
               <Input
-                id="rothConversionTarget"
+                id="rothConversionCustom"
                 type="number"
                 step="1000"
                 placeholder="94300"
-                value={taxSettings.rothConversionTarget || ''}
-                onChange={(e) => handleChange('rothConversionTarget', parseFloat(e.target.value) || 94300)}
+                value={taxSettings.rothConversionCustom || ''}
+                onChange={(e) => handleChange('rothConversionCustom', parseFloat(e.target.value) || 94300)}
               />
               <p className="text-xs text-muted-foreground">
-                Convert up to this income level (e.g., top of 12% bracket: $94,300 for MFJ)
+                Convert up to this taxable income level (adjusted for inflation each year)
               </p>
             </div>
           )}
