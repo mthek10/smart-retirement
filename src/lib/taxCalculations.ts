@@ -36,6 +36,32 @@ export const federalTaxBrackets2024: Record<string, TaxBracket[]> = {
   ],
 };
 
+// Helper function to get Roth conversion target income based on strategy
+export function getRothConversionLimit(
+  strategy: string,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0,
+  customAmount?: number
+): number {
+  if (strategy === 'none') return 0;
+  if (strategy === 'custom' && customAmount) return customAmount;
+
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
+
+  // Map strategy to bracket limit
+  const strategyMap: Record<string, number> = {
+    'fill_10': brackets[0].max, // Top of 10% bracket
+    'fill_12': brackets[1].max, // Top of 12% bracket
+    'fill_22': brackets[2].max, // Top of 22% bracket
+    'fill_24': brackets[3].max, // Top of 24% bracket
+  };
+
+  const baseLimit = strategyMap[strategy] || 0;
+  return baseLimit * inflationMultiplier;
+}
+
 export const standardDeductions2024: Record<string, number> = {
   single: 14600,
   married: 29200,
