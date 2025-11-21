@@ -94,7 +94,8 @@ const Index = () => {
       currentRMD: number,
       yearIndex: number,
       spouse1Age: number,
-      spouse2Age: number
+      spouse2Age: number,
+      taxableWages: number
     ): number => {
       // Binary search to find required withdrawal
       let low = Math.max(0, currentRMD); // Can't go below RMD
@@ -157,8 +158,8 @@ const Index = () => {
           rothConversion = Math.min(conversionRoom, testTrad);
         }
         
-        // Calculate taxes (including Roth conversion in ordinary income)
-        const ordinaryIncome = traditionalWithdrawn + rothConversion;
+        // Calculate taxes (including Roth conversion in ordinary income and taxable wages)
+        const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages;
         const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGainsRealized, taxSettings.filingStatus);
         const totalOrdinaryIncome = ordinaryIncome + taxableSS;
         
@@ -362,6 +363,9 @@ const Index = () => {
       // Calculate RMD if applicable (based on account owner's age - use spouse1)
       const rmd = calculateRMD(tradBalance, spouse1CurrentAge);
       
+      // Calculate taxable wages (wages minus pre-tax 401k contributions)
+      const taxableWages = totalWages - total401kContributions;
+      
       // Use iterative solver to find withdrawal that achieves target take home
       // Adjust target by subtracting net wages (employment income already covers part of living expenses)
       const adjustedTargetTakeHome = (taxSettings.targetTakeHome * inflationMultiplier) - netWages;
@@ -373,7 +377,8 @@ const Index = () => {
         rmd,
         i,
         spouse1CurrentAge,
-        spouse2CurrentAge
+        spouse2CurrentAge,
+        taxableWages
       ) : 0;
       console.log(`Year ${i}: Required Withdrawal = $${requiredWithdrawal.toFixed(2)}, SS = $${ssAnnual.toFixed(2)}`);
       let adjustedAnnualExpenses = adjustedTargetTakeHome; // For display purposes
@@ -497,7 +502,7 @@ const Index = () => {
       // Calculate taxable income (ordinary income only for federal tax)
       // Assume 50% of taxable withdrawal is cost basis, 50% is capital gains
       const capitalGains = taxableWithdrawal * 0.5;
-      const ordinaryIncome = traditionalWithdrawal + rothConversion;
+      const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages;
       
       const taxableSSIncome = calculateTaxableSocialSecurity(
         ssAnnual, 
@@ -573,9 +578,13 @@ const Index = () => {
       
       if (i === 0) {
         console.log(`Year ${i} Final Calculation:`);
+        console.log(`  Employment Income (Gross): $${totalWages.toFixed(2)}`);
+        console.log(`  Taxable Wages (after 401k): $${taxableWages.toFixed(2)}`);
         console.log(`  Employment Income (Net): $${netWages.toFixed(2)}`);
         console.log(`  Total Withdrawals: $${totalWithdrawals.toFixed(2)}`);
         console.log(`  SS Income: $${ssAnnual.toFixed(2)}`);
+        console.log(`  Ordinary Income for Fed Tax: $${totalOrdinaryIncome.toFixed(2)}`);
+        console.log(`  Marginal Tax Bracket: ${(marginalBracket * 100).toFixed(1)}%`);
         console.log(`  Federal Tax: $${federalTax.toFixed(2)} (Ordinary: $${federalTaxOrdinary.toFixed(2)}, CG: $${federalTaxCapitalGains.toFixed(2)})`);
         console.log(`  State Tax: $${stateTax.toFixed(2)}`);
         console.log(`  State CG Tax: $${stateCapitalGainsTax.toFixed(2)}`);
