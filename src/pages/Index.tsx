@@ -291,12 +291,13 @@ const Index = () => {
 
       // Calculate employment income if spouses are still working
       const spouse1Working = spouse1CurrentAge < taxSettings.spouse1Employment.retirementAge;
-      const spouse2Working = spouse2CurrentAge < taxSettings.spouse2Employment.retirementAge;
+      const spouse2Working = taxSettings.filingStatus === 'married' 
+        && spouse2CurrentAge < taxSettings.spouse2Employment.retirementAge;
       
       const spouse1Wages = spouse1Working 
         ? taxSettings.spouse1Employment.currentIncome * inflationMultiplier 
         : 0;
-      const spouse2Wages = spouse2Working
+      const spouse2Wages = spouse2Working && taxSettings.filingStatus === 'married'
         ? taxSettings.spouse2Employment.currentIncome * inflationMultiplier
         : 0;
       
@@ -313,7 +314,7 @@ const Index = () => {
           )
         : 0;
       
-      const spouse2_401k = spouse2Working && taxSettings.spouse2Employment.contributes401k
+      const spouse2_401k = spouse2Working && taxSettings.filingStatus === 'married' && taxSettings.spouse2Employment.contributes401k
         ? calculate401kContribution(
             spouse2Wages,
             taxSettings.spouse2Employment.contribution401kPercent,
@@ -335,7 +336,7 @@ const Index = () => {
           )
         : 0;
       
-      const spouse2Match = spouse2Working && taxSettings.spouse2Employment.contributes401k
+      const spouse2Match = spouse2Working && taxSettings.filingStatus === 'married' && taxSettings.spouse2Employment.contributes401k
         ? calculate401kEmployerMatch(
             spouse2Wages,
             spouse2_401k,
