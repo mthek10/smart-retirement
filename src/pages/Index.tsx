@@ -279,7 +279,9 @@ const Index = () => {
           ) * 12 * spouse1ColaMultiplier
         : 0;
       
-      const ss2Annual = spouse2CurrentAge >= ssData.spouse2.claimAge && spouse2CurrentAge <= 100
+      const ss2Annual = taxSettings.filingStatus === 'married' 
+        && spouse2CurrentAge >= ssData.spouse2.claimAge 
+        && spouse2CurrentAge <= 100
         ? calculateSocialSecurityBenefit(
             ssData.spouse2.estimatedBenefit, 
             ssData.spouse2.claimAge, 
