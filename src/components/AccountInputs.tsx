@@ -10,6 +10,7 @@ interface AccountInputsProps {
     traditionalReturn: number;
     rothReturn: number;
     taxableReturn: number;
+    taxableCostBasisPercent: number;
   };
   onChange: (accounts: any) => void;
 }
@@ -120,6 +121,25 @@ export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
               value={accounts.taxableReturn || ''}
               onChange={(e) => handleChange('taxableReturn', e.target.value)}
             />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="taxableCostBasisPercent">Cost Basis (%)</Label>
+            <Input
+              id="taxableCostBasisPercent"
+              type="number"
+              step="1"
+              min="0"
+              max="100"
+              placeholder="50"
+              value={accounts.taxableCostBasisPercent || ''}
+              onChange={(e) => handleChange('taxableCostBasisPercent', e.target.value)}
+            />
+            <p className="text-sm text-muted-foreground">
+              Percentage of brokerage account that is cost basis (default: 50%)
+            </p>
           </div>
         </div>
 
