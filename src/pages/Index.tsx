@@ -38,6 +38,7 @@ const Index = () => {
     traditionalReturn: 3,
     rothReturn: 3,
     taxableReturn: 3,
+    taxableCostBasisPercent: 50,
   });
 
   const [ssData, setSsData] = useState({
@@ -418,7 +419,7 @@ const Index = () => {
       
       if (targetIncomeLimit > 0 && tradBalance > 0) {
         // Calculate current income before conversion
-        const capitalGains = taxableWithdrawal * 0.5;
+      const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
         const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages;
         const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
           ssAnnual,
@@ -506,8 +507,8 @@ const Index = () => {
       }
 
       // Calculate taxable income (ordinary income only for federal tax)
-      // Assume 50% of taxable withdrawal is cost basis, 50% is capital gains
-      const capitalGains = taxableWithdrawal * 0.5;
+      // Cost basis vs capital gains ratio based on user input
+      const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
       const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages;
       
       const taxableSSIncome = calculateTaxableSocialSecurity(
