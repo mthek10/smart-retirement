@@ -60,28 +60,28 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
       <CardContent>
         <div className="rounded-md border overflow-auto max-h-[600px]">
           <Table>
-            <TableHeader className="sticky top-0 z-20 bg-background">
+            <TableHeader>
               <TableRow>
-                <TableHead className="font-semibold sticky left-0 z-30 bg-background">Year</TableHead>
-                <TableHead className="font-semibold">Age</TableHead>
-                <TableHead className="font-semibold text-right">Traditional</TableHead>
-                <TableHead className="font-semibold text-right">Roth</TableHead>
-                <TableHead className="font-semibold text-right">Brokerage</TableHead>
-                <TableHead className="font-semibold text-right">SS Income</TableHead>
-                <TableHead className="font-semibold text-right">Wages</TableHead>
-                <TableHead className="font-semibold text-right">Payroll Tax</TableHead>
-                <TableHead className="font-semibold text-right">Withdrawals</TableHead>
-                <TableHead className="font-semibold text-right">Conversion</TableHead>
-                <TableHead className="font-semibold text-right">Tax Bracket</TableHead>
-                <TableHead className="font-semibold text-right">Fed Tax</TableHead>
-                <TableHead className="font-semibold text-right">Fed CG Tax</TableHead>
-                <TableHead className="font-semibold text-right">State Tax</TableHead>
-                <TableHead className="font-semibold text-right">State CG Tax</TableHead>
-                <TableHead className="font-semibold text-right">IRMAA</TableHead>
-                <TableHead className="font-semibold text-right">NIIT</TableHead>
-                <TableHead className="font-semibold text-right">AMT</TableHead>
-                <TableHead className="font-semibold text-right">Total Taxes</TableHead>
-                <TableHead className="font-semibold text-right">Take Home</TableHead>
+                <TableHead className="font-semibold sticky top-0 left-0 z-30 bg-background">Year</TableHead>
+                <TableHead className="font-semibold sticky top-0 z-20 bg-background">Age</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Traditional</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Roth</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Brokerage</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">SS Income</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Wages</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Payroll Tax</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Withdrawals</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Conversion</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Tax Bracket</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Fed Tax</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Fed CG Tax</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">State Tax</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">State CG Tax</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">IRMAA</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">NIIT</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">AMT</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Total Taxes</TableHead>
+                <TableHead className="font-semibold text-right sticky top-0 z-20 bg-background">Take Home</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
