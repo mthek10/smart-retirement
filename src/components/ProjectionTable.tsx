@@ -58,11 +58,11 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border overflow-x-auto">
+        <div className="rounded-md border overflow-auto max-h-[600px]">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-20 bg-background">
               <TableRow>
-                <TableHead className="font-semibold">Year</TableHead>
+                <TableHead className="font-semibold sticky left-0 z-30 bg-background">Year</TableHead>
                 <TableHead className="font-semibold">Age</TableHead>
                 <TableHead className="font-semibold text-right">Traditional</TableHead>
                 <TableHead className="font-semibold text-right">Roth</TableHead>
@@ -104,7 +104,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       key={projection.year} 
                       className={isKeyTransition ? "bg-accent/50" : ""}
                     >
-                    <TableCell className="font-medium">{projection.year}</TableCell>
+                    <TableCell className="font-medium sticky left-0 z-10 bg-background">{projection.year}</TableCell>
                     <TableCell>{projection.age}</TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(projection.traditionalBalance)}
