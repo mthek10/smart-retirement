@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Target } from "lucide-react";
 
@@ -58,39 +58,40 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border overflow-auto max-h-[600px]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-semibold sticky top-0 left-0 z-40 bg-background">Year</TableHead>
-                <TableHead className="font-semibold sticky top-0 z-30 bg-background">Age</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Traditional</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Roth</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Brokerage</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">SS Income</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Wages</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Payroll Tax</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Withdrawals</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Conversion</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Tax Bracket</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Fed Tax</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Fed CG Tax</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">State Tax</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">State CG Tax</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">IRMAA</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">NIIT</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">AMT</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Total Taxes</TableHead>
-                <TableHead className="font-semibold text-right sticky top-0 z-30 bg-background">Take Home</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="rounded-md border">
+          <div className="max-h-[600px] overflow-auto">
+            <table className="w-full caption-bottom text-sm">
+              <thead>
+                <tr className="border-b transition-colors hover:bg-muted/50">
+                  <th className="h-12 px-4 text-left align-middle font-semibold sticky top-0 left-0 z-40 bg-background border-b">Year</th>
+                  <th className="h-12 px-4 text-left align-middle font-semibold sticky top-0 z-30 bg-background border-b">Age</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Traditional</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Roth</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Brokerage</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">SS Income</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Wages</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Payroll Tax</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Withdrawals</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Conversion</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Tax Bracket</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Fed Tax</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Fed CG Tax</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State Tax</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State CG Tax</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">IRMAA</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">NIIT</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">AMT</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Total Taxes</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Take Home</th>
+                </tr>
+              </thead>
+              <tbody>
               {projections.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={20} className="text-center text-muted-foreground">
+                <tr className="border-b transition-colors hover:bg-muted/50">
+                  <td colSpan={20} className="p-4 align-middle text-center text-muted-foreground">
                     Enter your account information to see projections
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ) : (
                 projections.map((projection, index) => {
                   const hasIRMAAWarning = (irmaaAmount: number) => irmaaAmount > 0;
@@ -100,30 +101,30 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                   const isKeyTransition = tradDepleted || taxableDepleted || rothUsageStart;
 
                   return (
-                    <TableRow 
+                    <tr 
                       key={projection.year} 
-                      className={isKeyTransition ? "bg-accent/50" : ""}
+                      className={cn("border-b transition-colors hover:bg-muted/50", isKeyTransition && "bg-accent/50")}
                     >
-                    <TableCell className="font-medium sticky left-0 z-10 bg-background">{projection.year}</TableCell>
-                    <TableCell>{projection.age}</TableCell>
-                    <TableCell className="text-right">
+                    <td className="p-4 align-middle font-medium sticky left-0 z-10 bg-background">{projection.year}</td>
+                    <td className="p-4 align-middle">{projection.age}</td>
+                    <td className="p-4 align-middle text-right">
                       {formatCurrency(projection.traditionalBalance)}
                       {hasRMD(projection.rmd) && (
                         <Badge variant="outline" className="ml-2 text-xs">
                           RMD
                         </Badge>
                       )}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </td>
+                    <td className="p-4 align-middle text-right">
                       {formatCurrency(projection.rothBalance)}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </td>
+                    <td className="p-4 align-middle text-right">
                       {formatCurrency(projection.taxableBalance)}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </td>
+                    <td className="p-4 align-middle text-right">
                       {formatCurrency(projection.ssIncome)}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </td>
+                    <td className="p-4 align-middle text-right">
                       {projection.employmentIncome && projection.employmentIncome > 0 ? (
                         <span className="text-green-600 dark:text-green-400">
                           {formatCurrency(projection.employmentIncome)}
@@ -131,8 +132,8 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       ) : (
                         '-'
                       )}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </td>
+                    <td className="p-4 align-middle text-right">
                       {projection.payrollTax && projection.payrollTax > 0 ? (
                         <span className="text-destructive">
                           {formatCurrency(projection.payrollTax)}
@@ -140,11 +141,11 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       ) : (
                         '-'
                       )}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
+                    </td>
+                    <td className="p-4 align-middle text-right font-medium">
                       {formatCurrency(projection.withdrawals)}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </td>
+                    <td className="p-4 align-middle text-right">
                       {projection.rothConversion && projection.rothConversion > 0 ? (
                         <span className="text-primary font-medium">
                           {formatCurrency(projection.rothConversion)}
@@ -152,8 +153,8 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       ) : (
                         '-'
                       )}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </td>
+                    <td className="p-4 align-middle text-right">
                       <div className="flex items-center justify-end gap-2">
                         <span className="font-medium">
                           {projection.marginalBracket ? 
@@ -167,20 +168,20 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                           </div>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right text-destructive">
+                    </td>
+                    <td className="p-4 align-middle text-right text-destructive">
                       {formatCurrency(projection.federalTax)}
-                    </TableCell>
-                    <TableCell className="text-right text-destructive">
+                    </td>
+                    <td className="p-4 align-middle text-right text-destructive">
                       {formatCurrency(projection.federalCapitalGainsTax)}
-                    </TableCell>
-                    <TableCell className="text-right text-destructive">
+                    </td>
+                    <td className="p-4 align-middle text-right text-destructive">
                       {formatCurrency(projection.stateTax)}
-                    </TableCell>
-                    <TableCell className="text-right text-destructive">
+                    </td>
+                    <td className="p-4 align-middle text-right text-destructive">
                       {formatCurrency(projection.stateCapitalGainsTax)}
-                    </TableCell>
-                    <TableCell className="text-right">
+                    </td>
+                    <td className="p-4 align-middle text-right">
                       {hasIRMAAWarning(projection.irmaa) ? (
                         <span className="flex items-center justify-end gap-1 text-warning">
                           <AlertTriangle className="h-3 w-3" />
@@ -189,25 +190,26 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       ) : (
                         formatCurrency(projection.irmaa)
                       )}
-                    </TableCell>
-                    <TableCell className="text-right text-destructive">
+                    </td>
+                    <td className="p-4 align-middle text-right text-destructive">
                       {formatCurrency(projection.niit)}
-                    </TableCell>
-                    <TableCell className="text-right text-destructive">
+                    </td>
+                    <td className="p-4 align-middle text-right text-destructive">
                       {formatCurrency(projection.amt)}
-                    </TableCell>
-                    <TableCell className="text-right font-bold text-destructive">
+                    </td>
+                    <td className="p-4 align-middle text-right font-bold text-destructive">
                       {formatCurrency(projection.totalTaxes)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-primary">
+                    </td>
+                    <td className="p-4 align-middle text-right font-semibold text-primary">
                       {formatCurrency(projection.takeHome)}
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                   );
                 })
               )}
-            </TableBody>
-          </Table>
+              </tbody>
+            </table>
+          </div>
         </div>
         
         {projections.some(p => hasIRMAAWarning(p.irmaa)) && (
