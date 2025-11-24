@@ -8,7 +8,7 @@ interface SummaryCardsProps {
   totalFederalCGTax: number;
   totalStateTax: number;
   totalStateCGTax: number;
-  totalIRMAA: number;
+  totalMedicareCosts: number;
   totalNIIT: number;
   totalAMT: number;
   totalPayrollTax: number;
@@ -29,7 +29,7 @@ export function SummaryCards({
   totalFederalCGTax,
   totalStateTax,
   totalStateCGTax,
-  totalIRMAA, 
+  totalMedicareCosts, 
   totalNIIT,
   totalAMT,
   totalPayrollTax,
@@ -136,12 +136,12 @@ export function SummaryCards({
       subtitle: undefined,
     }] : []),
     {
-      title: "IRMAA",
-      value: totalIRMAA,
+      title: "Total Medicare Costs",
+      value: totalMedicareCosts,
       icon: DollarSign,
       color: "text-warning",
       isAge: false,
-      subtitle: undefined,
+      subtitle: "Part B, D & IRMAA",
     },
     {
       title: "NIIT",

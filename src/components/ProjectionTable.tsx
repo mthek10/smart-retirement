@@ -22,6 +22,7 @@ interface YearProjection {
   stateTax: number;
   stateCapitalGainsTax: number;
   irmaa: number;
+  medicarePremiums?: number;
   niit: number;
   amt: number;
   totalTaxes: number;
@@ -79,6 +80,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State Tax</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State CG Tax</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">IRMAA</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Medicare B & D</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">NIIT</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">AMT</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Total Taxes</th>
@@ -88,7 +90,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
               <tbody>
               {projections.length === 0 ? (
                 <tr className="border-b transition-colors hover:bg-muted/50">
-                  <td colSpan={20} className="p-4 align-middle text-center text-muted-foreground">
+                  <td colSpan={21} className="p-4 align-middle text-center text-muted-foreground">
                     Enter your account information to see projections
                   </td>
                 </tr>
@@ -189,6 +191,13 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                         </span>
                       ) : (
                         formatCurrency(projection.irmaa)
+                      )}
+                    </td>
+                    <td className="p-4 align-middle text-right">
+                      {projection.medicarePremiums && projection.medicarePremiums > 0 ? (
+                        formatCurrency(projection.medicarePremiums)
+                      ) : (
+                        '-'
                       )}
                     </td>
                     <td className="p-4 align-middle text-right text-destructive">
