@@ -332,7 +332,7 @@ export function calculateMedicarePremiums(
   yearIndex: number = 0,
   inflationRate: number = 0
 ): number {
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const annualPartB = medicarePartBPremium2024 * 12 * inflationMultiplier;
   const annualPartD = medicarePartDPremium2024 * 12 * inflationMultiplier;
   return annualPartB + annualPartD;
