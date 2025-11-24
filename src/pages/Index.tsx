@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   calculateFederalTax, 
   calculateIRMAA, 
+  calculateMedicarePremiums,
   calculateSocialSecurityBenefit,
   calculateTaxableSocialSecurity,
   calculateRMD,
@@ -211,6 +212,15 @@ const Index = () => {
           irmaa += calculateIRMAA(magi, yearIndex, taxSettings.inflationRate / 100);
         }
         
+        // Calculate Medicare Part B and D premiums
+        let medicarePremiums = 0;
+        if (spouse1Age >= 65 && spouse1Age <= 100) {
+          medicarePremiums += calculateMedicarePremiums(yearIndex, taxSettings.inflationRate / 100);
+        }
+        if (spouse2Age >= 65 && spouse2Age <= 100) {
+          medicarePremiums += calculateMedicarePremiums(yearIndex, taxSettings.inflationRate / 100);
+        }
+        
         // Calculate NIIT (Net Investment Income Tax)
         const niit = calculateNIIT(capitalGainsRealized, magi, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
         
@@ -218,7 +228,7 @@ const Index = () => {
         const amt = calculateAMT(totalOrdinaryIncome, capitalGainsRealized, taxSettings.filingStatus, yearIndex, taxSettings.inflationRate / 100);
         
         // Calculate actual take home
-        const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - niit - amt;
+        const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt;
         
         // Check if we're within tolerance
         if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
@@ -569,6 +579,15 @@ const Index = () => {
         irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100);
       }
 
+      // Calculate Medicare Part B and D base premiums (per person age 65+)
+      let medicarePremiums = 0;
+      if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+        medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
+      }
+      if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+        medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
+      }
+
       // Calculate NIIT (Net Investment Income Tax - 3.8% on investment income when MAGI exceeds thresholds)
       const niit = calculateNIIT(capitalGains, magi, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
 
@@ -581,7 +600,7 @@ const Index = () => {
       taxableBalance *= (1 + accounts.taxableReturn / 100);
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-      const takeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - niit - amt;
+      const takeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt;
       
       if (i === 0) {
         console.log(`Year ${i} Final Calculation:`);
@@ -596,6 +615,7 @@ const Index = () => {
         console.log(`  State Tax: $${stateTax.toFixed(2)}`);
         console.log(`  State CG Tax: $${stateCapitalGainsTax.toFixed(2)}`);
         console.log(`  IRMAA: $${irmaa.toFixed(2)}`);
+        console.log(`  Medicare Premiums: $${medicarePremiums.toFixed(2)}`);
         console.log(`  NIIT: $${niit.toFixed(2)}`);
         console.log(`  AMT: $${amt.toFixed(2)}`);
         console.log(`  Payroll Tax: $${totalPayrollTax.toFixed(2)}`);
@@ -603,7 +623,7 @@ const Index = () => {
         console.log(`  Target Take Home: $${taxSettings.targetTakeHome.toFixed(2)}`);
       }
       
-      const totalTaxes = federalTax + federalTaxCapitalGains + stateTax + stateCapitalGainsTax + irmaa + niit + amt;
+      const totalTaxes = federalTax + federalTaxCapitalGains + stateTax + stateCapitalGainsTax + irmaa + medicarePremiums + niit + amt;
       
       results.push({
         year,
@@ -623,6 +643,7 @@ const Index = () => {
         stateTax,
         stateCapitalGainsTax,
         irmaa,
+        medicarePremiums,
         niit,
         amt,
         totalTaxes,
@@ -719,10 +740,12 @@ const Index = () => {
     const totalStateTax = projections.reduce((sum, p) => sum + p.stateTax, 0);
     const totalStateCGTax = projections.reduce((sum, p) => sum + p.stateCapitalGainsTax, 0);
     const totalIRMAA = projections.reduce((sum, p) => sum + p.irmaa, 0);
+    const totalMedicarePremiums = projections.reduce((sum, p) => sum + (p.medicarePremiums || 0), 0);
+    const totalMedicareCosts = totalIRMAA + totalMedicarePremiums;
     const totalNIIT = projections.reduce((sum, p) => sum + p.niit, 0);
     const totalAMT = projections.reduce((sum, p) => sum + p.amt, 0);
     const totalPayrollTax = projections.reduce((sum, p) => sum + (p.payrollTax || 0), 0);
-    const lifetimeTotalTaxes = totalFederalTax + totalFederalCGTax + totalStateTax + totalStateCGTax + totalIRMAA + totalNIIT + totalAMT + totalPayrollTax;
+    const lifetimeTotalTaxes = totalFederalTax + totalFederalCGTax + totalStateTax + totalStateCGTax + totalMedicareCosts + totalNIIT + totalAMT + totalPayrollTax;
     const totalEmploymentIncome = projections.reduce((sum, p) => sum + (p.employmentIncome || 0), 0);
     const total401kContributions = projections.reduce((sum, p) => sum + (p.contributions401k || 0), 0);
     const avgWithdrawal = projections.length > 0 
@@ -737,7 +760,7 @@ const Index = () => {
       totalFederalCGTax,
       totalStateTax,
       totalStateCGTax,
-      totalIRMAA, 
+      totalMedicareCosts, 
       totalNIIT,
       totalAMT,
       totalPayrollTax,

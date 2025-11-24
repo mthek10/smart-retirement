@@ -77,6 +77,10 @@ export const irmaaBrackets2024 = [
   { min: 500000, max: Infinity, premium: 419.30 },
 ];
 
+// Medicare Part B and D base premiums (2024)
+export const medicarePartBPremium2024 = 174.70; // Monthly premium
+export const medicarePartDPremium2024 = 50; // Average monthly premium
+
 export const capitalGainsBrackets2024: Record<string, TaxBracket[]> = {
   single: [
     { min: 0, max: 47025, rate: 0 },
@@ -321,6 +325,17 @@ export function calculateIRMAA(
     (b) => magi >= b.min * inflationMultiplier && magi < b.max * inflationMultiplier
   );
   return bracket ? bracket.premium * 12 * inflationMultiplier : 0;
+}
+
+// Calculate Medicare Part B and D base premiums (applies per person age 65+)
+export function calculateMedicarePremiums(
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const annualPartB = medicarePartBPremium2024 * 12 * inflationMultiplier;
+  const annualPartD = medicarePartDPremium2024 * 12 * inflationMultiplier;
+  return annualPartB + annualPartD;
 }
 
 // Calculate Full Retirement Age based on birth year
