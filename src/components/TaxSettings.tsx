@@ -27,62 +27,9 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
     <Card>
       <CardHeader>
         <CardTitle>Tax Settings</CardTitle>
-        <CardDescription>Configure your tax filing status and state tax rate</CardDescription>
+        <CardDescription>Configure state taxes, take-home goals, and conversion strategy</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="filingStatus">Filing Status</Label>
-          <Select
-            value={taxSettings.filingStatus}
-            onValueChange={(value) => handleChange('filingStatus', value)}
-          >
-            <SelectTrigger id="filingStatus">
-              <SelectValue placeholder="Select filing status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="single">Single</SelectItem>
-              <SelectItem value="married">Married Filing Jointly</SelectItem>
-              <SelectItem value="hoh">Head of Household</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className={taxSettings.filingStatus === 'married' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
-          <div className="space-y-2">
-            <Label htmlFor="spouse1Age">
-              {taxSettings.filingStatus === 'married' ? 'Spouse 1 Current Age' : 'Current Age'}
-            </Label>
-            <Input
-              id="spouse1Age"
-              type="number"
-              min="50"
-              max="100"
-              value={taxSettings.spouse1Age || ''}
-              onChange={(e) => handleChange('spouse1Age', parseFloat(e.target.value) || 65)}
-            />
-          </div>
-          
-          {taxSettings.filingStatus === 'married' && (
-            <div className="space-y-2">
-              <Label htmlFor="spouse2Age">Spouse 2 Current Age</Label>
-              <Input
-                id="spouse2Age"
-                type="number"
-                min="50"
-                max="100"
-                value={taxSettings.spouse2Age || ''}
-                onChange={(e) => handleChange('spouse2Age', parseFloat(e.target.value) || 65)}
-              />
-            </div>
-          )}
-        </div>
-        
-        <p className="text-xs text-muted-foreground">
-          {taxSettings.filingStatus === 'married' 
-            ? 'Projections will run until both spouses reach age 100'
-            : 'Projections will run until age 100'}
-        </p>
-
         <div className="space-y-2">
           <Label htmlFor="targetTakeHome">Annual Take Home (First Year)</Label>
           <Input

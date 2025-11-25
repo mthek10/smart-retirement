@@ -3,6 +3,7 @@ import { AccountInputs } from "@/components/AccountInputs";
 import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
 import { EmploymentInputs } from "@/components/EmploymentInputs";
+import { HouseholdInputs } from "@/components/HouseholdInputs";
 import { ProjectionTable } from "@/components/ProjectionTable";
 import { ProjectionChart } from "@/components/ProjectionChart";
 import { TaxChart } from "@/components/TaxChart";
@@ -794,20 +795,23 @@ const Index = () => {
             </TabsList>
 
             <TabsContent value="inputs" className="space-y-6 mt-6">
+              <HouseholdInputs taxSettings={taxSettings} onChange={setTaxSettings} />
+              
               <div className="grid gap-6 lg:grid-cols-2">
                 <AccountInputs accounts={accounts} onChange={setAccounts} />
-                <div className="space-y-6">
-                  <SocialSecurityPlanner 
-                    ssData={ssData} 
-                    onChange={setSsData} 
-                    filingStatus={taxSettings.filingStatus} 
-                    spouse1Age={taxSettings.spouse1Age}
-                    spouse2Age={taxSettings.spouse2Age}
-                  />
-                  <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
-                </div>
+                <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} />
               </div>
-              <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} />
+              
+              <div className="grid gap-6 lg:grid-cols-2">
+                <SocialSecurityPlanner 
+                  ssData={ssData} 
+                  onChange={setSsData} 
+                  filingStatus={taxSettings.filingStatus} 
+                  spouse1Age={taxSettings.spouse1Age}
+                  spouse2Age={taxSettings.spouse2Age}
+                />
+                <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
+              </div>
             </TabsContent>
 
             <TabsContent value="projections" className="mt-6">
