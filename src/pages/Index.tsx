@@ -610,7 +610,10 @@ const Index = () => {
       taxableBalance *= (1 + accounts.taxableReturn / 100);
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-      const takeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt;
+      const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt;
+      
+      // When there's excess income, display the target take-home (what's being spent) not the full calculated amount
+      const takeHome = excessIncome > 0 ? (taxSettings.targetTakeHome * inflationMultiplier) : calculatedTakeHome;
       
       if (i === 0) {
         console.log(`Year ${i} Final Calculation:`);
@@ -629,8 +632,9 @@ const Index = () => {
         console.log(`  NIIT: $${niit.toFixed(2)}`);
         console.log(`  AMT: $${amt.toFixed(2)}`);
         console.log(`  Payroll Tax: $${totalPayrollTax.toFixed(2)}`);
-        console.log(`  Actual Take Home: $${takeHome.toFixed(2)}`);
-        console.log(`  Target Take Home: $${taxSettings.targetTakeHome.toFixed(2)}`);
+        console.log(`  Calculated Take Home: $${calculatedTakeHome.toFixed(2)}`);
+        console.log(`  Displayed Take Home: $${takeHome.toFixed(2)}`);
+        console.log(`  Target Take Home: $${(taxSettings.targetTakeHome * inflationMultiplier).toFixed(2)}`);
       }
       
       const totalTaxes = federalTax + federalTaxCapitalGains + stateTax + stateCapitalGainsTax + irmaa + medicarePremiums + niit + amt;
