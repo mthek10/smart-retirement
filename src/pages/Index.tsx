@@ -381,7 +381,11 @@ const Index = () => {
       // Use iterative solver to find withdrawal that achieves target take home
       // Adjust target by subtracting net wages (employment income already covers part of living expenses)
       const adjustedTargetTakeHome = (taxSettings.targetTakeHome * inflationMultiplier) - netWages;
-      console.log(`Year ${i}: Target Take Home = $${adjustedTargetTakeHome.toFixed(2)}, Net Wages = $${netWages.toFixed(2)}`);
+      
+      // Track excess income when wages exceed target take-home (surplus to be invested)
+      const excessIncome = adjustedTargetTakeHome < 0 ? Math.abs(adjustedTargetTakeHome) : 0;
+      
+      console.log(`Year ${i}: Target Take Home = $${adjustedTargetTakeHome.toFixed(2)}, Net Wages = $${netWages.toFixed(2)}, Excess Income = $${excessIncome.toFixed(2)}`);
       let requiredWithdrawal = adjustedTargetTakeHome > 0 ? calculateRequiredWithdrawal(
         adjustedTargetTakeHome,
         ssAnnual,
@@ -595,6 +599,11 @@ const Index = () => {
       // Calculate AMT (Alternative Minimum Tax)
       const amt = calculateAMT(totalOrdinaryIncome, capitalGains, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
 
+      // Add excess income to taxable brokerage account (when wages exceed spending needs)
+      if (excessIncome > 0) {
+        taxableBalance += excessIncome;
+      }
+
       // Apply growth to remaining balances
       tradBalance *= (1 + accounts.traditionalReturn / 100);
       rothBalance *= (1 + accounts.rothReturn / 100);
@@ -635,6 +644,7 @@ const Index = () => {
         ssIncome: ssAnnual,
         employmentIncome: totalWages,
         netWages,
+        excessSavings: excessIncome,
         payrollTax: totalPayrollTax,
         contributions401k: total401kContributions,
         employerMatch: totalEmployerMatch,
