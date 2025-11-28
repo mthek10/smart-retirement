@@ -13,6 +13,7 @@ interface YearProjection {
   ssIncome: number;
   employmentIncome?: number;
   netWages?: number;
+  excessSavings?: number;
   payrollTax?: number;
   contributions401k?: number;
   employerMatch?: number;
@@ -71,6 +72,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Brokerage</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">SS Income</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Wages</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Excess Saved</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Payroll Tax</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Withdrawals</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Conversion</th>
@@ -90,7 +92,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
               <tbody>
               {projections.length === 0 ? (
                 <tr className="border-b transition-colors hover:bg-muted/50">
-                  <td colSpan={21} className="p-4 align-middle text-center text-muted-foreground">
+                  <td colSpan={22} className="p-4 align-middle text-center text-muted-foreground">
                     Enter your account information to see projections
                   </td>
                 </tr>
@@ -130,6 +132,15 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       {projection.employmentIncome && projection.employmentIncome > 0 ? (
                         <span className="text-green-600 dark:text-green-400">
                           {formatCurrency(projection.employmentIncome)}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="p-4 align-middle text-right">
+                      {projection.excessSavings && projection.excessSavings > 0 ? (
+                        <span className="text-green-600 dark:text-green-400 font-medium">
+                          +{formatCurrency(projection.excessSavings)}
                         </span>
                       ) : (
                         '-'
