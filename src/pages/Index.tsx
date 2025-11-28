@@ -726,20 +726,15 @@ const Index = () => {
       };
     }
 
-    // Find when each account depletes (and stays depleted)
-    const tradDepletionYear = projections.findIndex(p => p.traditionalBalance < 1000);
-    const taxableDepletionYear = projections.findIndex(p => p.taxableBalance < 1000);
-    const rothDepletionYear = projections.findIndex(p => p.rothBalance < 1000);
-    
-    // Verify it stays depleted (check if it recovers in subsequent years)
-    const tradStaysDepleted = tradDepletionYear >= 0 && projections.slice(tradDepletionYear).every(p => p.traditionalBalance < 1000);
-    const taxableStaysDepleted = taxableDepletionYear >= 0 && projections.slice(taxableDepletionYear).every(p => p.taxableBalance < 1000);
-    const rothStaysDepleted = rothDepletionYear >= 0 && projections.slice(rothDepletionYear).every(p => p.rothBalance < 1000);
-    
+    // Find when each account first depletes (balance drops below threshold)
+    const tradDepletionProjection = projections.find(p => p.traditionalBalance < 1000) || null;
+    const taxableDepletionProjection = projections.find(p => p.taxableBalance < 1000) || null;
+    const rothDepletionProjection = projections.find(p => p.rothBalance < 1000) || null;
+
     // Get the age directly from the projection object
-    const finalTradDepletionAge = tradStaysDepleted && tradDepletionYear >= 0 ? projections[tradDepletionYear].age : null;
-    const finalTaxableDepletionAge = taxableStaysDepleted && taxableDepletionYear >= 0 ? projections[taxableDepletionYear].age : null;
-    const finalRothDepletionAge = rothStaysDepleted && rothDepletionYear >= 0 ? projections[rothDepletionYear].age : null;
+    const finalTradDepletionAge = tradDepletionProjection ? tradDepletionProjection.age : null;
+    const finalTaxableDepletionAge = taxableDepletionProjection ? taxableDepletionProjection.age : null;
+    const finalRothDepletionAge = rothDepletionProjection ? rothDepletionProjection.age : null;
     
     // Find when Roth starts being used (balance decreases)
     const initialRothBalance = accounts.roth;
