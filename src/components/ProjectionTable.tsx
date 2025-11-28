@@ -102,7 +102,8 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                   const tradDepleted = projection.traditionalBalance < 1000 && index > 0 && projections[index - 1].traditionalBalance >= 1000;
                   const taxableDepleted = projection.taxableBalance < 1000 && index > 0 && projections[index - 1].taxableBalance >= 1000;
                   const rothUsageStart = index > 0 && projection.rothBalance < projections[0].rothBalance - 1000 && projections[index - 1].rothBalance >= projections[0].rothBalance - 1000;
-                  const isKeyTransition = tradDepleted || taxableDepleted || rothUsageStart;
+                  const rothDepleted = projection.rothBalance < 1000 && index > 0 && projections[index - 1].rothBalance >= 1000;
+                  const isKeyTransition = tradDepleted || taxableDepleted || rothUsageStart || rothDepleted;
 
                   return (
                     <tr 
@@ -121,6 +122,11 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                     </td>
                     <td className="p-4 align-middle text-right">
                       {formatCurrency(projection.rothBalance)}
+                      {rothDepleted && (
+                        <Badge variant="destructive" className="ml-2 text-xs">
+                          Depleted
+                        </Badge>
+                      )}
                     </td>
                     <td className="p-4 align-middle text-right">
                       {formatCurrency(projection.taxableBalance)}
