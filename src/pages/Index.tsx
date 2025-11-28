@@ -726,16 +726,21 @@ const Index = () => {
       };
     }
 
-    // Find when each account first depletes (balance drops below threshold)
-    const tradDepletionProjection = projections.find(p => p.traditionalBalance < 1000) || null;
-    const taxableDepletionProjection = projections.find(p => p.taxableBalance < 1000) || null;
-    const rothDepletionProjection = projections.find(p => p.rothBalance < 1000) || null;
+    // Find when each account first depletes (balance drops below threshold) using transition logic
+    const tradDepletionIndex = projections.findIndex((p, index) =>
+      p.traditionalBalance < 1000 && index > 0 && projections[index - 1].traditionalBalance >= 1000
+    );
+    const taxableDepletionIndex = projections.findIndex((p, index) =>
+      p.taxableBalance < 1000 && index > 0 && projections[index - 1].taxableBalance >= 1000
+    );
+    const rothDepletionIndex = projections.findIndex((p, index) =>
+      p.rothBalance < 1000 && index > 0 && projections[index - 1].rothBalance >= 1000
+    );
 
-    // Get the age directly from the projection object
-    const finalTradDepletionAge = tradDepletionProjection ? tradDepletionProjection.age : null;
-    const finalTaxableDepletionAge = taxableDepletionProjection ? taxableDepletionProjection.age : null;
-    const finalRothDepletionAge = rothDepletionProjection ? rothDepletionProjection.age : null;
-    
+    const finalTradDepletionAge = tradDepletionIndex >= 0 ? projections[tradDepletionIndex].age : null;
+    const finalTaxableDepletionAge = taxableDepletionIndex >= 0 ? projections[taxableDepletionIndex].age : null;
+    const finalRothDepletionAge = rothDepletionIndex >= 0 ? projections[rothDepletionIndex].age : null;
+
     // Find when Roth starts being used (balance decreases)
     const initialRothBalance = accounts.roth;
     const rothUsageProjection = projections.find(p => p.rothBalance < initialRothBalance - 1000);
