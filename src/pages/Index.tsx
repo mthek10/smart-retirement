@@ -726,10 +726,19 @@ const Index = () => {
       };
     }
 
-    // Find when each account depletes
-    const tradDepletionYear = projections.find(p => p.traditionalBalance < 1000)?.year;
-    const taxableDepletionYear = projections.find(p => p.taxableBalance < 1000)?.year;
-    const rothDepletionYear = projections.find(p => p.rothBalance < 1000)?.year;
+    // Find when each account depletes (and stays depleted)
+    const tradDepletionYear = projections.findIndex(p => p.traditionalBalance < 1000);
+    const taxableDepletionYear = projections.findIndex(p => p.taxableBalance < 1000);
+    const rothDepletionYear = projections.findIndex(p => p.rothBalance < 1000);
+    
+    // Verify it stays depleted (check if it recovers in subsequent years)
+    const tradStaysDepleted = tradDepletionYear >= 0 && projections.slice(tradDepletionYear).every(p => p.traditionalBalance < 1000);
+    const taxableStaysDepleted = taxableDepletionYear >= 0 && projections.slice(taxableDepletionYear).every(p => p.taxableBalance < 1000);
+    const rothStaysDepleted = rothDepletionYear >= 0 && projections.slice(rothDepletionYear).every(p => p.rothBalance < 1000);
+    
+    const finalTradDepletionYear = tradStaysDepleted && tradDepletionYear >= 0 ? projections[tradDepletionYear].year : null;
+    const finalTaxableDepletionYear = taxableStaysDepleted && taxableDepletionYear >= 0 ? projections[taxableDepletionYear].year : null;
+    const finalRothDepletionYear = rothStaysDepleted && rothDepletionYear >= 0 ? projections[rothDepletionYear].year : null;
     
     // Find when Roth starts being used (balance decreases)
     const initialRothBalance = accounts.roth;
@@ -739,10 +748,10 @@ const Index = () => {
     const consistency = calculateBracketConsistency(projections);
     
     return {
-      tradDepletionAge: tradDepletionYear ? (tradDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
-      taxableDepletionAge: taxableDepletionYear ? (taxableDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
+      tradDepletionAge: finalTradDepletionYear ? (finalTradDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
+      taxableDepletionAge: finalTaxableDepletionYear ? (finalTaxableDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
       rothUsageAge: rothUsageYear ? (rothUsageYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
-      rothDepletionAge: rothDepletionYear ? (rothDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
+      rothDepletionAge: finalRothDepletionYear ? (finalRothDepletionYear - new Date().getFullYear() + taxSettings.spouse1Age) : null,
       bracketConsistency: consistency,
       avgBracket: consistency.avgBracket,
       yearsInTarget: consistency.yearsInTarget,
