@@ -24,6 +24,9 @@ interface YearProjection {
   stateCapitalGainsTax: number;
   irmaa: number;
   medicarePremiums?: number;
+  acaPremium?: number;
+  acaSubsidy?: number;
+  healthcareCost?: number;
   niit: number;
   amt: number;
   totalTaxes: number;
@@ -83,6 +86,8 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State CG Tax</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">IRMAA</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Medicare B & D</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">ACA Subsidy</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Healthcare Cost</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">NIIT</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">AMT</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Total Taxes</th>
@@ -92,7 +97,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
               <tbody>
               {projections.length === 0 ? (
                 <tr className="border-b transition-colors hover:bg-muted/50">
-                  <td colSpan={22} className="p-4 align-middle text-center text-muted-foreground">
+                  <td colSpan={25} className="p-4 align-middle text-center text-muted-foreground">
                     Enter your account information to see projections
                   </td>
                 </tr>
@@ -213,6 +218,22 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                     <td className="p-4 align-middle text-right">
                       {projection.medicarePremiums && projection.medicarePremiums > 0 ? (
                         formatCurrency(projection.medicarePremiums)
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="p-4 align-middle text-right">
+                      {projection.acaSubsidy && projection.acaSubsidy > 0 ? (
+                        <span className="text-green-600 dark:text-green-400 font-medium">
+                          {formatCurrency(projection.acaSubsidy)}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="p-4 align-middle text-right font-medium">
+                      {projection.healthcareCost && projection.healthcareCost > 0 ? (
+                        formatCurrency(projection.healthcareCost)
                       ) : (
                         '-'
                       )}

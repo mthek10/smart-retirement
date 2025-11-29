@@ -9,6 +9,8 @@ interface SummaryCardsProps {
   totalStateTax: number;
   totalStateCGTax: number;
   totalMedicareCosts: number;
+  totalACASubsidy?: number;
+  totalACAPremium?: number;
   totalNIIT: number;
   totalAMT: number;
   totalPayrollTax: number;
@@ -30,6 +32,8 @@ export function SummaryCards({
   totalStateTax,
   totalStateCGTax,
   totalMedicareCosts, 
+  totalACASubsidy,
+  totalACAPremium,
   totalNIIT,
   totalAMT,
   totalPayrollTax,
@@ -143,6 +147,22 @@ export function SummaryCards({
       isAge: false,
       subtitle: "Part B, D & IRMAA",
     },
+    ...(totalACASubsidy && totalACASubsidy > 0 ? [{
+      title: "Total ACA Subsidy",
+      value: totalACASubsidy,
+      icon: DollarSign,
+      color: "text-green-600",
+      isAge: false,
+      subtitle: "Pre-Medicare premium credits",
+    }] : []),
+    ...(totalACAPremium && totalACAPremium > 0 ? [{
+      title: "Total Healthcare (Pre-65)",
+      value: totalACAPremium - (totalACASubsidy || 0),
+      icon: DollarSign,
+      color: "text-warning",
+      isAge: false,
+      subtitle: "ACA net cost (premium - subsidy)",
+    }] : []),
     {
       title: "NIIT",
       value: totalNIIT,
