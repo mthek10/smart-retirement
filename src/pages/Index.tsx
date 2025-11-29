@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { AccountInputs } from "@/components/AccountInputs";
 import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
+import { ACASettings } from "@/components/ACASettings";
 import { EmploymentInputs } from "@/components/EmploymentInputs";
 import { HouseholdInputs } from "@/components/HouseholdInputs";
 import { ProjectionTable } from "@/components/ProjectionTable";
@@ -29,7 +30,8 @@ import {
   calculateMedicareTax,
   calculate401kContribution,
   calculate401kEmployerMatch,
-  getRothConversionLimit
+  getRothConversionLimit,
+  calculateACASubsidy
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -64,6 +66,11 @@ const Index = () => {
     inflationRate: 3,
     rothConversionStrategy: 'none',
     rothConversionCustom: 94300,
+    acaSettings: {
+      enabled: true,
+      householdSize: 2,
+      customBenchmarkPremium: 0,
+    },
     spouse1Employment: {
       currentIncome: 0,
       retirementAge: 65,
@@ -593,6 +600,36 @@ const Index = () => {
         medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
       }
 
+      // Calculate ACA subsidies (only applies to those under 65)
+      let acaPremium = 0;
+      let acaSubsidy = 0;
+      let netAcaCost = 0;
+      
+      if (taxSettings.acaSettings.enabled) {
+        const enrolleeAges: number[] = [];
+        if (spouse1CurrentAge < 65) enrolleeAges.push(spouse1CurrentAge);
+        if (spouse2CurrentAge < 65 && taxSettings.filingStatus === 'married') enrolleeAges.push(spouse2CurrentAge);
+        
+        if (enrolleeAges.length > 0) {
+          const acaResult = calculateACASubsidy(
+            magi,
+            taxSettings.acaSettings.householdSize,
+            enrolleeAges,
+            i,
+            taxSettings.inflationRate / 100
+          );
+          
+          acaPremium = taxSettings.acaSettings.customBenchmarkPremium > 0
+            ? taxSettings.acaSettings.customBenchmarkPremium * 12 * Math.pow(1 + taxSettings.inflationRate / 100, i) * enrolleeAges.length
+            : acaResult.premium;
+          acaSubsidy = acaResult.subsidy;
+          netAcaCost = acaPremium - acaSubsidy;
+        }
+      }
+
+      // Total healthcare cost (ACA for under 65, Medicare for 65+)
+      const totalHealthcareCost = netAcaCost + medicarePremiums + irmaa;
+
       // Calculate NIIT (Net Investment Income Tax - 3.8% on investment income when MAGI exceeds thresholds)
       const niit = calculateNIIT(capitalGains, magi, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
 
@@ -610,7 +647,7 @@ const Index = () => {
       taxableBalance *= (1 + accounts.taxableReturn / 100);
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-      const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt;
+      const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
       
       // When there's excess income, display the target take-home (what's being spent) not the full calculated amount
       const takeHome = excessIncome > 0 ? (taxSettings.targetTakeHome * inflationMultiplier) : calculatedTakeHome;
@@ -659,6 +696,9 @@ const Index = () => {
         stateCapitalGainsTax,
         irmaa,
         medicarePremiums,
+        acaPremium,
+        acaSubsidy,
+        healthcareCost: totalHealthcareCost,
         niit,
         amt,
         totalTaxes,
@@ -770,6 +810,8 @@ const Index = () => {
     const totalNIIT = projections.reduce((sum, p) => sum + p.niit, 0);
     const totalAMT = projections.reduce((sum, p) => sum + p.amt, 0);
     const totalPayrollTax = projections.reduce((sum, p) => sum + (p.payrollTax || 0), 0);
+    const totalACASubsidy = projections.reduce((sum, p) => sum + (p.acaSubsidy || 0), 0);
+    const totalACAPremium = projections.reduce((sum, p) => sum + (p.acaPremium || 0), 0);
     const lifetimeTotalTaxes = totalFederalTax + totalFederalCGTax + totalStateTax + totalStateCGTax + totalMedicareCosts + totalNIIT + totalAMT + totalPayrollTax;
     const totalEmploymentIncome = projections.reduce((sum, p) => sum + (p.employmentIncome || 0), 0);
     const total401kContributions = projections.reduce((sum, p) => sum + (p.contributions401k || 0), 0);
@@ -785,7 +827,9 @@ const Index = () => {
       totalFederalCGTax,
       totalStateTax,
       totalStateCGTax,
-      totalMedicareCosts, 
+      totalMedicareCosts,
+      totalACASubsidy,
+      totalACAPremium,
       totalNIIT,
       totalAMT,
       totalPayrollTax,
@@ -835,6 +879,13 @@ const Index = () => {
                   spouse2Age={taxSettings.spouse2Age}
                 />
                 <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
+              </div>
+              
+              <div className="grid gap-6 lg:grid-cols-1">
+                <ACASettings 
+                  acaSettings={taxSettings.acaSettings} 
+                  onChange={(newAcaSettings) => setTaxSettings({...taxSettings, acaSettings: newAcaSettings})} 
+                />
               </div>
             </TabsContent>
 

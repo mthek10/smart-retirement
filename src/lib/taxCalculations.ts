@@ -81,6 +81,35 @@ export const irmaaBrackets2024 = [
 export const medicarePartBPremium2024 = 174.70; // Monthly premium
 export const medicarePartDPremium2024 = 50; // Average monthly premium
 
+// Federal Poverty Level 2024 (48 contiguous states)
+export const federalPovertyLevel2024: Record<number, number> = {
+  1: 15060,
+  2: 20440,
+  3: 25820,
+  4: 31200,
+  5: 36580,
+  6: 41960,
+  7: 47340,
+  8: 52720,
+};
+
+// Enhanced ACA contribution percentages (through 2025)
+// Income as % of FPL → Expected contribution as % of income
+export const acaContributionRates2024 = [
+  { minFPL: 0, maxFPL: 150, rate: 0 },      // 0% of income
+  { minFPL: 150, maxFPL: 200, rate: 0.02 },  // 2% of income  
+  { minFPL: 200, maxFPL: 250, rate: 0.04 },  // 4% of income
+  { minFPL: 250, maxFPL: 300, rate: 0.06 },  // 6% of income
+  { minFPL: 300, maxFPL: 400, rate: 0.085 }, // 8.5% of income
+  { minFPL: 400, maxFPL: Infinity, rate: 0.085 }, // Enhanced: 8.5% cap continues above 400%
+];
+
+// Average benchmark silver plan premiums by age (monthly, 2024 national average)
+export const silverPlanPremiumsByAge2024: Record<number, number> = {
+  21: 350, 25: 370, 30: 390, 35: 410, 40: 440, 45: 520, 
+  50: 615, 55: 720, 60: 870, 64: 1010
+};
+
 export const capitalGainsBrackets2024: Record<string, TaxBracket[]> = {
   single: [
     { min: 0, max: 47025, rate: 0 },
@@ -336,6 +365,79 @@ export function calculateMedicarePremiums(
   const annualPartB = medicarePartBPremium2024 * 12 * inflationMultiplier;
   const annualPartD = medicarePartDPremium2024 * 12 * inflationMultiplier;
   return annualPartB + annualPartD;
+}
+
+// Helper function to interpolate premium for ages not in the table
+function interpolatePremium(age: number): number {
+  const ages = Object.keys(silverPlanPremiumsByAge2024).map(Number).sort((a, b) => a - b);
+  
+  if (age <= ages[0]) return silverPlanPremiumsByAge2024[ages[0]];
+  if (age >= ages[ages.length - 1]) return silverPlanPremiumsByAge2024[ages[ages.length - 1]];
+  
+  // Find surrounding ages
+  let lowerAge = ages[0];
+  let upperAge = ages[ages.length - 1];
+  
+  for (let i = 0; i < ages.length - 1; i++) {
+    if (age >= ages[i] && age <= ages[i + 1]) {
+      lowerAge = ages[i];
+      upperAge = ages[i + 1];
+      break;
+    }
+  }
+  
+  // Linear interpolation
+  const lowerPremium = silverPlanPremiumsByAge2024[lowerAge];
+  const upperPremium = silverPlanPremiumsByAge2024[upperAge];
+  const ratio = (age - lowerAge) / (upperAge - lowerAge);
+  
+  return lowerPremium + (upperPremium - lowerPremium) * ratio;
+}
+
+export function calculateACASubsidy(
+  magi: number,
+  householdSize: number,
+  enrolleeAges: number[],
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): { subsidy: number; premium: number; netPremium: number } {
+  // No subsidy if no one is enrolled
+  if (enrolleeAges.length === 0) {
+    return { subsidy: 0, premium: 0, netPremium: 0 };
+  }
+
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
+  
+  // Calculate FPL threshold
+  const fpl = (federalPovertyLevel2024[householdSize] || federalPovertyLevel2024[8]) * inflationMultiplier;
+  const fplPercent = (magi / fpl) * 100;
+  
+  // Calculate benchmark premium for all enrollees
+  let totalBenchmarkPremium = 0;
+  for (const age of enrolleeAges) {
+    if (age < 65) {
+      const monthlyPremium = interpolatePremium(age) * inflationMultiplier;
+      totalBenchmarkPremium += monthlyPremium * 12;
+    }
+  }
+  
+  // Find expected contribution rate
+  const bracket = acaContributionRates2024.find(
+    b => fplPercent >= b.minFPL && fplPercent < b.maxFPL
+  );
+  const contributionRate = bracket?.rate || 0.085;
+  
+  // Calculate expected contribution (capped at benchmark premium)
+  const expectedContribution = Math.min(magi * contributionRate, totalBenchmarkPremium);
+  
+  // Subsidy = Benchmark Premium - Expected Contribution
+  const subsidy = Math.max(0, totalBenchmarkPremium - expectedContribution);
+  
+  return {
+    subsidy,
+    premium: totalBenchmarkPremium,
+    netPremium: totalBenchmarkPremium - subsidy
+  };
 }
 
 // Calculate Full Retirement Age based on birth year
