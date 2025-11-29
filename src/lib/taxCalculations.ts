@@ -970,34 +970,33 @@ export function calculateMedicareTax(
   return medicareTax;
 }
 
-// Calculate 401(k) contribution with limits
+// Calculate 401(k) contribution with limits (dollar amount inflated with wages)
 export function calculate401kContribution(
-  wages: number,
-  contributionPercent: number,
+  contributionAmount: number,
   age: number,
   yearIndex: number = 0,
   inflationRate: number = 0.03
 ): number {
-  if (contributionPercent <= 0 || wages <= 0) return 0;
+  if (contributionAmount <= 0) return 0;
   
   const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
   const baseLimit = contribution401kLimit2024 * inflationFactor;
   const catchupLimit = age >= 50 ? contribution401kCatchup2024 * inflationFactor : 0;
   const totalLimit = baseLimit + catchupLimit;
   
-  const desiredContribution = wages * (contributionPercent / 100);
-  return Math.min(desiredContribution, totalLimit);
+  // Inflate the contribution amount with wages
+  const inflatedContribution = contributionAmount * inflationFactor;
+  return Math.min(inflatedContribution, totalLimit);
 }
 
-// Calculate employer 401(k) match
+// Calculate employer 401(k) match (dollar amount inflated with wages)
 export function calculate401kEmployerMatch(
-  wages: number,
-  employeeContribution: number,
-  matchPercent: number,
-  matchLimit: number = 100 // Default: match up to 100% of employee contribution
+  matchAmount: number,
+  yearIndex: number = 0,
+  inflationRate: number = 0.03
 ): number {
-  if (matchPercent <= 0) return 0;
+  if (matchAmount <= 0) return 0;
   
-  const matchBasis = Math.min(employeeContribution, wages * (matchLimit / 100));
-  return matchBasis * (matchPercent / 100);
+  const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
+  return matchAmount * inflationFactor;
 }

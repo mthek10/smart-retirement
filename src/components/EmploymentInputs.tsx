@@ -10,17 +10,15 @@ interface EmploymentInputsProps {
       currentIncome: number;
       retirementAge: number;
       contributes401k: boolean;
-      contribution401kPercent: number;
-      employerMatchPercent: number;
-      employerMatchLimit: number;
+      contribution401kAmount: number;
+      employerMatchAmount: number;
     };
     spouse2Employment: {
       currentIncome: number;
       retirementAge: number;
       contributes401k: boolean;
-      contribution401kPercent: number;
-      employerMatchPercent: number;
-      employerMatchLimit: number;
+      contribution401kAmount: number;
+      employerMatchAmount: number;
     };
   };
   onChange: (settings: any) => void;
@@ -90,50 +88,34 @@ export function EmploymentInputs({ taxSettings, onChange }: EmploymentInputsProp
           {taxSettings.spouse1Employment.contributes401k && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="spouse1Contribution">Employee Contribution %</Label>
+                <Label htmlFor="spouse1Contribution">Annual Employee 401(k) Contribution ($)</Label>
                 <Input
                   id="spouse1Contribution"
                   type="number"
-                  step="1"
+                  step="1000"
                   min="0"
-                  max="100"
-                  placeholder="6"
-                  value={taxSettings.spouse1Employment.contribution401kPercent || ''}
-                  onChange={(e) => handleSpouse1Change('contribution401kPercent', parseFloat(e.target.value) || 0)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="spouse1MatchPercent">Employer Match %</Label>
-                <Input
-                  id="spouse1MatchPercent"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="100"
-                  placeholder="50"
-                  value={taxSettings.spouse1Employment.employerMatchPercent || ''}
-                  onChange={(e) => handleSpouse1Change('employerMatchPercent', parseFloat(e.target.value) || 0)}
+                  placeholder="23000"
+                  value={taxSettings.spouse1Employment.contribution401kAmount || ''}
+                  onChange={(e) => handleSpouse1Change('contribution401kAmount', parseFloat(e.target.value) || 0)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Example: 50% means employer matches 50 cents per dollar contributed
+                  2024 limit: $23,000 ($30,500 if age 50+). Automatically increases with inflation.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="spouse1MatchLimit">Match Up To % of Salary</Label>
+                <Label htmlFor="spouse1Match">Annual Employer Match ($)</Label>
                 <Input
-                  id="spouse1MatchLimit"
+                  id="spouse1Match"
                   type="number"
-                  step="1"
+                  step="1000"
                   min="0"
-                  max="100"
-                  placeholder="6"
-                  value={taxSettings.spouse1Employment.employerMatchLimit || ''}
-                  onChange={(e) => handleSpouse1Change('employerMatchLimit', parseFloat(e.target.value) || 0)}
+                  placeholder="10000"
+                  value={taxSettings.spouse1Employment.employerMatchAmount || ''}
+                  onChange={(e) => handleSpouse1Change('employerMatchAmount', parseFloat(e.target.value) || 0)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Example: 6% means match applies to first 6% of salary you contribute
+                  Enter your employer's total annual match amount. Automatically increases with inflation.
                 </p>
               </div>
             </>
@@ -181,50 +163,34 @@ export function EmploymentInputs({ taxSettings, onChange }: EmploymentInputsProp
             {taxSettings.spouse2Employment.contributes401k && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="spouse2Contribution">Employee Contribution %</Label>
+                  <Label htmlFor="spouse2Contribution">Annual Employee 401(k) Contribution ($)</Label>
                   <Input
                     id="spouse2Contribution"
                     type="number"
-                    step="1"
+                    step="1000"
                     min="0"
-                    max="100"
-                    placeholder="6"
-                    value={taxSettings.spouse2Employment.contribution401kPercent || ''}
-                    onChange={(e) => handleSpouse2Change('contribution401kPercent', parseFloat(e.target.value) || 0)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="spouse2MatchPercent">Employer Match %</Label>
-                  <Input
-                    id="spouse2MatchPercent"
-                    type="number"
-                    step="1"
-                    min="0"
-                    max="100"
-                    placeholder="50"
-                    value={taxSettings.spouse2Employment.employerMatchPercent || ''}
-                    onChange={(e) => handleSpouse2Change('employerMatchPercent', parseFloat(e.target.value) || 0)}
+                    placeholder="23000"
+                    value={taxSettings.spouse2Employment.contribution401kAmount || ''}
+                    onChange={(e) => handleSpouse2Change('contribution401kAmount', parseFloat(e.target.value) || 0)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Example: 50% means employer matches 50 cents per dollar contributed
+                    2024 limit: $23,000 ($30,500 if age 50+). Automatically increases with inflation.
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="spouse2MatchLimit">Match Up To % of Salary</Label>
+                  <Label htmlFor="spouse2Match">Annual Employer Match ($)</Label>
                   <Input
-                    id="spouse2MatchLimit"
+                    id="spouse2Match"
                     type="number"
-                    step="1"
+                    step="1000"
                     min="0"
-                    max="100"
-                    placeholder="6"
-                    value={taxSettings.spouse2Employment.employerMatchLimit || ''}
-                    onChange={(e) => handleSpouse2Change('employerMatchLimit', parseFloat(e.target.value) || 0)}
+                    placeholder="10000"
+                    value={taxSettings.spouse2Employment.employerMatchAmount || ''}
+                    onChange={(e) => handleSpouse2Change('employerMatchAmount', parseFloat(e.target.value) || 0)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Example: 6% means match applies to first 6% of salary you contribute
+                    Enter your employer's total annual match amount. Automatically increases with inflation.
                   </p>
                 </div>
               </>

@@ -75,17 +75,15 @@ const Index = () => {
       currentIncome: 0,
       retirementAge: 65,
       contributes401k: false,
-      contribution401kPercent: 0,
-      employerMatchPercent: 0,
-      employerMatchLimit: 0,
+      contribution401kAmount: 0,
+      employerMatchAmount: 0,
     },
     spouse2Employment: {
       currentIncome: 0,
       retirementAge: 65,
       contributes401k: false,
-      contribution401kPercent: 0,
-      employerMatchPercent: 0,
-      employerMatchLimit: 0,
+      contribution401kAmount: 0,
+      employerMatchAmount: 0,
     },
   });
 
@@ -324,11 +322,10 @@ const Index = () => {
       
       const totalWages = spouse1Wages + spouse2Wages;
       
-      // Calculate 401(k) contributions
+      // Calculate 401(k) contributions (inflated with wages)
       const spouse1_401k = spouse1Working && taxSettings.spouse1Employment.contributes401k
         ? calculate401kContribution(
-            spouse1Wages,
-            taxSettings.spouse1Employment.contribution401kPercent,
+            taxSettings.spouse1Employment.contribution401kAmount,
             spouse1CurrentAge,
             i,
             taxSettings.inflationRate / 100
@@ -337,8 +334,7 @@ const Index = () => {
       
       const spouse2_401k = spouse2Working && taxSettings.filingStatus === 'married' && taxSettings.spouse2Employment.contributes401k
         ? calculate401kContribution(
-            spouse2Wages,
-            taxSettings.spouse2Employment.contribution401kPercent,
+            taxSettings.spouse2Employment.contribution401kAmount,
             spouse2CurrentAge,
             i,
             taxSettings.inflationRate / 100
@@ -350,19 +346,17 @@ const Index = () => {
       // Calculate employer match
       const spouse1Match = spouse1Working && taxSettings.spouse1Employment.contributes401k
         ? calculate401kEmployerMatch(
-            spouse1Wages,
-            spouse1_401k,
-            taxSettings.spouse1Employment.employerMatchPercent,
-            taxSettings.spouse1Employment.employerMatchLimit
+            taxSettings.spouse1Employment.employerMatchAmount,
+            i,
+            taxSettings.inflationRate / 100
           )
         : 0;
       
       const spouse2Match = spouse2Working && taxSettings.filingStatus === 'married' && taxSettings.spouse2Employment.contributes401k
         ? calculate401kEmployerMatch(
-            spouse2Wages,
-            spouse2_401k,
-            taxSettings.spouse2Employment.employerMatchPercent,
-            taxSettings.spouse2Employment.employerMatchLimit
+            taxSettings.spouse2Employment.employerMatchAmount,
+            i,
+            taxSettings.inflationRate / 100
           )
         : 0;
       
