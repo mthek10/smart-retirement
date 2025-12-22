@@ -52,7 +52,6 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
   };
 
   const hasIRMAAWarning = (irmaa: number) => irmaa > 0;
-  const hasRMD = (rmd: number) => rmd > 0;
 
   return (
     <Card>
@@ -77,6 +76,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Wages</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Excess Saved</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Payroll Tax</th>
+                  <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">RMD</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Withdrawals</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Conversion</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Tax Bracket</th>
@@ -97,7 +97,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
               <tbody>
               {projections.length === 0 ? (
                 <tr className="border-b transition-colors hover:bg-muted/50">
-                  <td colSpan={25} className="p-4 align-middle text-center text-muted-foreground">
+                  <td colSpan={26} className="p-4 align-middle text-center text-muted-foreground">
                     Enter your account information to see projections
                   </td>
                 </tr>
@@ -119,11 +119,6 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                     <td className="p-4 align-middle">{projection.age}</td>
                     <td className="p-4 align-middle text-right">
                       {formatCurrency(projection.traditionalBalance)}
-                      {hasRMD(projection.rmd) && (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          RMD
-                        </Badge>
-                      )}
                     </td>
                     <td className="p-4 align-middle text-right">
                       {formatCurrency(projection.rothBalance)}
@@ -161,6 +156,15 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       {projection.payrollTax && projection.payrollTax > 0 ? (
                         <span className="text-destructive">
                           {formatCurrency(projection.payrollTax)}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="p-4 align-middle text-right">
+                      {projection.rmd > 0 ? (
+                        <span className="text-orange-600 dark:text-orange-400 font-medium">
+                          {formatCurrency(projection.rmd)}
                         </span>
                       ) : (
                         '-'
