@@ -17,6 +17,7 @@ import {
   calculateSocialSecurityBenefit,
   calculateTaxableSocialSecurity,
   calculateRMD,
+  calculateCombinedRMD,
   calculateCapitalGainsTax,
   getMarginalTaxBracket,
   calculateBracketConsistency,
@@ -129,21 +130,32 @@ const Index = () => {
         let traditionalWithdrawn = 0;
         let rothWithdrawn = 0;
         
-        // Withdrawal sequencing: Taxable -> Traditional -> Roth
+        // Withdrawal sequencing: RMD from Traditional first -> Taxable -> Additional Traditional -> Roth
+        // First, take RMD from traditional (mandatory)
+        if (currentRMD > 0 && testTrad > 0) {
+          const rmdWithdrawal = Math.min(currentRMD, testTrad, remaining);
+          traditionalWithdrawn = rmdWithdrawal;
+          testTrad -= rmdWithdrawal;
+          remaining -= rmdWithdrawal;
+        }
+        
+        // Then draw from taxable
         if (remaining > 0 && testTaxable > 0) {
           const fromTaxable = Math.min(remaining, testTaxable);
-          capitalGainsRealized = fromTaxable * 0.5; // 50% gains (match main projection)
+          capitalGainsRealized = fromTaxable * ((100 - accounts.taxableCostBasisPercent) / 100);
           testTaxable -= fromTaxable;
           remaining -= fromTaxable;
         }
         
+        // Additional from traditional if needed
         if (remaining > 0 && testTrad > 0) {
           const fromTrad = Math.min(remaining, testTrad);
-          traditionalWithdrawn = fromTrad;
+          traditionalWithdrawn += fromTrad;
           testTrad -= fromTrad;
           remaining -= fromTrad;
         }
         
+        // Finally from Roth
         if (remaining > 0 && testRoth > 0) {
           const fromRoth = Math.min(remaining, testRoth);
           rothWithdrawn = fromRoth;
@@ -373,8 +385,14 @@ const Index = () => {
       // Add 401k contributions and employer match to traditional balance
       tradBalance += total401kContributions + totalEmployerMatch;
 
-      // Calculate RMD if applicable (based on account owner's age - use spouse1)
-      const rmd = calculateRMD(tradBalance, spouse1CurrentAge);
+      // Calculate RMD for both spouses (RMDs are based on individual account balances)
+      // For simplicity, we model combined traditional balance with RMD based on older spouse's age
+      // In reality, each spouse's IRA has separate RMD requirements
+      const spouse1RMD = calculateRMD(tradBalance * 0.5, spouse1CurrentAge); // Assume 50/50 split
+      const spouse2RMD = taxSettings.filingStatus === 'married' 
+        ? calculateRMD(tradBalance * 0.5, spouse2CurrentAge)
+        : 0;
+      const rmd = spouse1RMD + spouse2RMD;
       
       // Calculate taxable wages (wages minus pre-tax 401k contributions)
       const taxableWages = totalWages - total401kContributions;
@@ -397,27 +415,45 @@ const Index = () => {
         spouse2CurrentAge,
         taxableWages
       ) : 0;
-      console.log(`Year ${i}: Required Withdrawal = $${requiredWithdrawal.toFixed(2)}, SS = $${ssAnnual.toFixed(2)}`);
+      
+      // Ensure RMD is met even if no withdrawal is needed for spending
+      // RMD must be taken regardless of spending needs
+      if (rmd > 0 && requiredWithdrawal < rmd) {
+        requiredWithdrawal = rmd;
+      }
+      
+      console.log(`Year ${i}: Required Withdrawal = $${requiredWithdrawal.toFixed(2)}, RMD = $${rmd.toFixed(2)}, SS = $${ssAnnual.toFixed(2)}`);
       let adjustedAnnualExpenses = adjustedTargetTakeHome; // For display purposes
 
-      // WITHDRAWAL SEQUENCING: Taxable → Traditional → Roth
+      // WITHDRAWAL SEQUENCING: Taxable → Traditional (with RMD priority) → Roth
       let withdrawalAmount = requiredWithdrawal;
       let taxableWithdrawal = 0;
       let traditionalWithdrawal = 0;
       let rothWithdrawal = 0;
 
-      if (taxableBalance > 0) {
+      // If RMD applies, prioritize traditional withdrawal to meet RMD first
+      if (rmd > 0 && tradBalance > 0) {
+        traditionalWithdrawal = Math.min(rmd, tradBalance);
+        withdrawalAmount -= traditionalWithdrawal;
+        tradBalance -= traditionalWithdrawal;
+      }
+
+      // Then draw from taxable account
+      if (withdrawalAmount > 0 && taxableBalance > 0) {
         taxableWithdrawal = Math.min(withdrawalAmount, taxableBalance);
         withdrawalAmount -= taxableWithdrawal;
         taxableBalance -= taxableWithdrawal;
       }
 
+      // Additional from traditional if needed (beyond RMD)
       if (withdrawalAmount > 0 && tradBalance > 0) {
-        traditionalWithdrawal = Math.min(withdrawalAmount, tradBalance);
-        withdrawalAmount -= traditionalWithdrawal;
-        tradBalance -= traditionalWithdrawal;
+        const additionalTrad = Math.min(withdrawalAmount, tradBalance);
+        traditionalWithdrawal += additionalTrad;
+        withdrawalAmount -= additionalTrad;
+        tradBalance -= additionalTrad;
       }
 
+      // Finally from Roth
       if (withdrawalAmount > 0 && rothBalance > 0) {
         rothWithdrawal = Math.min(withdrawalAmount, rothBalance);
         rothBalance -= rothWithdrawal;
