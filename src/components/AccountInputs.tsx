@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 
 interface AccountInputsProps {
   accounts: {
-    traditional: number;
+    spouse1Traditional: number;
+    spouse2Traditional: number;
     roth: number;
     taxable: number;
     traditionalReturn: number;
@@ -13,9 +14,12 @@ interface AccountInputsProps {
     taxableCostBasisPercent: number;
   };
   onChange: (accounts: any) => void;
+  filingStatus: string;
 }
 
-export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
+export function AccountInputs({ accounts, onChange, filingStatus }: AccountInputsProps) {
+  const isMarried = filingStatus === 'married';
+  const totalTraditional = accounts.spouse1Traditional + (isMarried ? accounts.spouse2Traditional : 0);
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -37,18 +41,21 @@ export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
         <CardDescription>Enter your current retirement account balances and expected annual returns</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Spouse 1 Traditional */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="traditional">Traditional IRA/401(k)</Label>
+            <Label htmlFor="spouse1Traditional">
+              {isMarried ? "Spouse 1 Traditional IRA/401(k)" : "Traditional IRA/401(k)"}
+            </Label>
             <Input
-              id="traditional"
+              id="spouse1Traditional"
               type="number"
               placeholder="0"
-              value={accounts.traditional || ''}
-              onChange={(e) => handleChange('traditional', e.target.value)}
+              value={accounts.spouse1Traditional || ''}
+              onChange={(e) => handleChange('spouse1Traditional', e.target.value)}
             />
             <p className="text-sm text-muted-foreground">
-              Current: {formatCurrency(accounts.traditional)}
+              Current: {formatCurrency(accounts.spouse1Traditional)}
             </p>
           </div>
           <div className="space-y-2">
@@ -65,6 +72,30 @@ export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
             />
           </div>
         </div>
+
+        {/* Spouse 2 Traditional (only if married) */}
+        {isMarried && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="spouse2Traditional">Spouse 2 Traditional IRA/401(k)</Label>
+              <Input
+                id="spouse2Traditional"
+                type="number"
+                placeholder="0"
+                value={accounts.spouse2Traditional || ''}
+                onChange={(e) => handleChange('spouse2Traditional', e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Current: {formatCurrency(accounts.spouse2Traditional)}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground pt-6">
+                Combined Traditional: {formatCurrency(totalTraditional)}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -147,7 +178,7 @@ export function AccountInputs({ accounts, onChange }: AccountInputsProps) {
           <div className="flex justify-between items-center">
             <span className="font-semibold">Total Portfolio</span>
             <span className="text-2xl font-bold text-primary">
-              {formatCurrency(accounts.traditional + accounts.roth + accounts.taxable)}
+              {formatCurrency(totalTraditional + accounts.roth + accounts.taxable)}
             </span>
           </div>
         </div>
