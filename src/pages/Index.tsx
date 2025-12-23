@@ -37,7 +37,8 @@ import {
 
 const Index = () => {
   const [accounts, setAccounts] = useState({
-    traditional: 5000000,
+    spouse1Traditional: 2500000,
+    spouse2Traditional: 2500000,
     roth: 0,
     taxable: 3000000,
     traditionalReturn: 3,
@@ -90,7 +91,8 @@ const Index = () => {
 
   const projections = useMemo(() => {
     const results = [];
-    let tradBalance = accounts.traditional;
+    let spouse1TradBalance = accounts.spouse1Traditional;
+    let spouse2TradBalance = accounts.spouse2Traditional;
     let rothBalance = accounts.roth;
     let taxableBalance = accounts.taxable;
 
@@ -271,7 +273,8 @@ const Index = () => {
 
     
     // Reset balances for actual projection
-    tradBalance = accounts.traditional;
+    spouse1TradBalance = accounts.spouse1Traditional;
+    spouse2TradBalance = accounts.spouse2Traditional;
     rothBalance = accounts.roth;
     taxableBalance = accounts.taxable;
 
@@ -382,15 +385,17 @@ const Index = () => {
       // Net wages after payroll taxes and 401k contributions
       const netWages = totalWages - totalPayrollTax - total401kContributions;
       
-      // Add 401k contributions and employer match to traditional balance
-      tradBalance += total401kContributions + totalEmployerMatch;
+      // Add 401k contributions and employer match to each spouse's traditional balance
+      spouse1TradBalance += spouse1_401k + spouse1Match;
+      spouse2TradBalance += spouse2_401k + spouse2Match;
+      
+      // Combined traditional balance for withdrawal calculations
+      const tradBalance = spouse1TradBalance + spouse2TradBalance;
 
-      // Calculate RMD for both spouses (RMDs are based on individual account balances)
-      // For simplicity, we model combined traditional balance with RMD based on older spouse's age
-      // In reality, each spouse's IRA has separate RMD requirements
-      const spouse1RMD = calculateRMD(tradBalance * 0.5, spouse1CurrentAge); // Assume 50/50 split
+      // Calculate RMD for each spouse based on their actual individual balance
+      const spouse1RMD = calculateRMD(spouse1TradBalance, spouse1CurrentAge);
       const spouse2RMD = taxSettings.filingStatus === 'married' 
-        ? calculateRMD(tradBalance * 0.5, spouse2CurrentAge)
+        ? calculateRMD(spouse2TradBalance, spouse2CurrentAge)
         : 0;
       const rmd = spouse1RMD + spouse2RMD;
       
@@ -430,12 +435,28 @@ const Index = () => {
       let taxableWithdrawal = 0;
       let traditionalWithdrawal = 0;
       let rothWithdrawal = 0;
+      
+      // Track how much is withdrawn from each spouse's traditional account
+      let spouse1TradWithdrawal = 0;
+      let spouse2TradWithdrawal = 0;
 
       // If RMD applies, prioritize traditional withdrawal to meet RMD first
+      // Withdraw proportionally from each spouse based on their RMD
       if (rmd > 0 && tradBalance > 0) {
-        traditionalWithdrawal = Math.min(rmd, tradBalance);
+        const rmdWithdrawal = Math.min(rmd, tradBalance);
+        // Withdraw from each spouse proportionally to their RMD
+        if (spouse1RMD > 0) {
+          const s1Portion = Math.min(spouse1RMD, spouse1TradBalance, rmdWithdrawal * (spouse1RMD / rmd));
+          spouse1TradWithdrawal = s1Portion;
+          spouse1TradBalance -= s1Portion;
+        }
+        if (spouse2RMD > 0) {
+          const s2Portion = Math.min(spouse2RMD, spouse2TradBalance, rmdWithdrawal * (spouse2RMD / rmd));
+          spouse2TradWithdrawal = s2Portion;
+          spouse2TradBalance -= s2Portion;
+        }
+        traditionalWithdrawal = spouse1TradWithdrawal + spouse2TradWithdrawal;
         withdrawalAmount -= traditionalWithdrawal;
-        tradBalance -= traditionalWithdrawal;
       }
 
       // Then draw from taxable account
@@ -446,11 +467,19 @@ const Index = () => {
       }
 
       // Additional from traditional if needed (beyond RMD)
-      if (withdrawalAmount > 0 && tradBalance > 0) {
-        const additionalTrad = Math.min(withdrawalAmount, tradBalance);
+      // Draw proportionally from both spouses based on remaining balance
+      const remainingTradBalance = spouse1TradBalance + spouse2TradBalance;
+      if (withdrawalAmount > 0 && remainingTradBalance > 0) {
+        const additionalTrad = Math.min(withdrawalAmount, remainingTradBalance);
+        const s1Ratio = spouse1TradBalance / remainingTradBalance;
+        const s1Additional = additionalTrad * s1Ratio;
+        const s2Additional = additionalTrad * (1 - s1Ratio);
+        spouse1TradBalance -= s1Additional;
+        spouse2TradBalance -= s2Additional;
+        spouse1TradWithdrawal += s1Additional;
+        spouse2TradWithdrawal += s2Additional;
         traditionalWithdrawal += additionalTrad;
         withdrawalAmount -= additionalTrad;
-        tradBalance -= additionalTrad;
       }
 
       // Finally from Roth
@@ -469,9 +498,12 @@ const Index = () => {
         taxSettings.rothConversionCustom
       );
       
-      if (targetIncomeLimit > 0 && tradBalance > 0) {
+      // Use remaining combined traditional balance for Roth conversion decisions
+      const remainingTradForConversion = spouse1TradBalance + spouse2TradBalance;
+      
+      if (targetIncomeLimit > 0 && remainingTradForConversion > 0) {
         // Calculate current income before conversion
-      const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
+        const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
         const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages;
         const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
           ssAnnual,
@@ -484,7 +516,7 @@ const Index = () => {
         const conversionRoom = Math.max(0, targetIncomeLimit - totalOrdinaryIncomePreConversion);
         
         // Propose initial conversion amount
-        let proposedConversion = Math.min(conversionRoom, tradBalance);
+        let proposedConversion = Math.min(conversionRoom, remainingTradForConversion);
         
         // IRMAA-aware optimization: Check if conversion triggers excessive IRMAA
         const isIRMAAAge = (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) || 
@@ -553,7 +585,13 @@ const Index = () => {
         rothConversion = proposedConversion;
         
         if (rothConversion > 0) {
-          tradBalance -= rothConversion;
+          // Withdraw proportionally from both spouses for Roth conversion
+          const conversionTradBalance = spouse1TradBalance + spouse2TradBalance;
+          if (conversionTradBalance > 0) {
+            const s1Ratio = spouse1TradBalance / conversionTradBalance;
+            spouse1TradBalance -= rothConversion * s1Ratio;
+            spouse2TradBalance -= rothConversion * (1 - s1Ratio);
+          }
           rothBalance += rothConversion;
         }
       }
@@ -671,10 +709,14 @@ const Index = () => {
         taxableBalance += excessIncome;
       }
 
-      // Apply growth to remaining balances
-      tradBalance *= (1 + accounts.traditionalReturn / 100);
+      // Apply growth to remaining balances (per-spouse traditional)
+      spouse1TradBalance *= (1 + accounts.traditionalReturn / 100);
+      spouse2TradBalance *= (1 + accounts.traditionalReturn / 100);
       rothBalance *= (1 + accounts.rothReturn / 100);
       taxableBalance *= (1 + accounts.taxableReturn / 100);
+      
+      // Combined traditional balance for display
+      const endingTradBalance = spouse1TradBalance + spouse2TradBalance;
 
       const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
       const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
@@ -709,7 +751,7 @@ const Index = () => {
       results.push({
         year,
         age,
-        traditionalBalance: tradBalance,
+        traditionalBalance: endingTradBalance,
         rothBalance,
         taxableBalance,
         ssIncome: ssAnnual,
@@ -848,7 +890,7 @@ const Index = () => {
     const avgWithdrawal = projections.length > 0 
       ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 
       : 0;
-    const totalPortfolio = accounts.traditional + accounts.roth + accounts.taxable;
+    const totalPortfolio = accounts.spouse1Traditional + accounts.spouse2Traditional + accounts.roth + accounts.taxable;
 
     return { 
       totalPortfolio, 
@@ -896,7 +938,7 @@ const Index = () => {
               <HouseholdInputs taxSettings={taxSettings} onChange={setTaxSettings} />
               
               <div className="grid gap-6 lg:grid-cols-2">
-                <AccountInputs accounts={accounts} onChange={setAccounts} />
+                <AccountInputs accounts={accounts} onChange={setAccounts} filingStatus={taxSettings.filingStatus} />
                 <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} />
               </div>
               
