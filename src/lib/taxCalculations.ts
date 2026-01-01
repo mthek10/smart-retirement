@@ -162,6 +162,30 @@ export const additionalMedicareThreshold: Record<string, number> = {
   separate: 125000,
 };
 
+// Survivor Social Security benefit calculation
+export function calculateSurvivorSSBenefit(
+  deceasedBenefit: number,
+  survivorOwnBenefit: number,
+  survivorAge: number,
+  survivorFRA: number
+): number {
+  // Survivor gets the HIGHER of their own benefit or deceased's benefit
+  // If claiming before FRA, survivor benefits may be reduced
+  
+  // Full survivor benefit at FRA or later
+  if (survivorAge >= survivorFRA) {
+    return Math.max(survivorOwnBenefit, deceasedBenefit);
+  }
+  
+  // Reduced survivor benefit if claiming early (60-FRA)
+  // Reduction is approximately 0.396% per month before FRA (max reduction ~28.5%)
+  const monthsEarly = Math.max(0, (survivorFRA - survivorAge) * 12);
+  const reductionFactor = Math.max(0.715, 1 - (monthsEarly * 0.00396));
+  const reducedSurvivorBenefit = deceasedBenefit * reductionFactor;
+  
+  return Math.max(survivorOwnBenefit, reducedSurvivorBenefit);
+}
+
 // 401(k) contribution limits
 export const contribution401kLimit2024 = 23000;
 export const contribution401kCatchup2024 = 7500; // Age 50+
