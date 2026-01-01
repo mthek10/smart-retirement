@@ -32,7 +32,8 @@ import {
   calculate401kContribution,
   calculate401kEmployerMatch,
   getRothConversionLimit,
-  calculateACASubsidy
+  calculateACASubsidy,
+  calculateSurvivorSSBenefit
 } from "@/lib/taxCalculations";
 
 const Index = () => {
@@ -86,6 +87,12 @@ const Index = () => {
       contributes401k: false,
       contribution401kAmount: 0,
       employerMatchAmount: 0,
+    },
+    survivorSettings: {
+      enabled: false,
+      spouse1DeathAge: null as number | null,
+      spouse2DeathAge: null as number | null,
+      survivorSpendingPercent: 75,
     },
   });
 
@@ -278,16 +285,56 @@ const Index = () => {
     rothBalance = accounts.roth;
     taxableBalance = accounts.taxable;
 
+    // Track Social Security benefits at time of death for survivor calculations
+    let spouse1SSAtDeath = 0;
+    let spouse2SSAtDeath = 0;
+    let spouse1DeathYearIndex: number | null = null;
+    let spouse2DeathYearIndex: number | null = null;
+
     for (let i = 0; i <= maxYears; i++) {
       const year = new Date().getFullYear() + i;
       const spouse1CurrentAge = taxSettings.spouse1Age + i;
       const spouse2CurrentAge = taxSettings.spouse2Age + i;
-      const age = Math.max(spouse1CurrentAge, spouse2CurrentAge); // Use older spouse's age for display
+      
+      // Determine if spouses are alive (survivor scenario)
+      const survivorEnabled = taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married';
+      const spouse1DeathAge = taxSettings.survivorSettings?.spouse1DeathAge;
+      const spouse2DeathAge = taxSettings.survivorSettings?.spouse2DeathAge;
+      
+      const spouse1Alive = !survivorEnabled || 
+        spouse1DeathAge === null || 
+        spouse1CurrentAge < spouse1DeathAge;
+      const spouse2Alive = !survivorEnabled || 
+        spouse2DeathAge === null || 
+        spouse2CurrentAge < spouse2DeathAge;
+      
+      // Track death year indices
+      if (!spouse1Alive && spouse1DeathYearIndex === null) {
+        spouse1DeathYearIndex = i;
+      }
+      if (!spouse2Alive && spouse2DeathYearIndex === null) {
+        spouse2DeathYearIndex = i;
+      }
+      
+      // If both spouses have passed, stop projections
+      if (!spouse1Alive && !spouse2Alive) {
+        break;
+      }
+      
+      // Dynamic filing status (changes to Single after spouse death)
+      const effectiveFilingStatus = (spouse1Alive && spouse2Alive) 
+        ? taxSettings.filingStatus 
+        : 'single';
+      
+      // Use older living spouse's age for display
+      const age = spouse1Alive && spouse2Alive 
+        ? Math.max(spouse1CurrentAge, spouse2CurrentAge)
+        : (spouse1Alive ? spouse1CurrentAge : spouse2CurrentAge);
 
-      // Calculate Social Security for both spouses (only if they're alive) with COLA adjustments
+      // Calculate Social Security for both spouses with COLA adjustments
       const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, i);
       
-      // Calculate years since claiming for COLA adjustment (starts after first year of claiming)
+      // Calculate years since claiming for COLA adjustment
       const spouse1YearsSinceClaiming = spouse1CurrentAge >= ssData.spouse1.claimAge 
         ? spouse1CurrentAge - ssData.spouse1.claimAge 
         : 0;
@@ -295,7 +342,7 @@ const Index = () => {
         ? spouse2CurrentAge - ssData.spouse2.claimAge 
         : 0;
       
-      // COLA multiplier (applies only after first year of claiming)
+      // COLA multiplier
       const spouse1ColaMultiplier = spouse1YearsSinceClaiming > 0 
         ? Math.pow(1 + taxSettings.inflationRate / 100, spouse1YearsSinceClaiming) 
         : 1;
@@ -303,35 +350,72 @@ const Index = () => {
         ? Math.pow(1 + taxSettings.inflationRate / 100, spouse2YearsSinceClaiming) 
         : 1;
       
-      const ss1Annual = spouse1CurrentAge >= ssData.spouse1.claimAge && spouse1CurrentAge <= 100
+      // Calculate individual SS benefits
+      const spouse1FRA = calculateFullRetirementAge(taxSettings.spouse1Age);
+      const spouse2FRA = calculateFullRetirementAge(taxSettings.spouse2Age);
+      
+      const ss1Base = spouse1Alive && spouse1CurrentAge >= ssData.spouse1.claimAge && spouse1CurrentAge <= 100
         ? calculateSocialSecurityBenefit(
             ssData.spouse1.estimatedBenefit, 
             ssData.spouse1.claimAge, 
-            calculateFullRetirementAge(taxSettings.spouse1Age)
+            spouse1FRA
           ) * 12 * spouse1ColaMultiplier
         : 0;
       
-      const ss2Annual = taxSettings.filingStatus === 'married' 
+      const ss2Base = taxSettings.filingStatus === 'married' 
+        && spouse2Alive
         && spouse2CurrentAge >= ssData.spouse2.claimAge 
         && spouse2CurrentAge <= 100
         ? calculateSocialSecurityBenefit(
             ssData.spouse2.estimatedBenefit, 
             ssData.spouse2.claimAge, 
-            calculateFullRetirementAge(taxSettings.spouse2Age)
+            spouse2FRA
           ) * 12 * spouse2ColaMultiplier
         : 0;
       
-      const ssAnnual = ss1Annual + ss2Annual;
+      // Track SS at death for survivor benefit calculation
+      if (spouse1Alive && ss1Base > 0) spouse1SSAtDeath = ss1Base;
+      if (spouse2Alive && ss2Base > 0) spouse2SSAtDeath = ss2Base;
+      
+      // Calculate Social Security with survivor benefits
+      let ssAnnual = 0;
+      let ss1Annual = ss1Base;
+      let ss2Annual = ss2Base;
+      
+      if (spouse1Alive && spouse2Alive) {
+        // Both alive - normal calculation
+        ssAnnual = ss1Annual + ss2Annual;
+      } else if (spouse1Alive && !spouse2Alive) {
+        // Spouse 2 deceased - Spouse 1 gets survivor benefit
+        ssAnnual = calculateSurvivorSSBenefit(
+          spouse2SSAtDeath, 
+          ss1Annual,
+          spouse1CurrentAge,
+          spouse1FRA
+        );
+        ss1Annual = ssAnnual;
+        ss2Annual = 0;
+      } else if (!spouse1Alive && spouse2Alive) {
+        // Spouse 1 deceased - Spouse 2 gets survivor benefit
+        ssAnnual = calculateSurvivorSSBenefit(
+          spouse1SSAtDeath,
+          ss2Annual,
+          spouse2CurrentAge,
+          spouse2FRA
+        );
+        ss2Annual = ssAnnual;
+        ss1Annual = 0;
+      }
 
-      // Calculate employment income if spouses are still working
-      const spouse1Working = spouse1CurrentAge < taxSettings.spouse1Employment.retirementAge;
-      const spouse2Working = taxSettings.filingStatus === 'married' 
+      // Calculate employment income if spouses are still working AND alive
+      const spouse1Working = spouse1Alive && spouse1CurrentAge < taxSettings.spouse1Employment.retirementAge;
+      const spouse2Working = spouse2Alive && taxSettings.filingStatus === 'married' 
         && spouse2CurrentAge < taxSettings.spouse2Employment.retirementAge;
       
       const spouse1Wages = spouse1Working 
         ? taxSettings.spouse1Employment.currentIncome * inflationMultiplier 
         : 0;
-      const spouse2Wages = spouse2Working && taxSettings.filingStatus === 'married'
+      const spouse2Wages = spouse2Working
         ? taxSettings.spouse2Employment.currentIncome * inflationMultiplier
         : 0;
       
@@ -347,7 +431,7 @@ const Index = () => {
           )
         : 0;
       
-      const spouse2_401k = spouse2Working && taxSettings.filingStatus === 'married' && taxSettings.spouse2Employment.contributes401k
+      const spouse2_401k = spouse2Working && taxSettings.spouse2Employment.contributes401k
         ? calculate401kContribution(
             taxSettings.spouse2Employment.contribution401kAmount,
             spouse2CurrentAge,
@@ -367,7 +451,7 @@ const Index = () => {
           )
         : 0;
       
-      const spouse2Match = spouse2Working && taxSettings.filingStatus === 'married' && taxSettings.spouse2Employment.contributes401k
+      const spouse2Match = spouse2Working && taxSettings.spouse2Employment.contributes401k
         ? calculate401kEmployerMatch(
             taxSettings.spouse2Employment.employerMatchAmount,
             i,
@@ -379,22 +463,36 @@ const Index = () => {
       
       // Calculate payroll taxes
       const ficaTax = calculateFICATax(totalWages, i, taxSettings.inflationRate / 100);
-      const medicareTax = calculateMedicareTax(totalWages, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
+      const medicareTax = calculateMedicareTax(totalWages, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
       const totalPayrollTax = ficaTax + medicareTax;
       
       // Net wages after payroll taxes and 401k contributions
       const netWages = totalWages - totalPayrollTax - total401kContributions;
       
-      // Add 401k contributions and employer match to each spouse's traditional balance
-      spouse1TradBalance += spouse1_401k + spouse1Match;
-      spouse2TradBalance += spouse2_401k + spouse2Match;
+      // Consolidate traditional balances when spouse dies (survivor inherits)
+      if (spouse1DeathYearIndex !== null && i === spouse1DeathYearIndex) {
+        spouse2TradBalance += spouse1TradBalance;
+        spouse1TradBalance = 0;
+      }
+      if (spouse2DeathYearIndex !== null && i === spouse2DeathYearIndex) {
+        spouse1TradBalance += spouse2TradBalance;
+        spouse2TradBalance = 0;
+      }
+      
+      // Add 401k contributions and employer match to each spouse's traditional balance (only if alive)
+      if (spouse1Alive) {
+        spouse1TradBalance += spouse1_401k + spouse1Match;
+      }
+      if (spouse2Alive) {
+        spouse2TradBalance += spouse2_401k + spouse2Match;
+      }
       
       // Combined traditional balance for withdrawal calculations
       const tradBalance = spouse1TradBalance + spouse2TradBalance;
 
-      // Calculate RMD for each spouse based on their actual individual balance
-      const spouse1RMD = calculateRMD(spouse1TradBalance, spouse1CurrentAge);
-      const spouse2RMD = taxSettings.filingStatus === 'married' 
+      // Calculate RMD for each living spouse based on their actual individual balance
+      const spouse1RMD = spouse1Alive ? calculateRMD(spouse1TradBalance, spouse1CurrentAge) : 0;
+      const spouse2RMD = spouse2Alive && taxSettings.filingStatus === 'married'
         ? calculateRMD(spouse2TradBalance, spouse2CurrentAge)
         : 0;
       const rmd = spouse1RMD + spouse2RMD;
@@ -402,9 +500,16 @@ const Index = () => {
       // Calculate taxable wages (wages minus pre-tax 401k contributions)
       const taxableWages = totalWages - total401kContributions;
       
+      // Calculate target take-home with survivor spending adjustment
+      const survivorSpendingPercent = taxSettings.survivorSettings?.survivorSpendingPercent || 75;
+      const baseTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
+      const effectiveTargetTakeHome = (spouse1Alive && spouse2Alive) 
+        ? baseTargetTakeHome 
+        : baseTargetTakeHome * (survivorSpendingPercent / 100);
+      
       // Use iterative solver to find withdrawal that achieves target take home
       // Adjust target by subtracting net wages (employment income already covers part of living expenses)
-      const adjustedTargetTakeHome = (taxSettings.targetTakeHome * inflationMultiplier) - netWages;
+      const adjustedTargetTakeHome = effectiveTargetTakeHome - netWages;
       
       // Track excess income when wages exceed target take-home (surplus to be invested)
       const excessIncome = adjustedTargetTakeHome < 0 ? Math.abs(adjustedTargetTakeHome) : 0;
@@ -492,7 +597,7 @@ const Index = () => {
       let rothConversion = 0;
       const targetIncomeLimit = getRothConversionLimit(
         taxSettings.rothConversionStrategy,
-        taxSettings.filingStatus,
+        effectiveFilingStatus,
         i,
         taxSettings.inflationRate / 100,
         taxSettings.rothConversionCustom
@@ -508,7 +613,7 @@ const Index = () => {
         const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
           ssAnnual,
           ordinaryIncomePreConversion + capitalGains,
-          taxSettings.filingStatus
+          effectiveFilingStatus
         );
         const totalOrdinaryIncomePreConversion = ordinaryIncomePreConversion + taxableSSIncomePreConversion;
         
@@ -518,35 +623,35 @@ const Index = () => {
         // Propose initial conversion amount
         let proposedConversion = Math.min(conversionRoom, remainingTradForConversion);
         
-        // IRMAA-aware optimization: Check if conversion triggers excessive IRMAA
-        const isIRMAAAge = (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) || 
-                           (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100);
+        // IRMAA-aware optimization: Check if conversion triggers excessive IRMAA (only for living spouses 65+)
+        const isIRMAAAge = (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) || 
+                           (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100);
         
         if (proposedConversion > 0 && isIRMAAAge) {
           // Calculate IRMAA without conversion
           const magiWithoutConversion = totalOrdinaryIncomePreConversion + capitalGains;
           let irmaaWithoutConversion = 0;
-          if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+          if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
             irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100);
           }
-          if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+          if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
             irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100);
           }
           
           // Calculate IRMAA with full conversion
           const magiWithConversion = totalOrdinaryIncomePreConversion + proposedConversion + capitalGains;
           let irmaaWithConversion = 0;
-          if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+          if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
             irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100);
           }
-          if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+          if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
             irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100);
           }
           
           const irmaaIncrease = irmaaWithConversion - irmaaWithoutConversion;
           
           // Calculate tax cost of conversion
-          const marginalRate = getMarginalTaxBracket(totalOrdinaryIncomePreConversion + proposedConversion, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
+          const marginalRate = getMarginalTaxBracket(totalOrdinaryIncomePreConversion + proposedConversion, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
           const conversionTaxCost = proposedConversion * marginalRate;
           
           // If IRMAA increase is significant relative to conversion tax cost, it's not worth it
@@ -560,15 +665,15 @@ const Index = () => {
             for (let testConversion = step; testConversion <= proposedConversion; testConversion += step) {
               const testMagi = totalOrdinaryIncomePreConversion + testConversion + capitalGains;
               let testIrmaa = 0;
-              if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+              if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
                 testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100);
               }
-              if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+              if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
                 testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100);
               }
               
               const testIrmaaIncrease = testIrmaa - irmaaWithoutConversion;
-              const testTaxCost = testConversion * getMarginalTaxBracket(totalOrdinaryIncomePreConversion + testConversion, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
+              const testTaxCost = testConversion * getMarginalTaxBracket(totalOrdinaryIncomePreConversion + testConversion, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
               
               // Keep conversion if IRMAA increase is reasonable
               if (testIrmaaIncrease <= testTaxCost * 0.5) {
@@ -604,18 +709,18 @@ const Index = () => {
       const taxableSSIncome = calculateTaxableSocialSecurity(
         ssAnnual, 
         ordinaryIncome + capitalGains,
-        taxSettings.filingStatus
+        effectiveFilingStatus
       );
       
       const totalOrdinaryIncome = ordinaryIncome + taxableSSIncome;
 
       // Calculate taxes - capital gains are taxed separately (apply inflation to standard deduction)
-      const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
-      const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
+      const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, i, taxSettings.inflationRate);
+      const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, effectiveFilingStatus, i, taxSettings.inflationRate);
       const federalTax = federalTaxOrdinary + federalTaxCapitalGains;
       
       // Calculate marginal tax bracket
-      const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, taxSettings.filingStatus, i, taxSettings.inflationRate);
+      const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, effectiveFilingStatus, i, taxSettings.inflationRate);
       
       // Calculate AGI for state tax purposes
       const agi = totalOrdinaryIncome + capitalGains;
@@ -630,58 +735,65 @@ const Index = () => {
         stateCapitalGainsTax = capitalGains * (taxSettings.stateRate / 100);
       } else if (taxSettings.state && taxSettings.state !== 'none') {
         // Calculate state-specific social security tax
-        const olderSpouseAge = Math.max(spouse1CurrentAge, spouse2CurrentAge);
+        const olderLivingSpouseAge = spouse1Alive && spouse2Alive 
+          ? Math.max(spouse1CurrentAge, spouse2CurrentAge)
+          : (spouse1Alive ? spouse1CurrentAge : spouse2CurrentAge);
         const stateSSTax = calculateStateSocialSecurityTax(
           ssAnnual,
           agi,
-          taxSettings.filingStatus,
+          effectiveFilingStatus,
           taxSettings.state,
-          olderSpouseAge
+          olderLivingSpouseAge
         );
         
         // Calculate state income tax on non-SS ordinary income
         const nonSSIncome = ordinaryIncome;
-        const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, taxSettings.state, taxSettings.filingStatus);
+        const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, taxSettings.state, effectiveFilingStatus);
         
         // Calculate state capital gains tax
-        stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, taxSettings.state, taxSettings.filingStatus);
+        stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, taxSettings.state, effectiveFilingStatus);
         
         stateTax = stateSSTax + stateIncomeTax;
       }
 
-      // Calculate IRMAA (only applies at age 65+ when on Medicare) - calculate for both spouses
+      // Calculate IRMAA (only applies at age 65+ when on Medicare) - calculate for LIVING spouses only
       const magi = totalOrdinaryIncome + capitalGains;
       let irmaa = 0;
-      if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+      if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
         irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100);
       }
-      if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+      if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
         irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100);
       }
 
-      // Calculate Medicare Part B and D base premiums (per person age 65+)
+      // Calculate Medicare Part B and D base premiums (per LIVING person age 65+)
       let medicarePremiums = 0;
-      if (spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+      if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
         medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
       }
-      if (spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+      if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
         medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
       }
 
-      // Calculate ACA subsidies (only applies to those under 65)
+      // Calculate ACA subsidies (only applies to LIVING persons under 65)
       let acaPremium = 0;
       let acaSubsidy = 0;
       let netAcaCost = 0;
       
       if (taxSettings.acaSettings.enabled) {
         const enrolleeAges: number[] = [];
-        if (spouse1CurrentAge < 65) enrolleeAges.push(spouse1CurrentAge);
-        if (spouse2CurrentAge < 65 && taxSettings.filingStatus === 'married') enrolleeAges.push(spouse2CurrentAge);
+        if (spouse1Alive && spouse1CurrentAge < 65) enrolleeAges.push(spouse1CurrentAge);
+        if (spouse2Alive && spouse2CurrentAge < 65 && effectiveFilingStatus === 'married') enrolleeAges.push(spouse2CurrentAge);
+        
+        // Adjust household size for survivor scenario
+        const effectiveHouseholdSize = (spouse1Alive && spouse2Alive) 
+          ? taxSettings.acaSettings.householdSize 
+          : Math.max(1, taxSettings.acaSettings.householdSize - 1);
         
         if (enrolleeAges.length > 0) {
           const acaResult = calculateACASubsidy(
             magi,
-            taxSettings.acaSettings.householdSize,
+            effectiveHouseholdSize,
             enrolleeAges,
             i,
             taxSettings.inflationRate / 100
@@ -699,10 +811,10 @@ const Index = () => {
       const totalHealthcareCost = netAcaCost + medicarePremiums + irmaa;
 
       // Calculate NIIT (Net Investment Income Tax - 3.8% on investment income when MAGI exceeds thresholds)
-      const niit = calculateNIIT(capitalGains, magi, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
+      const niit = calculateNIIT(capitalGains, magi, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
 
       // Calculate AMT (Alternative Minimum Tax)
-      const amt = calculateAMT(totalOrdinaryIncome, capitalGains, taxSettings.filingStatus, i, taxSettings.inflationRate / 100);
+      const amt = calculateAMT(totalOrdinaryIncome, capitalGains, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
 
       // Add excess income to taxable brokerage account (when wages exceed spending needs)
       if (excessIncome > 0) {
