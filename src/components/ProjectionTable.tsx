@@ -266,7 +266,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
         {projections.some(p => hasIRMAAWarning(p.irmaa)) && (
           <Alert className="mt-4 border-warning/50 bg-warning/10">
             <AlertTriangle className="h-4 w-4 text-warning" />
-            <AlertDescription className="text-warning-foreground">
+            <AlertDescription className="text-foreground font-medium">
               IRMAA surcharges detected in some years. Consider adjusting withdrawal strategies to reduce MAGI and minimize Medicare premium increases.
             </AlertDescription>
           </Alert>
