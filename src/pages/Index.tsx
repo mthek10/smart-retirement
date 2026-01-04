@@ -8,6 +8,8 @@ import { HouseholdInputs } from "@/components/HouseholdInputs";
 import { ProjectionTable } from "@/components/ProjectionTable";
 import { ProjectionChart } from "@/components/ProjectionChart";
 import { TaxChart } from "@/components/TaxChart";
+import { BracketChart } from "@/components/BracketChart";
+import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -595,8 +597,14 @@ const Index = () => {
 
       // ROTH CONVERSION OPTIMIZATION (IRMAA-AWARE) - Works at any age
       let rothConversion = 0;
+      
+      // For "optimize_consistency" strategy, use a dynamic target that fills to 22% bracket
+      // This ensures consistent bracket usage across all years
+      const isOptimizeConsistency = taxSettings.rothConversionStrategy === 'optimize_consistency';
+      const effectiveStrategy = isOptimizeConsistency ? 'fill_22' : taxSettings.rothConversionStrategy;
+      
       const targetIncomeLimit = getRothConversionLimit(
-        taxSettings.rothConversionStrategy,
+        effectiveStrategy,
         effectiveFilingStatus,
         i,
         taxSettings.inflationRate / 100,
@@ -969,8 +977,8 @@ const Index = () => {
     const initialRothBalance = accounts.roth;
     const rothUsageProjection = projections.find(p => p.rothBalance < initialRothBalance - 1000);
     
-    // Calculate bracket consistency
-    const consistency = calculateBracketConsistency(projections);
+    // Calculate bracket consistency with filing status and inflation rate
+    const consistency = calculateBracketConsistency(projections, taxSettings.filingStatus, taxSettings.inflationRate / 100);
     
     return {
       tradDepletionAge: finalTradDepletionAge,
@@ -1078,6 +1086,10 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="charts" className="mt-6 space-y-6">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <BracketAnalysisCard analysis={detailedMetrics.bracketConsistency} projections={projections} />
+                <BracketChart data={projections} />
+              </div>
               <ProjectionChart data={chartData} />
               <TaxChart data={taxChartData} />
             </TabsContent>

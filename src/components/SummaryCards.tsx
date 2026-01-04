@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingDown, Landmark, Activity } from "lucide-react";
+import { DollarSign, TrendingDown, Landmark, Activity, Target, AlertTriangle, CheckCircle2 } from "lucide-react";
+import type { BracketAnalysis } from "@/lib/taxCalculations";
 
 interface SummaryCardsProps {
   totalPortfolio: number;
@@ -21,7 +22,7 @@ interface SummaryCardsProps {
   taxableDepletionAge?: number | null;
   rothUsageAge?: number | null;
   rothDepletionAge?: number | null;
-  bracketConsistency?: any;
+  bracketConsistency?: BracketAnalysis | null;
 }
 
 export function SummaryCards({ 
@@ -181,7 +182,28 @@ export function SummaryCards({
     },
   ];
 
+  // Bracket consistency card
+  const bracketCard = bracketConsistency ? {
+    title: "Bracket Consistency",
+    value: bracketConsistency.score,
+    subtitle: `Avg ${(bracketConsistency.avgBracket * 100).toFixed(0)}% bracket • ${bracketConsistency.yearsInTarget} years consistent`,
+    icon: bracketConsistency.score < 4 ? CheckCircle2 : bracketConsistency.score < 6 ? Target : AlertTriangle,
+    color: bracketConsistency.score < 3 ? "text-green-600" : bracketConsistency.score < 6 ? "text-yellow-600" : "text-destructive",
+    isScore: true,
+    isAge: false,
+  } : null;
+
   const optimizationCards = bracketConsistency ? [
+    ...(bracketCard ? [bracketCard] : []),
+    ...(bracketConsistency.potentialSavings > 0 ? [{
+      title: "Potential Tax Savings",
+      value: bracketConsistency.potentialSavings,
+      subtitle: "Via bracket optimization",
+      icon: TrendingDown,
+      color: "text-green-600",
+      isAge: false,
+      isScore: false,
+    }] : []),
     {
       title: "Traditional Depleted",
       value: tradDepletionAge || 0,
@@ -189,6 +211,7 @@ export function SummaryCards({
       icon: TrendingDown,
       color: "text-muted-foreground",
       isAge: true,
+      isScore: false,
     },
     {
       title: "Brokerage Fully Depleted",
@@ -197,6 +220,7 @@ export function SummaryCards({
       icon: Landmark,
       color: "text-success",
       isAge: true,
+      isScore: false,
     },
     {
       title: "Roth Fully Depleted",
@@ -205,6 +229,7 @@ export function SummaryCards({
       icon: DollarSign,
       color: "text-warning",
       isAge: true,
+      isScore: false,
     },
   ] : [];
 
@@ -224,7 +249,9 @@ export function SummaryCards({
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${card.color}`}>
-                {card.isAge ? (
+                {'isScore' in card && card.isScore ? (
+                  `${card.value.toFixed(1)} / 10`
+                ) : card.isAge ? (
                   card.value > 0 ? `Age ${card.value}` : "N/A"
                 ) : (
                   formatCurrency(card.value)
