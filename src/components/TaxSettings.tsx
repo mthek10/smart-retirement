@@ -165,11 +165,12 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
                 <SelectItem value="fill_12">Fill to 12% Bracket</SelectItem>
                 <SelectItem value="fill_22">Fill to 22% Bracket</SelectItem>
                 <SelectItem value="fill_24">Fill to 24% Bracket</SelectItem>
+                <SelectItem value="optimize_consistency">Optimize Bracket Consistency</SelectItem>
                 <SelectItem value="custom">Custom Amount</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Automatically convert Traditional to Roth to fill your target tax bracket. Works at any age, including after RMDs start.
+              Convert Traditional to Roth to fill your target tax bracket. "Optimize Bracket Consistency" automatically finds the best conversion schedule to minimize lifetime taxes.
             </p>
           </div>
 

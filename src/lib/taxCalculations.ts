@@ -855,20 +855,41 @@ export function getBracketLimit(
   return bracket.max * inflationMultiplier;
 }
 
-export function calculateBracketConsistency(projections: any[]): {
+export interface BracketAnalysis {
   score: number;
   avgBracket: number;
   yearsInTarget: number;
   targetBracket: number;
-} {
+  bracketDistribution: Record<string, number>;
+  yearlyBrackets: Array<{ year: number; age: number; bracket: number; income: number; bracketRoom: number }>;
+  wastedBracketRoom: number;
+  potentialSavings: number;
+  recommendation: string;
+}
+
+export function calculateBracketConsistency(
+  projections: any[],
+  filingStatus: string = 'married',
+  inflationRate: number = 0.03
+): BracketAnalysis {
   if (projections.length === 0) {
-    return { score: 0, avgBracket: 0, yearsInTarget: 0, targetBracket: 0 };
+    return { 
+      score: 0, 
+      avgBracket: 0, 
+      yearsInTarget: 0, 
+      targetBracket: 0,
+      bracketDistribution: {},
+      yearlyBrackets: [],
+      wastedBracketRoom: 0,
+      potentialSavings: 0,
+      recommendation: '',
+    };
   }
   
   // Calculate average bracket (weighted by income)
   const totalIncome = projections.reduce((sum, p) => sum + (p.totalIncome || 0), 0);
   const weightedBracket = projections.reduce((sum, p) => {
-    const weight = (p.totalIncome || 0) / totalIncome;
+    const weight = totalIncome > 0 ? (p.totalIncome || 0) / totalIncome : 1 / projections.length;
     return sum + (p.marginalBracket * weight);
   }, 0);
   
@@ -881,7 +902,6 @@ export function calculateBracketConsistency(projections: any[]): {
   const stdDev = Math.sqrt(variance);
   
   // Calculate score (0-10 scale, lower is better)
-  // Standard deviation of 0.05 (5 percentage points) = score of 5
   const score = Math.min(10, stdDev * 100);
   
   // Count years within ±2% of target
@@ -890,11 +910,96 @@ export function calculateBracketConsistency(projections: any[]): {
     Math.abs(p.marginalBracket - targetBracket) <= 0.02
   ).length;
   
+  // Calculate bracket distribution
+  const bracketDistribution: Record<string, number> = {};
+  projections.forEach(p => {
+    const bracketKey = `${(p.marginalBracket * 100).toFixed(0)}%`;
+    bracketDistribution[bracketKey] = (bracketDistribution[bracketKey] || 0) + 1;
+  });
+  
+  // Calculate yearly bracket data with room for optimization
+  const yearlyBrackets = projections.map((p, index) => {
+    // Find the next bracket up and calculate room
+    const currentBracket = p.marginalBracket;
+    const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
+    const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+    const inflationMultiplier = Math.pow(1 + inflationRate, index);
+    const standardDeduction = baseDeduction * inflationMultiplier;
+    
+    // Find current bracket's upper limit
+    const currentBracketData = brackets.find(b => b.rate === currentBracket);
+    const bracketLimit = currentBracketData ? currentBracketData.max * inflationMultiplier + standardDeduction : 0;
+    const bracketRoom = Math.max(0, bracketLimit - (p.totalIncome || 0));
+    
+    return {
+      year: p.year,
+      age: p.age,
+      bracket: currentBracket,
+      income: p.totalIncome || 0,
+      bracketRoom,
+    };
+  });
+  
+  // Calculate wasted bracket room (years where bracket is below target)
+  // Target is 22% bracket as a reasonable optimization target
+  const targetOptimalBracket = 0.22;
+  let wastedBracketRoom = 0;
+  
+  yearlyBrackets.forEach((yb, index) => {
+    if (yb.bracket < targetOptimalBracket && yb.bracketRoom > 0) {
+      // This year has unused lower bracket space
+      const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
+      const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+      const inflationMultiplier = Math.pow(1 + inflationRate, index);
+      
+      // Find the 22% bracket limit
+      const targetBracketData = brackets.find(b => b.rate === targetOptimalBracket);
+      if (targetBracketData) {
+        const targetLimit = targetBracketData.max * inflationMultiplier + baseDeduction * inflationMultiplier;
+        const roomToTarget = Math.max(0, targetLimit - yb.income);
+        wastedBracketRoom += roomToTarget;
+      }
+    }
+  });
+  
+  // Estimate potential savings (rough calculation)
+  // If you could fill lower brackets instead of paying at higher rates later
+  const highBracketYears = yearlyBrackets.filter(yb => yb.bracket > targetOptimalBracket);
+  const lowBracketYears = yearlyBrackets.filter(yb => yb.bracket < targetOptimalBracket);
+  
+  let potentialSavings = 0;
+  if (highBracketYears.length > 0 && lowBracketYears.length > 0) {
+    // Approximate savings: difference between high and low bracket rates * wasted room
+    const avgHighRate = highBracketYears.reduce((s, y) => s + y.bracket, 0) / highBracketYears.length;
+    const avgLowRate = lowBracketYears.reduce((s, y) => s + y.bracket, 0) / lowBracketYears.length;
+    const rateDifference = avgHighRate - avgLowRate;
+    potentialSavings = Math.min(wastedBracketRoom * rateDifference, wastedBracketRoom * 0.12); // Cap at 12% savings
+  }
+  
+  // Generate recommendation
+  let recommendation = '';
+  if (score < 2) {
+    recommendation = 'Excellent bracket consistency. Your tax strategy is well-optimized.';
+  } else if (score < 4) {
+    recommendation = 'Good consistency. Minor optimizations possible with Roth conversions.';
+  } else if (score < 6) {
+    recommendation = 'Moderate inconsistency. Consider filling lower brackets with Roth conversions to save on lifetime taxes.';
+  } else if (score < 8) {
+    recommendation = 'Significant inconsistency. You have substantial unused low-bracket years. Aggressive Roth conversions could save significant taxes.';
+  } else {
+    recommendation = 'High inconsistency. You are likely paying more taxes than necessary. Consider enabling bracket-filling Roth conversion strategy.';
+  }
+  
   return {
     score,
     avgBracket: weightedBracket,
     yearsInTarget,
     targetBracket,
+    bracketDistribution,
+    yearlyBrackets,
+    wastedBracketRoom,
+    potentialSavings,
+    recommendation,
   };
 }
 
