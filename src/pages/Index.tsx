@@ -11,6 +11,8 @@ import { TaxChart } from "@/components/TaxChart";
 import { BracketChart } from "@/components/BracketChart";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
+import { StrategyComparison } from "@/components/StrategyComparison";
+import { useTwoPassProjections } from "@/hooks/useProjections";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   calculateFederalTax, 
@@ -905,6 +907,9 @@ const Index = () => {
     return results;
   }, [accounts, ssData, taxSettings]);
 
+  // Two-pass projections for strategy comparison
+  const twoPassResults = useTwoPassProjections(accounts, ssData, taxSettings);
+
   const chartData = useMemo(() => {
     return projections.map(p => ({
       year: p.year,
@@ -1086,6 +1091,21 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="charts" className="mt-6 space-y-6">
+              <StrategyComparison
+                baselineMetrics={twoPassResults.baselineMetrics}
+                optimizedMetrics={twoPassResults.optimizedMetrics}
+                currentMetrics={twoPassResults.currentMetrics}
+                currentStrategyName={
+                  taxSettings.rothConversionStrategy === 'none' ? 'No Conversions' :
+                  taxSettings.rothConversionStrategy === 'fill_10' ? 'Fill to 10%' :
+                  taxSettings.rothConversionStrategy === 'fill_12' ? 'Fill to 12%' :
+                  taxSettings.rothConversionStrategy === 'fill_22' ? 'Fill to 22%' :
+                  taxSettings.rothConversionStrategy === 'fill_24' ? 'Fill to 24%' :
+                  taxSettings.rothConversionStrategy === 'optimize_consistency' ? 'Optimize Consistency' :
+                  taxSettings.rothConversionStrategy === 'custom' ? 'Custom Amount' : 'Current'
+                }
+                showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
+              />
               <div className="grid gap-6 lg:grid-cols-2">
                 <BracketAnalysisCard analysis={detailedMetrics.bracketConsistency} projections={projections} />
                 <BracketChart data={projections} />
