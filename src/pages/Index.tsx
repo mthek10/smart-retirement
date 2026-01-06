@@ -12,7 +12,9 @@ import { BracketChart } from "@/components/BracketChart";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
+import { MonteCarloResults } from "@/components/MonteCarloResults";
 import { useTwoPassProjections } from "@/hooks/useProjections";
+import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   calculateFederalTax, 
@@ -911,6 +913,16 @@ const Index = () => {
   // Two-pass projections for strategy comparison
   const twoPassResults = useTwoPassProjections(accounts, ssData, taxSettings);
 
+  // Monte Carlo simulation settings
+  const [monteCarloSettings, setMonteCarloSettings] = useState<MonteCarloSettings>({
+    numSimulations: 100,
+    returnMean: 0.07,
+    returnStdDev: 0.15,
+  });
+
+  // Monte Carlo simulation results
+  const monteCarloResults = useMonteCarloSimulation(accounts, ssData, taxSettings, monteCarloSettings);
+
   const chartData = useMemo(() => {
     return projections.map(p => ({
       year: p.year,
@@ -1107,6 +1119,11 @@ const Index = () => {
                 }
                 showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
                 optimizationGoal={taxSettings.optimizationGoal}
+              />
+              <MonteCarloResults
+                results={monteCarloResults}
+                settings={monteCarloSettings}
+                onSettingsChange={setMonteCarloSettings}
               />
               <div className="grid gap-6 lg:grid-cols-2">
                 <BracketAnalysisCard analysis={detailedMetrics.bracketConsistency} projections={projections} />
