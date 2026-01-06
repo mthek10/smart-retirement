@@ -14,6 +14,7 @@ interface TaxSettingsProps {
     inflationRate: number;
     rothConversionStrategy: string;
     rothConversionCustom: number;
+    optimizationGoal?: string;
   };
   onChange: (settings: any) => void;
 }
@@ -192,7 +193,27 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           )}
         </div>
 
-        <div className="pt-4 border-t space-y-2">
+        <div className="pt-4 border-t space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="optimizationGoal">Optimization Goal</Label>
+            <Select
+              value={taxSettings.optimizationGoal || 'minimize-taxes'}
+              onValueChange={(value) => handleChange('optimizationGoal', value)}
+            >
+              <SelectTrigger id="optimizationGoal">
+                <SelectValue placeholder="Select optimization goal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="minimize-taxes">Minimize Lifetime Taxes</SelectItem>
+                <SelectItem value="maximize-longevity">Maximize Fund Longevity</SelectItem>
+                <SelectItem value="balanced">Balanced (Both)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Choose whether to prioritize lower taxes, longer fund life, or balance both objectives.
+            </p>
+          </div>
+
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">2024 Standard Deduction</span>
             <span className="font-medium">

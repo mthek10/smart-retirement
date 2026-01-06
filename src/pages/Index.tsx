@@ -98,6 +98,7 @@ const Index = () => {
       spouse2DeathAge: null as number | null,
       survivorSpendingPercent: 75,
     },
+    optimizationGoal: 'minimize-taxes',
   });
 
   const projections = useMemo(() => {
@@ -1105,6 +1106,7 @@ const Index = () => {
                   taxSettings.rothConversionStrategy === 'custom' ? 'Custom Amount' : 'Current'
                 }
                 showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
+                optimizationGoal={taxSettings.optimizationGoal}
               />
               <div className="grid gap-6 lg:grid-cols-2">
                 <BracketAnalysisCard analysis={detailedMetrics.bracketConsistency} projections={projections} />

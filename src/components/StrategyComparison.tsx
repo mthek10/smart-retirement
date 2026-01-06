@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingDown, TrendingUp, Equal, ArrowRightLeft } from "lucide-react";
+import { TrendingDown, TrendingUp, Equal, ArrowRightLeft, Clock, DollarSign, Trophy } from "lucide-react";
 import type { StrategyMetrics } from "@/hooks/useProjections";
 
 interface StrategyComparisonProps {
@@ -9,6 +9,7 @@ interface StrategyComparisonProps {
   currentMetrics: StrategyMetrics;
   currentStrategyName: string;
   showOptimization: boolean;
+  optimizationGoal?: string;
 }
 
 export function StrategyComparison({ 
@@ -17,6 +18,7 @@ export function StrategyComparison({
   currentMetrics,
   currentStrategyName,
   showOptimization,
+  optimizationGoal = 'minimize-taxes',
 }: StrategyComparisonProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -31,6 +33,11 @@ export function StrategyComparison({
     return `${(value * 100).toFixed(1)}%`;
   };
 
+  const formatAge = (age: number | null) => {
+    if (age === null) return "Never";
+    return `Age ${age}`;
+  };
+
   // Calculate savings comparing baseline (no conversions) to optimized (fill-22)
   const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
   const hasImprovement = taxSavings > 1000;
@@ -38,6 +45,44 @@ export function StrategyComparison({
   // Also show how current compares to optimized
   const currentVsOptimized = currentMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
   const currentIsOptimal = Math.abs(currentVsOptimized) < 1000;
+
+  // Calculate longevity comparison
+  const baselineDepletion = baselineMetrics.allFundsDepletionAge;
+  const optimizedDepletion = optimizedMetrics.allFundsDepletionAge;
+  const currentDepletion = currentMetrics.allFundsDepletionAge;
+
+  // Determine which strategy wins each objective
+  const getWinner = (metric: 'taxes' | 'longevity' | 'balance'): 'baseline' | 'optimized' | 'current' | 'tie' => {
+    if (metric === 'taxes') {
+      const min = Math.min(baselineMetrics.lifetimeTotalTax, optimizedMetrics.lifetimeTotalTax, currentMetrics.lifetimeTotalTax);
+      if (optimizedMetrics.lifetimeTotalTax === min) return 'optimized';
+      if (currentMetrics.lifetimeTotalTax === min) return 'current';
+      return 'baseline';
+    }
+    if (metric === 'longevity') {
+      // null means never depleted (best), otherwise higher age is better
+      const ages = [
+        { name: 'baseline' as const, age: baselineDepletion },
+        { name: 'optimized' as const, age: optimizedDepletion },
+        { name: 'current' as const, age: currentDepletion },
+      ];
+      // Never depleted wins
+      const neverDepleted = ages.filter(a => a.age === null);
+      if (neverDepleted.length > 0) return neverDepleted[0].name;
+      // Otherwise highest age wins
+      ages.sort((a, b) => (b.age ?? 0) - (a.age ?? 0));
+      return ages[0].name;
+    }
+    // Balanced: compare final total balance
+    const max = Math.max(baselineMetrics.finalTotalBalance, optimizedMetrics.finalTotalBalance, currentMetrics.finalTotalBalance);
+    if (optimizedMetrics.finalTotalBalance === max) return 'optimized';
+    if (currentMetrics.finalTotalBalance === max) return 'current';
+    return 'baseline';
+  };
+
+  const taxWinner = getWinner('taxes');
+  const longevityWinner = getWinner('longevity');
+  const balanceWinner = getWinner('balance');
 
   const getDifferenceIcon = (current: number, optimized: number, lowerIsBetter: boolean = true) => {
     const diff = current - optimized;
@@ -48,7 +93,14 @@ export function StrategyComparison({
     return diff < 0 ? <TrendingUp className="h-4 w-4 text-green-600" /> : <TrendingDown className="h-4 w-4 text-destructive" />;
   };
 
-  const metrics = [
+  const getWinnerBadge = (winner: string, column: 'baseline' | 'optimized' | 'current') => {
+    if (winner === column) {
+      return <Trophy className="h-3 w-3 text-amber-500 ml-1" />;
+    }
+    return null;
+  };
+
+  const taxMetrics = [
     {
       label: "Lifetime Total Tax",
       baseline: formatCurrency(baselineMetrics.lifetimeTotalTax),
@@ -57,6 +109,7 @@ export function StrategyComparison({
       icon: getDifferenceIcon(baselineMetrics.lifetimeTotalTax, optimizedMetrics.lifetimeTotalTax),
       diff: baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax,
       formatDiff: (d: number) => formatCurrency(Math.abs(d)),
+      winner: taxWinner,
     },
     {
       label: "Lifetime Federal Tax",
@@ -66,6 +119,7 @@ export function StrategyComparison({
       icon: getDifferenceIcon(baselineMetrics.lifetimeFederalTax, optimizedMetrics.lifetimeFederalTax),
       diff: baselineMetrics.lifetimeFederalTax - optimizedMetrics.lifetimeFederalTax,
       formatDiff: (d: number) => formatCurrency(Math.abs(d)),
+      winner: taxWinner,
     },
     {
       label: "Bracket Consistency Score",
@@ -75,6 +129,7 @@ export function StrategyComparison({
       icon: getDifferenceIcon(baselineMetrics.bracketScore, optimizedMetrics.bracketScore),
       diff: baselineMetrics.bracketScore - optimizedMetrics.bracketScore,
       formatDiff: (d: number) => Math.abs(d).toFixed(1),
+      winner: null,
     },
     {
       label: "Avg Marginal Bracket",
@@ -84,17 +139,91 @@ export function StrategyComparison({
       icon: getDifferenceIcon(baselineMetrics.avgBracket, optimizedMetrics.avgBracket),
       diff: baselineMetrics.avgBracket - optimizedMetrics.avgBracket,
       formatDiff: (d: number) => formatPercent(Math.abs(d)),
-    },
-    {
-      label: "Years in Low Bracket (≤12%)",
-      baseline: `${baselineMetrics.yearsInLowBracket}`,
-      current: `${currentMetrics.yearsInLowBracket}`,
-      optimized: `${optimizedMetrics.yearsInLowBracket}`,
-      icon: getDifferenceIcon(baselineMetrics.yearsInLowBracket, optimizedMetrics.yearsInLowBracket, false),
-      diff: optimizedMetrics.yearsInLowBracket - baselineMetrics.yearsInLowBracket,
-      formatDiff: (d: number) => `${Math.abs(d)}`,
+      winner: null,
     },
   ];
+
+  const longevityMetrics = [
+    {
+      label: "All Funds Depleted",
+      baseline: formatAge(baselineMetrics.allFundsDepletionAge),
+      current: formatAge(currentMetrics.allFundsDepletionAge),
+      optimized: formatAge(optimizedMetrics.allFundsDepletionAge),
+      winner: longevityWinner,
+    },
+    {
+      label: "Traditional Depleted",
+      baseline: formatAge(baselineMetrics.tradDepletionAge),
+      current: formatAge(currentMetrics.tradDepletionAge),
+      optimized: formatAge(optimizedMetrics.tradDepletionAge),
+      winner: null,
+    },
+    {
+      label: "Roth Depleted",
+      baseline: formatAge(baselineMetrics.rothDepletionAge),
+      current: formatAge(currentMetrics.rothDepletionAge),
+      optimized: formatAge(optimizedMetrics.rothDepletionAge),
+      winner: null,
+    },
+    {
+      label: "Final Balance (Age 100)",
+      baseline: formatCurrency(baselineMetrics.finalTotalBalance),
+      current: formatCurrency(currentMetrics.finalTotalBalance),
+      optimized: formatCurrency(optimizedMetrics.finalTotalBalance),
+      winner: balanceWinner,
+    },
+  ];
+
+  // Determine recommendation based on goal
+  const getRecommendation = () => {
+    if (optimizationGoal === 'minimize-taxes') {
+      const winner = taxWinner === 'optimized' ? 'Fill to 22% bracket' : 
+                     taxWinner === 'current' ? currentStrategyName : 'No conversions';
+      const savings = taxWinner === 'optimized' ? taxSavings : 0;
+      return {
+        title: "Tax Minimization Recommendation",
+        strategy: winner,
+        savings: savings > 0 ? `Saves ${formatCurrency(savings)} in lifetime taxes` : null,
+        tradeoff: longevityWinner !== taxWinner && longevityWinner !== 'tie'
+          ? `Trade-off: Funds may deplete ${longevityWinner === 'baseline' ? 'earlier' : 'differently'} than other strategies`
+          : null,
+        icon: <DollarSign className="h-5 w-5" />,
+        color: 'green',
+      };
+    }
+    if (optimizationGoal === 'maximize-longevity') {
+      const winner = longevityWinner === 'optimized' ? 'Fill to 22% bracket' : 
+                     longevityWinner === 'current' ? currentStrategyName : 'No conversions';
+      const depletionAge = longevityWinner === 'optimized' ? optimizedDepletion :
+                           longevityWinner === 'current' ? currentDepletion : baselineDepletion;
+      return {
+        title: "Longevity Recommendation",
+        strategy: winner,
+        savings: depletionAge === null ? 'Funds never deplete' : `Funds last until age ${depletionAge}`,
+        tradeoff: taxWinner !== longevityWinner && taxWinner !== 'tie'
+          ? `Trade-off: May pay ${formatCurrency(Math.abs(baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax))} more in lifetime taxes`
+          : null,
+        icon: <Clock className="h-5 w-5" />,
+        color: 'blue',
+      };
+    }
+    // Balanced
+    const winner = balanceWinner === 'optimized' ? 'Fill to 22% bracket' : 
+                   balanceWinner === 'current' ? currentStrategyName : 'No conversions';
+    return {
+      title: "Balanced Recommendation",
+      strategy: winner,
+      savings: `Final balance: ${formatCurrency(
+        balanceWinner === 'optimized' ? optimizedMetrics.finalTotalBalance :
+        balanceWinner === 'current' ? currentMetrics.finalTotalBalance : baselineMetrics.finalTotalBalance
+      )}`,
+      tradeoff: null,
+      icon: <ArrowRightLeft className="h-5 w-5" />,
+      color: 'purple',
+    };
+  };
+
+  const recommendation = getRecommendation();
 
   return (
     <Card>
@@ -102,7 +231,7 @@ export function StrategyComparison({
         <CardTitle className="flex items-center gap-2">
           <ArrowRightLeft className="h-5 w-5" />
           Two-Pass Strategy Comparison
-          {hasImprovement && (
+          {hasImprovement && optimizationGoal === 'minimize-taxes' && (
             <Badge variant="default" className="bg-green-600">
               Potential Savings: {formatCurrency(taxSavings)}
             </Badge>
@@ -113,38 +242,123 @@ export function StrategyComparison({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {/* Header Row */}
-          <div className="grid grid-cols-5 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
-            <div>Metric</div>
-            <div className="text-center">Baseline<br /><span className="text-xs">(No Conversions)</span></div>
-            <div className="text-center">{currentStrategyName}<br /><span className="text-xs">(Current)</span></div>
-            <div className="text-center">Optimized<br /><span className="text-xs">(Fill to 22%)</span></div>
-            <div className="text-center">Savings<br /><span className="text-xs">(vs Baseline)</span></div>
+        <div className="space-y-6">
+          {/* Tax Metrics Section */}
+          <div>
+            <h4 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Tax Efficiency Metrics
+            </h4>
+            <div className="grid grid-cols-5 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
+              <div>Metric</div>
+              <div className="text-center">Baseline</div>
+              <div className="text-center">{currentStrategyName}</div>
+              <div className="text-center">Optimized</div>
+              <div className="text-center">Savings</div>
+            </div>
+
+            {taxMetrics.map((metric) => (
+              <div key={metric.label} className="grid grid-cols-5 gap-4 items-center text-sm py-2 border-b border-muted/50">
+                <div className="font-medium">{metric.label}</div>
+                <div className="text-center text-muted-foreground flex items-center justify-center">
+                  {metric.baseline}
+                  {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
+                </div>
+                <div className={`text-center flex items-center justify-center ${currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
+                  {metric.current}
+                  {metric.winner && getWinnerBadge(metric.winner, 'current')}
+                </div>
+                <div className="text-center font-semibold text-green-600 flex items-center justify-center">
+                  {metric.optimized}
+                  {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
+                </div>
+                <div className="flex items-center justify-center gap-1">
+                  {metric.icon}
+                  <span className={metric.diff > 0 ? "text-green-600" : metric.diff < 0 ? "text-destructive" : "text-muted-foreground"}>
+                    {metric.formatDiff(metric.diff)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Metric Rows */}
-          {metrics.map((metric) => (
-            <div key={metric.label} className="grid grid-cols-5 gap-4 items-center text-sm py-2 border-b border-muted/50">
-              <div className="font-medium">{metric.label}</div>
-              <div className="text-center text-muted-foreground">{metric.baseline}</div>
-              <div className={`text-center ${currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
-                {metric.current}
-              </div>
-              <div className="text-center font-semibold text-green-600">{metric.optimized}</div>
-              <div className="flex items-center justify-center gap-1">
-                {metric.icon}
-                <span className={metric.diff > 0 ? "text-green-600" : metric.diff < 0 ? "text-destructive" : "text-muted-foreground"}>
-                  {metric.formatDiff(metric.diff)}
-                </span>
-              </div>
+          {/* Longevity Metrics Section */}
+          <div>
+            <h4 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Longevity Metrics
+            </h4>
+            <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
+              <div>Metric</div>
+              <div className="text-center">Baseline</div>
+              <div className="text-center">{currentStrategyName}</div>
+              <div className="text-center">Optimized</div>
             </div>
-          ))}
+
+            {longevityMetrics.map((metric) => (
+              <div key={metric.label} className="grid grid-cols-4 gap-4 items-center text-sm py-2 border-b border-muted/50">
+                <div className="font-medium">{metric.label}</div>
+                <div className="text-center text-muted-foreground flex items-center justify-center">
+                  {metric.baseline}
+                  {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
+                </div>
+                <div className="text-center flex items-center justify-center">
+                  {metric.current}
+                  {metric.winner && getWinnerBadge(metric.winner, 'current')}
+                </div>
+                <div className="text-center flex items-center justify-center">
+                  {metric.optimized}
+                  {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Goal-Based Recommendation */}
+        <div className="mt-6">
+          <div className={`p-4 rounded-lg border ${
+            recommendation.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
+            recommendation.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' :
+            'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+          }`}>
+            <div className={`flex items-center gap-2 font-medium ${
+              recommendation.color === 'green' ? 'text-green-700 dark:text-green-300' :
+              recommendation.color === 'blue' ? 'text-blue-700 dark:text-blue-300' :
+              'text-purple-700 dark:text-purple-300'
+            }`}>
+              {recommendation.icon}
+              <span>{recommendation.title}</span>
+            </div>
+            <div className="mt-2 space-y-1">
+              <p className={`text-sm font-semibold ${
+                recommendation.color === 'green' ? 'text-green-800 dark:text-green-200' :
+                recommendation.color === 'blue' ? 'text-blue-800 dark:text-blue-200' :
+                'text-purple-800 dark:text-purple-200'
+              }`}>
+                Recommended: {recommendation.strategy}
+              </p>
+              {recommendation.savings && (
+                <p className={`text-sm ${
+                  recommendation.color === 'green' ? 'text-green-600 dark:text-green-400' :
+                  recommendation.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                  'text-purple-600 dark:text-purple-400'
+                }`}>
+                  {recommendation.savings}
+                </p>
+              )}
+              {recommendation.tradeoff && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {recommendation.tradeoff}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Summary Section */}
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {hasImprovement && (
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {hasImprovement && optimizationGoal !== 'maximize-longevity' && (
             <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
                 <TrendingDown className="h-5 w-5" />
@@ -169,7 +383,7 @@ export function StrategyComparison({
                 Your selected Roth conversion strategy achieves results similar to the optimized approach.
               </p>
             </div>
-          ) : showOptimization && currentVsOptimized > 1000 && (
+          ) : showOptimization && currentVsOptimized > 1000 && optimizationGoal === 'minimize-taxes' && (
             <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
               <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
                 <TrendingUp className="h-5 w-5" />

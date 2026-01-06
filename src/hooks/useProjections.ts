@@ -805,6 +805,12 @@ export interface StrategyMetrics {
   bracketScore: number;
   avgBracket: number;
   yearsInLowBracket: number;
+  // Depletion tracking
+  tradDepletionAge: number | null;
+  taxableDepletionAge: number | null;
+  rothDepletionAge: number | null;
+  allFundsDepletionAge: number | null;
+  finalTotalBalance: number;
 }
 
 function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
@@ -823,12 +829,59 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
   
   const yearsInLowBracket = projections.filter(p => p.marginalBracket <= 0.12).length;
   
+  // Calculate depletion ages (first year balance drops below $1,000 after being above)
+  const DEPLETION_THRESHOLD = 1000;
+  
+  let tradDepletionAge: number | null = null;
+  let taxableDepletionAge: number | null = null;
+  let rothDepletionAge: number | null = null;
+  
+  for (let i = 1; i < projections.length; i++) {
+    const prev = projections[i - 1];
+    const curr = projections[i];
+    
+    if (tradDepletionAge === null && prev.traditionalBalance >= DEPLETION_THRESHOLD && curr.traditionalBalance < DEPLETION_THRESHOLD) {
+      tradDepletionAge = curr.age;
+    }
+    if (taxableDepletionAge === null && prev.taxableBalance >= DEPLETION_THRESHOLD && curr.taxableBalance < DEPLETION_THRESHOLD) {
+      taxableDepletionAge = curr.age;
+    }
+    if (rothDepletionAge === null && prev.rothBalance >= DEPLETION_THRESHOLD && curr.rothBalance < DEPLETION_THRESHOLD) {
+      rothDepletionAge = curr.age;
+    }
+  }
+  
+  // All funds depletion: when ALL accounts are below threshold
+  let allFundsDepletionAge: number | null = null;
+  for (let i = 1; i < projections.length; i++) {
+    const prev = projections[i - 1];
+    const curr = projections[i];
+    const prevTotal = prev.traditionalBalance + prev.rothBalance + prev.taxableBalance;
+    const currTotal = curr.traditionalBalance + curr.rothBalance + curr.taxableBalance;
+    
+    if (prevTotal >= DEPLETION_THRESHOLD && currTotal < DEPLETION_THRESHOLD) {
+      allFundsDepletionAge = curr.age;
+      break;
+    }
+  }
+  
+  // Final balance at end of projection
+  const lastRow = projections[projections.length - 1];
+  const finalTotalBalance = lastRow 
+    ? lastRow.traditionalBalance + lastRow.rothBalance + lastRow.taxableBalance 
+    : 0;
+  
   return {
     lifetimeFederalTax,
     lifetimeTotalTax,
     bracketScore,
     avgBracket,
     yearsInLowBracket,
+    tradDepletionAge,
+    taxableDepletionAge,
+    rothDepletionAge,
+    allFundsDepletionAge,
+    finalTotalBalance,
   };
 }
 
