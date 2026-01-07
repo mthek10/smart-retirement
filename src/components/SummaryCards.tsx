@@ -1,6 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingDown, Landmark, Activity, Target, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { DollarSign, TrendingDown, Landmark, Activity, Target, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
 import type { BracketAnalysis } from "@/lib/taxCalculations";
+import type { StrategyMetrics } from "@/hooks/useProjections";
+
+interface SurvivorAnalysis {
+  peakBracket: number;
+  yearsInHighBracket: number;
+  bracketRange: { min: number; max: number };
+  potentialSavings: number;
+}
 
 interface SummaryCardsProps {
   totalPortfolio: number;
@@ -23,6 +31,7 @@ interface SummaryCardsProps {
   rothUsageAge?: number | null;
   rothDepletionAge?: number | null;
   bracketConsistency?: BracketAnalysis | null;
+  survivorAnalysis?: SurvivorAnalysis | null;
 }
 
 export function SummaryCards({ 
@@ -45,7 +54,8 @@ export function SummaryCards({
   taxableDepletionAge,
   rothUsageAge,
   rothDepletionAge,
-  bracketConsistency
+  bracketConsistency,
+  survivorAnalysis
 }: SummaryCardsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -233,7 +243,19 @@ export function SummaryCards({
     },
   ] : [];
 
-  const cards = [...baseCards, ...taxCards, ...optimizationCards];
+  // Survivor smoothing card
+  const survivorCard = survivorAnalysis ? {
+    title: "Survivor Tax Impact",
+    value: survivorAnalysis.peakBracket * 100,
+    subtitle: `Peak ${(survivorAnalysis.peakBracket * 100).toFixed(0)}% • ${survivorAnalysis.yearsInHighBracket} years at 32%+${survivorAnalysis.potentialSavings > 0 ? ` • Save ${formatCurrency(survivorAnalysis.potentialSavings)}` : ''}`,
+    icon: survivorAnalysis.yearsInHighBracket === 0 ? Shield : AlertTriangle,
+    color: survivorAnalysis.yearsInHighBracket === 0 ? "text-green-600" : survivorAnalysis.yearsInHighBracket <= 3 ? "text-yellow-600" : "text-destructive",
+    isScore: false,
+    isAge: false,
+    isPercent: true,
+  } : null;
+
+  const cards = [...baseCards, ...taxCards, ...optimizationCards, ...(survivorCard ? [survivorCard] : [])];
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -251,6 +273,8 @@ export function SummaryCards({
               <div className={`text-2xl font-bold ${card.color}`}>
                 {'isScore' in card && card.isScore ? (
                   `${card.value.toFixed(1)} / 10`
+                ) : 'isPercent' in card && card.isPercent ? (
+                  `${card.value.toFixed(0)}%`
                 ) : card.isAge ? (
                   card.value > 0 ? `Age ${card.value}` : "N/A"
                 ) : (

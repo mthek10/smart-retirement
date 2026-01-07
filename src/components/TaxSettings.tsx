@@ -166,12 +166,13 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
                 <SelectItem value="fill_12">Fill to 12% Bracket</SelectItem>
                 <SelectItem value="fill_22">Fill to 22% Bracket</SelectItem>
                 <SelectItem value="fill_24">Fill to 24% Bracket</SelectItem>
+                <SelectItem value="survivor_smooth">Survivor Tax Smoothing</SelectItem>
                 <SelectItem value="optimize_consistency">Optimize Bracket Consistency</SelectItem>
                 <SelectItem value="custom">Custom Amount</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Convert Traditional to Roth to fill your target tax bracket. "Optimize Bracket Consistency" automatically finds the best conversion schedule to minimize lifetime taxes.
+              Convert Traditional to Roth to fill your target tax bracket. "Survivor Tax Smoothing" applies aggressive 24% bracket targeting after a spouse passes to prevent tax spikes.
             </p>
           </div>
 

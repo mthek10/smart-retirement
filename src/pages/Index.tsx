@@ -1108,17 +1108,20 @@ const Index = () => {
                 baselineMetrics={twoPassResults.baselineMetrics}
                 optimizedMetrics={twoPassResults.optimizedMetrics}
                 currentMetrics={twoPassResults.currentMetrics}
+                survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
                 currentStrategyName={
                   taxSettings.rothConversionStrategy === 'none' ? 'No Conversions' :
                   taxSettings.rothConversionStrategy === 'fill_10' ? 'Fill to 10%' :
                   taxSettings.rothConversionStrategy === 'fill_12' ? 'Fill to 12%' :
                   taxSettings.rothConversionStrategy === 'fill_22' ? 'Fill to 22%' :
                   taxSettings.rothConversionStrategy === 'fill_24' ? 'Fill to 24%' :
+                  taxSettings.rothConversionStrategy === 'survivor_smooth' ? 'Survivor Smoothing' :
                   taxSettings.rothConversionStrategy === 'optimize_consistency' ? 'Optimize Consistency' :
                   taxSettings.rothConversionStrategy === 'custom' ? 'Custom Amount' : 'Current'
                 }
                 showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
                 optimizationGoal={taxSettings.optimizationGoal}
+                survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
               />
               <MonteCarloResults
                 results={monteCarloResults}
