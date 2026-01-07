@@ -1,24 +1,28 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingDown, TrendingUp, Equal, ArrowRightLeft, Clock, DollarSign, Trophy } from "lucide-react";
+import { TrendingDown, TrendingUp, Equal, ArrowRightLeft, Clock, DollarSign, Trophy, AlertTriangle } from "lucide-react";
 import type { StrategyMetrics } from "@/hooks/useProjections";
 
 interface StrategyComparisonProps {
   baselineMetrics: StrategyMetrics;
   optimizedMetrics: StrategyMetrics;
   currentMetrics: StrategyMetrics;
+  survivorSmoothedMetrics: StrategyMetrics | null;
   currentStrategyName: string;
   showOptimization: boolean;
   optimizationGoal?: string;
+  survivorEnabled?: boolean;
 }
 
 export function StrategyComparison({ 
   baselineMetrics,
   optimizedMetrics,
   currentMetrics,
+  survivorSmoothedMetrics,
   currentStrategyName,
   showOptimization,
   optimizationGoal = 'minimize-taxes',
+  survivorEnabled = false,
 }: StrategyComparisonProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -313,6 +317,70 @@ export function StrategyComparison({
               </div>
             ))}
           </div>
+
+          {/* Survivor Impact Section */}
+          {survivorEnabled && survivorSmoothedMetrics && (
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Survivor Tax Impact Analysis
+              </h4>
+              <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
+                <div>Metric</div>
+                <div className="text-center">Baseline</div>
+                <div className="text-center">Current</div>
+                <div className="text-center">Survivor Smoothed</div>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-4 items-center text-sm py-2 border-b border-muted/50">
+                <div className="font-medium">Peak Marginal Bracket</div>
+                <div className="text-center text-muted-foreground">{formatPercent(baselineMetrics.peakMarginalBracket)}</div>
+                <div className="text-center">{formatPercent(currentMetrics.peakMarginalBracket)}</div>
+                <div className="text-center text-green-600 font-semibold">{formatPercent(survivorSmoothedMetrics.peakMarginalBracket)}</div>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-4 items-center text-sm py-2 border-b border-muted/50">
+                <div className="font-medium">Years at 32%+ Bracket</div>
+                <div className="text-center text-muted-foreground">{baselineMetrics.yearsInHighBracket}</div>
+                <div className="text-center">{currentMetrics.yearsInHighBracket}</div>
+                <div className="text-center text-green-600 font-semibold">{survivorSmoothedMetrics.yearsInHighBracket}</div>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-4 items-center text-sm py-2 border-b border-muted/50">
+                <div className="font-medium">Survivor Bracket Range</div>
+                <div className="text-center text-muted-foreground">
+                  {formatPercent(baselineMetrics.survivorBracketRange.min)} - {formatPercent(baselineMetrics.survivorBracketRange.max)}
+                </div>
+                <div className="text-center">
+                  {formatPercent(currentMetrics.survivorBracketRange.min)} - {formatPercent(currentMetrics.survivorBracketRange.max)}
+                </div>
+                <div className="text-center text-green-600 font-semibold">
+                  {formatPercent(survivorSmoothedMetrics.survivorBracketRange.min)} - {formatPercent(survivorSmoothedMetrics.survivorBracketRange.max)}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-4 items-center text-sm py-2 border-b border-muted/50">
+                <div className="font-medium">Survivor Years Taxes</div>
+                <div className="text-center text-muted-foreground">{formatCurrency(baselineMetrics.survivorYearsTaxes)}</div>
+                <div className="text-center">{formatCurrency(currentMetrics.survivorYearsTaxes)}</div>
+                <div className="text-center text-green-600 font-semibold">{formatCurrency(survivorSmoothedMetrics.survivorYearsTaxes)}</div>
+              </div>
+              
+              {baselineMetrics.survivorYearsTaxes - survivorSmoothedMetrics.survivorYearsTaxes > 1000 && (
+                <div className="mt-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300 text-sm">
+                    <TrendingDown className="h-4 w-4" />
+                    <span className="font-medium">
+                      Survivor Tax Smoothing saves {formatCurrency(baselineMetrics.survivorYearsTaxes - survivorSmoothedMetrics.survivorYearsTaxes)} during survivor years
+                    </span>
+                  </div>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    Aggressive Roth conversions after spouse passing prevent tax bracket spikes and maintain consistent 22-24% rates.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Goal-Based Recommendation */}

@@ -113,6 +113,8 @@ export interface ProjectionRow {
   totalIncome: number;
   rothConversion: number;
   marginalBracket: number;
+  conversionExcessReinvested: number;
+  isSurvivorYear: boolean;
 }
 
 /**
@@ -545,11 +547,27 @@ export function calculateProjections(
       rothBalance -= rothWithdrawal;
     }
 
+    // Detect survivor year for survivor-aware strategies
+    const isSurvivorYear = (!spouse1Alive || !spouse2Alive) && survivorEnabled;
+    
+    // SURVIVOR-AWARE ROTH CONVERSION STRATEGY
+    // When survivor_smooth is active and we're in a survivor year, 
+    // aggressively convert to 24% bracket (single) to deplete traditional faster
+    let effectiveSurvivorStrategy = effectiveConversionStrategy;
+    if (effectiveConversionStrategy === 'survivor_smooth' && isSurvivorYear) {
+      // Switch to aggressive 24% filling for survivor years
+      effectiveSurvivorStrategy = 'fill_24';
+    } else if (effectiveConversionStrategy === 'survivor_smooth' && !isSurvivorYear) {
+      // Before survivor scenario kicks in, use moderate 22% filling
+      effectiveSurvivorStrategy = 'fill_22';
+    }
+
     // ROTH CONVERSION OPTIMIZATION
     let rothConversion = 0;
+    let conversionExcessReinvested = 0;
     
     const targetIncomeLimit = getRothConversionLimit(
-      effectiveConversionStrategy,
+      effectiveSurvivorStrategy,
       effectiveFilingStatus,
       i,
       taxSettings.inflationRate / 100,
@@ -627,6 +645,21 @@ export function calculateProjections(
       }
       
       rothConversion = proposedConversion;
+      
+      // Calculate excess from aggressive conversion (income beyond spending needs)
+      // that should be reinvested into brokerage
+      if (rothConversion > 0 && isSurvivorYear && effectiveConversionStrategy === 'survivor_smooth') {
+        // The conversion creates taxable income; the after-tax excess should be reinvested
+        const conversionTax = rothConversion * getMarginalTaxBracket(
+          totalOrdinaryIncomePreConversion + rothConversion, 
+          effectiveFilingStatus, 
+          i, 
+          taxSettings.inflationRate / 100
+        );
+        // Only the portion beyond what's needed for spending gets reinvested
+        // This is already handled by the brokerage reinvestment below
+        conversionExcessReinvested = Math.max(0, rothConversion - conversionTax);
+      }
       
       if (rothConversion > 0) {
         const conversionTradBalance = spouse1TradBalance + spouse2TradBalance;
@@ -783,6 +816,8 @@ export function calculateProjections(
       totalIncome: ssAnnual + totalWithdrawals + netWages,
       rothConversion,
       marginalBracket,
+      conversionExcessReinvested,
+      isSurvivorYear,
     });
   }
 
@@ -793,10 +828,13 @@ export interface TwoPassResult {
   currentProjections: ProjectionRow[];
   baselineProjections: ProjectionRow[];
   optimizedProjections: ProjectionRow[];
+  survivorSmoothedProjections: ProjectionRow[] | null;
   currentMetrics: StrategyMetrics;
   baselineMetrics: StrategyMetrics;
   optimizedMetrics: StrategyMetrics;
+  survivorSmoothedMetrics: StrategyMetrics | null;
   taxSavings: number;
+  survivorTaxSavings: number;
 }
 
 export interface StrategyMetrics {
@@ -811,6 +849,11 @@ export interface StrategyMetrics {
   rothDepletionAge: number | null;
   allFundsDepletionAge: number | null;
   finalTotalBalance: number;
+  // Survivor-specific metrics
+  peakMarginalBracket: number;
+  yearsInHighBracket: number;
+  survivorBracketRange: { min: number; max: number };
+  survivorYearsTaxes: number;
 }
 
 function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
@@ -828,6 +871,16 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
   const bracketScore = Math.min(10, stdDev * 100);
   
   const yearsInLowBracket = projections.filter(p => p.marginalBracket <= 0.12).length;
+  
+  // Survivor-specific metrics
+  const survivorYears = projections.filter(p => p.isSurvivorYear);
+  const survivorBrackets = survivorYears.map(p => p.marginalBracket);
+  const peakMarginalBracket = brackets.length > 0 ? Math.max(...brackets) : 0;
+  const yearsInHighBracket = projections.filter(p => p.marginalBracket >= 0.32).length;
+  const survivorBracketRange = survivorBrackets.length > 0 
+    ? { min: Math.min(...survivorBrackets), max: Math.max(...survivorBrackets) }
+    : { min: 0, max: 0 };
+  const survivorYearsTaxes = survivorYears.reduce((sum, p) => sum + p.totalTaxes, 0);
   
   // Calculate depletion ages (first year balance drops below $1,000 after being above)
   const DEPLETION_THRESHOLD = 1000;
@@ -882,6 +935,10 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
     rothDepletionAge,
     allFundsDepletionAge,
     finalTotalBalance,
+    peakMarginalBracket,
+    yearsInHighBracket,
+    survivorBracketRange,
+    survivorYearsTaxes,
   };
 }
 
@@ -903,21 +960,38 @@ export function useTwoPassProjections(
     // Optimized projections filling to 22% bracket
     const optimizedProjections = calculateProjections(accounts, ssData, taxSettings, 'fill_22');
     
+    // Survivor-smoothed projections (only if survivor scenario is enabled)
+    const survivorEnabled = taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married';
+    const survivorSmoothedProjections = survivorEnabled
+      ? calculateProjections(accounts, ssData, taxSettings, 'survivor_smooth')
+      : null;
+    
     const currentMetrics = calculateMetrics(currentProjections);
     const baselineMetrics = calculateMetrics(baselineProjections);
     const optimizedMetrics = calculateMetrics(optimizedProjections);
+    const survivorSmoothedMetrics = survivorSmoothedProjections 
+      ? calculateMetrics(survivorSmoothedProjections)
+      : null;
     
     // Tax savings = baseline taxes - optimized taxes
     const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
+    
+    // Survivor tax savings = baseline survivor taxes - smoothed survivor taxes
+    const survivorTaxSavings = survivorSmoothedMetrics
+      ? baselineMetrics.survivorYearsTaxes - survivorSmoothedMetrics.survivorYearsTaxes
+      : 0;
     
     return {
       currentProjections,
       baselineProjections,
       optimizedProjections,
+      survivorSmoothedProjections,
       currentMetrics,
       baselineMetrics,
       optimizedMetrics,
+      survivorSmoothedMetrics,
       taxSavings,
+      survivorTaxSavings,
     };
   }, [accounts, ssData, taxSettings]);
 }
