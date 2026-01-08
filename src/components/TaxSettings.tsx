@@ -21,6 +21,21 @@ interface TaxSettingsProps {
 
 export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
   const handleChange = (field: string, value: string | number | boolean) => {
+    // Auto-enable survivor scenario when survivor_smooth strategy is selected
+    if (field === 'rothConversionStrategy' && value === 'survivor_smooth') {
+      const currentSurvivor = (taxSettings as any).survivorSettings || {
+        enabled: false,
+        spouse1DeathAge: null,
+        spouse2DeathAge: null,
+        survivorSpendingPercent: 75,
+      };
+      onChange({ 
+        ...taxSettings, 
+        [field]: value,
+        survivorSettings: { ...currentSurvivor, enabled: true }
+      });
+      return;
+    }
     onChange({ ...taxSettings, [field]: value });
   };
 
