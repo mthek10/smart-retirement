@@ -35,6 +35,17 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
       spouse2DeathAge: null,
       survivorSpendingPercent: 75,
     };
+    
+    // When enabling survivor scenario, auto-select survivor_smooth strategy
+    if (field === 'enabled' && value === true) {
+      onChange({
+        ...taxSettings,
+        survivorSettings: { ...currentSurvivor, [field]: value },
+        rothConversionStrategy: 'survivor_smooth',
+      });
+      return;
+    }
+    
     onChange({
       ...taxSettings,
       survivorSettings: { ...currentSurvivor, [field]: value },
