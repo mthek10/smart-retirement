@@ -191,6 +191,30 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
             </p>
           </div>
 
+          {taxSettings.rothConversionStrategy === 'survivor_smooth' && (
+            <div className="space-y-2">
+              <Label htmlFor="preSurvivorStrategy">Pre-Survivor Conversion Strategy</Label>
+              <Select
+                value={(taxSettings as any).preSurvivorStrategy || 'fill_22'}
+                onValueChange={(value) => handleChange('preSurvivorStrategy', value)}
+              >
+                <SelectTrigger id="preSurvivorStrategy">
+                  <SelectValue placeholder="Select pre-survivor strategy" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Conversions</SelectItem>
+                  <SelectItem value="fill_10">Fill to 10% Bracket</SelectItem>
+                  <SelectItem value="fill_12">Fill to 12% Bracket</SelectItem>
+                  <SelectItem value="fill_22">Fill to 22% Bracket</SelectItem>
+                  <SelectItem value="fill_24">Fill to 24% Bracket</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Your Roth conversion approach before a spouse passes. After the survivor event, the model switches to aggressive 24% bracket filling.
+              </p>
+            </div>
+          )}
+
           {taxSettings.rothConversionStrategy === 'custom' && (
             <div className="space-y-2">
               <Label htmlFor="rothConversionCustom">Custom Target Income Limit</Label>
