@@ -76,6 +76,7 @@ export interface TaxSettings {
   inflationRate: number;
   rothConversionStrategy: string;
   rothConversionCustom: number;
+  preSurvivorStrategy?: string;
   acaSettings: ACASettings;
   spouse1Employment: EmploymentSettings;
   spouse2Employment: EmploymentSettings;
@@ -554,12 +555,14 @@ export function calculateProjections(
     // When survivor_smooth is active and we're in a survivor year, 
     // aggressively convert to 24% bracket (single) to deplete traditional faster
     let effectiveSurvivorStrategy = effectiveConversionStrategy;
-    if (effectiveConversionStrategy === 'survivor_smooth' && isSurvivorYear) {
-      // Switch to aggressive 24% filling for survivor years
-      effectiveSurvivorStrategy = 'fill_24';
-    } else if (effectiveConversionStrategy === 'survivor_smooth' && !isSurvivorYear) {
-      // Before survivor scenario kicks in, use moderate 22% filling
-      effectiveSurvivorStrategy = 'fill_22';
+    if (effectiveConversionStrategy === 'survivor_smooth') {
+      if (isSurvivorYear) {
+        // After spouse passes: aggressive 24% bracket filling to manage widow(er) tax trap
+        effectiveSurvivorStrategy = 'fill_24';
+      } else {
+        // Before spouse passes: use user's chosen pre-survivor strategy (no advance knowledge)
+        effectiveSurvivorStrategy = taxSettings.preSurvivorStrategy || 'fill_22';
+      }
     }
 
     // ROTH CONVERSION OPTIMIZATION
