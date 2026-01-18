@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle } from "lucide-react";
@@ -88,26 +88,28 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
             <Label htmlFor="spouse1Age">
               {taxSettings.filingStatus === 'married' ? 'Spouse 1 Current Age' : 'Current Age'}
             </Label>
-            <Input
+            <DebouncedInput
               id="spouse1Age"
               type="number"
               min="50"
               max="100"
               value={taxSettings.spouse1Age || ''}
-              onChange={(e) => handleChange('spouse1Age', parseFloat(e.target.value) || 65)}
+              onChange={(value) => handleChange('spouse1Age', parseFloat(value) || 65)}
+              debounceMs={400}
             />
           </div>
           
           {taxSettings.filingStatus === 'married' && (
             <div className="space-y-2">
               <Label htmlFor="spouse2Age">Spouse 2 Current Age</Label>
-              <Input
+              <DebouncedInput
                 id="spouse2Age"
                 type="number"
                 min="50"
                 max="100"
                 value={taxSettings.spouse2Age || ''}
-                onChange={(e) => handleChange('spouse2Age', parseFloat(e.target.value) || 65)}
+                onChange={(value) => handleChange('spouse2Age', parseFloat(value) || 65)}
+                debounceMs={400}
               />
             </div>
           )}
@@ -150,45 +152,48 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="spouse1DeathAge">Spouse 1 Death Age (optional)</Label>
-                      <Input
+                      <DebouncedInput
                         id="spouse1DeathAge"
                         type="number"
                         min={taxSettings.spouse1Age + 1}
                         max="100"
                         placeholder="Leave blank = lives to 100"
                         value={survivorSettings.spouse1DeathAge || ''}
-                        onChange={(e) => {
-                          const val = e.target.value ? parseInt(e.target.value) : null;
+                        onChange={(value) => {
+                          const val = value ? parseInt(value) : null;
                           handleSurvivorChange('spouse1DeathAge', val);
                         }}
+                        debounceMs={400}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="spouse2DeathAge">Spouse 2 Death Age (optional)</Label>
-                      <Input
+                      <DebouncedInput
                         id="spouse2DeathAge"
                         type="number"
                         min={taxSettings.spouse2Age + 1}
                         max="100"
                         placeholder="Leave blank = lives to 100"
                         value={survivorSettings.spouse2DeathAge || ''}
-                        onChange={(e) => {
-                          const val = e.target.value ? parseInt(e.target.value) : null;
+                        onChange={(value) => {
+                          const val = value ? parseInt(value) : null;
                           handleSurvivorChange('spouse2DeathAge', val);
                         }}
+                        debounceMs={400}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="survivorSpending">Survivor Spending Adjustment (%)</Label>
-                    <Input
+                    <DebouncedInput
                       id="survivorSpending"
                       type="number"
                       min="50"
                       max="100"
                       value={survivorSettings.survivorSpendingPercent}
-                      onChange={(e) => handleSurvivorChange('survivorSpendingPercent', parseFloat(e.target.value) || 75)}
+                      onChange={(value) => handleSurvivorChange('survivorSpendingPercent', parseFloat(value) || 75)}
+                      debounceMs={400}
                     />
                     <p className="text-xs text-muted-foreground">
                       Typical survivor needs 70-80% of couple's spending (default: 75%)
