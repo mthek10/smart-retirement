@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Label } from "@/components/ui/label";
 
 interface AccountInputsProps {
@@ -47,12 +47,13 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
             <Label htmlFor="spouse1Traditional">
               {isMarried ? "Spouse 1 Traditional IRA/401(k)" : "Traditional IRA/401(k)"}
             </Label>
-            <Input
+            <DebouncedInput
               id="spouse1Traditional"
               type="number"
               placeholder="0"
               value={accounts.spouse1Traditional || ''}
-              onChange={(e) => handleChange('spouse1Traditional', e.target.value)}
+              onChange={(value) => handleChange('spouse1Traditional', value)}
+              debounceMs={400}
             />
             <p className="text-sm text-muted-foreground">
               Current: {formatCurrency(accounts.spouse1Traditional)}
@@ -60,7 +61,7 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
           </div>
           <div className="space-y-2">
             <Label htmlFor="traditionalReturn">Annual Return (%)</Label>
-            <Input
+            <DebouncedInput
               id="traditionalReturn"
               type="number"
               step="0.1"
@@ -68,7 +69,8 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
               max="15"
               placeholder="3.0"
               value={accounts.traditionalReturn || ''}
-              onChange={(e) => handleChange('traditionalReturn', e.target.value)}
+              onChange={(value) => handleChange('traditionalReturn', value)}
+              debounceMs={400}
             />
           </div>
         </div>
@@ -78,12 +80,13 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="spouse2Traditional">Spouse 2 Traditional IRA/401(k)</Label>
-              <Input
+              <DebouncedInput
                 id="spouse2Traditional"
                 type="number"
                 placeholder="0"
                 value={accounts.spouse2Traditional || ''}
-                onChange={(e) => handleChange('spouse2Traditional', e.target.value)}
+                onChange={(value) => handleChange('spouse2Traditional', value)}
+                debounceMs={400}
               />
               <p className="text-sm text-muted-foreground">
                 Current: {formatCurrency(accounts.spouse2Traditional)}
@@ -100,12 +103,13 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="roth">Roth IRA</Label>
-            <Input
+            <DebouncedInput
               id="roth"
               type="number"
               placeholder="0"
               value={accounts.roth || ''}
-              onChange={(e) => handleChange('roth', e.target.value)}
+              onChange={(value) => handleChange('roth', value)}
+              debounceMs={400}
             />
             <p className="text-sm text-muted-foreground">
               Current: {formatCurrency(accounts.roth)}
@@ -113,7 +117,7 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
           </div>
           <div className="space-y-2">
             <Label htmlFor="rothReturn">Annual Return (%)</Label>
-            <Input
+            <DebouncedInput
               id="rothReturn"
               type="number"
               step="0.1"
@@ -121,7 +125,8 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
               max="15"
               placeholder="3.0"
               value={accounts.rothReturn || ''}
-              onChange={(e) => handleChange('rothReturn', e.target.value)}
+              onChange={(value) => handleChange('rothReturn', value)}
+              debounceMs={400}
             />
           </div>
         </div>
@@ -129,12 +134,13 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="taxable">Brokerage</Label>
-            <Input
+            <DebouncedInput
               id="taxable"
               type="number"
               placeholder="0"
               value={accounts.taxable || ''}
-              onChange={(e) => handleChange('taxable', e.target.value)}
+              onChange={(value) => handleChange('taxable', value)}
+              debounceMs={400}
             />
             <p className="text-sm text-muted-foreground">
               Current: {formatCurrency(accounts.taxable)}
@@ -142,7 +148,7 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
           </div>
           <div className="space-y-2">
             <Label htmlFor="taxableReturn">Annual Return (%)</Label>
-            <Input
+            <DebouncedInput
               id="taxableReturn"
               type="number"
               step="0.1"
@@ -150,7 +156,8 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
               max="15"
               placeholder="3.0"
               value={accounts.taxableReturn || ''}
-              onChange={(e) => handleChange('taxableReturn', e.target.value)}
+              onChange={(value) => handleChange('taxableReturn', value)}
+              debounceMs={400}
             />
           </div>
         </div>
@@ -158,7 +165,7 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="taxableCostBasisPercent">Cost Basis (%)</Label>
-            <Input
+            <DebouncedInput
               id="taxableCostBasisPercent"
               type="number"
               step="1"
@@ -166,7 +173,8 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
               max="100"
               placeholder="50"
               value={accounts.taxableCostBasisPercent || ''}
-              onChange={(e) => handleChange('taxableCostBasisPercent', e.target.value)}
+              onChange={(value) => handleChange('taxableCostBasisPercent', value)}
+              debounceMs={400}
             />
             <p className="text-sm text-muted-foreground">
               Percentage of brokerage account that is cost basis (default: 50%)
