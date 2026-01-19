@@ -1,11 +1,13 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Activity, TrendingUp, Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
+import { Activity, Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { MonteCarloResult, MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
+import { formatCurrency, formatCurrencyCompact, formatPercent, getSuccessColor } from "@/lib/utils";
 
 interface MonteCarloResultsProps {
   results: MonteCarloResult;
@@ -14,26 +16,6 @@ interface MonteCarloResultsProps {
 }
 
 export function MonteCarloResults({ results, settings, onSettingsChange }: MonteCarloResultsProps) {
-  const formatCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`;
-
-  const getSuccessColor = (rate: number) => {
-    if (rate >= 0.9) return "text-green-600 dark:text-green-400";
-    if (rate >= 0.75) return "text-amber-600 dark:text-amber-400";
-    return "text-destructive";
-  };
-
   const getSuccessBadge = (rate: number) => {
     if (rate >= 0.9) return <Badge className="bg-green-600">Excellent</Badge>;
     if (rate >= 0.75) return <Badge className="bg-amber-600">Good</Badge>;
@@ -41,26 +23,8 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
     return <Badge variant="destructive">Poor</Badge>;
   };
 
-  // Prepare comparison data for bar chart
-  const comparisonData = [
-    {
-      metric: "Success Rate",
-      baseline: results.baseline.successRate * 100,
-      current: results.current.successRate * 100,
-      optimized: results.optimized.successRate * 100,
-      unit: "%",
-    },
-    {
-      metric: "Median Final",
-      baseline: results.baseline.medianFinalBalance / 1000000,
-      current: results.current.medianFinalBalance / 1000000,
-      optimized: results.optimized.medianFinalBalance / 1000000,
-      unit: "M",
-    },
-  ];
-
-  // Prepare distribution data for histogram
-  const createHistogramData = () => {
+  // Memoize histogram calculation - expensive operation
+  const histogramData = useMemo(() => {
     const bins = 10;
     const allBalances = [
       ...results.baseline.outcomes.map(o => o.finalBalance),
@@ -78,7 +42,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
     for (let i = 0; i < bins; i++) {
       const binStart = minBalance + i * binWidth;
       const binEnd = binStart + binWidth;
-      const binLabel = formatCurrency(binStart);
+      const binLabel = formatCurrencyCompact(binStart);
       
       const baselineCount = results.baseline.outcomes.filter(
         o => o.finalBalance >= binStart && o.finalBalance < binEnd
@@ -99,9 +63,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
     }
     
     return histData;
-  };
-
-  const histogramData = createHistogramData();
+  }, [results.baseline.outcomes, results.current.outcomes, results.optimized.outcomes]);
 
   // Strategy cards data
   const strategies = [

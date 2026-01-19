@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { formatCurrency } from "@/lib/utils";
 
 interface TaxChartDataPoint {
   year: number;
@@ -18,14 +19,6 @@ interface TaxChartProps {
 }
 
 export function TaxChart({ data }: TaxChartProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
 
   return (
     <Card>
