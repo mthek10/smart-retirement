@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Label } from "@/components/ui/label";
+import { formatCurrency } from "@/lib/utils";
 
 interface AccountInputsProps {
   accounts: {
@@ -20,14 +21,6 @@ interface AccountInputsProps {
 export function AccountInputs({ accounts, onChange, filingStatus }: AccountInputsProps) {
   const isMarried = filingStatus === 'married';
   const totalTraditional = accounts.spouse1Traditional + (isMarried ? accounts.spouse2Traditional : 0);
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
 
   const handleChange = (field: string, value: string) => {
     const numValue = parseFloat(value) || 0;

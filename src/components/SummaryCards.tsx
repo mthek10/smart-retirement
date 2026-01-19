@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingDown, Landmark, Activity, Target, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
 import type { BracketAnalysis } from "@/lib/taxCalculations";
-import type { StrategyMetrics } from "@/hooks/useProjections";
+import { formatCurrency } from "@/lib/utils";
 
 interface SurvivorAnalysis {
   peakBracket: number;
@@ -57,14 +57,6 @@ export function SummaryCards({
   bracketConsistency,
   survivorAnalysis
 }: SummaryCardsProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
 
   const baseCards = [
     {

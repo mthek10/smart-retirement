@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Target } from "lucide-react";
 
@@ -42,14 +42,6 @@ interface ProjectionTableProps {
 }
 
 export function ProjectionTable({ projections }: ProjectionTableProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
 
   const hasIRMAAWarning = (irmaa: number) => irmaa > 0;
 

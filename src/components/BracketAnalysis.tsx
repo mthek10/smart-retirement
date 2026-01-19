@@ -1,8 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { TrendingUp, TrendingDown, Target, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { TrendingDown, Target, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { BracketAnalysis } from "@/lib/taxCalculations";
+import { formatCurrency, getScoreColor, getScoreLabel } from "@/lib/utils";
 
 interface BracketAnalysisProps {
   analysis: BracketAnalysis | null;
@@ -18,29 +18,6 @@ export function BracketAnalysisCard({ analysis, projections }: BracketAnalysisPr
   if (!analysis || projections.length === 0) {
     return null;
   }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score < 3) return "text-green-600";
-    if (score < 6) return "text-yellow-600";
-    return "text-destructive";
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score < 2) return "Excellent";
-    if (score < 4) return "Good";
-    if (score < 6) return "Moderate";
-    if (score < 8) return "Poor";
-    return "Very Poor";
-  };
 
   const getScoreIcon = (score: number) => {
     if (score < 4) return <CheckCircle2 className="h-5 w-5 text-green-600" />;

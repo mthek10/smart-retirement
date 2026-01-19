@@ -5,6 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, TrendingUp } from "lucide-react";
 import { calculateSocialSecurityBenefit, calculateFullRetirementAge } from "@/lib/taxCalculations";
+import { formatCurrency } from "@/lib/utils";
 
 interface SocialSecurityPlannerProps {
   ssData: {
@@ -32,15 +33,6 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
         [field]: value,
       },
     });
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
   };
 
   const renderSpouseSection = (spouse: 'spouse1' | 'spouse2', title: string, currentAge: number) => {

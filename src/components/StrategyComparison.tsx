@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { TrendingDown, TrendingUp, Equal, ArrowRightLeft, Clock, DollarSign, Trophy, AlertTriangle } from "lucide-react";
 import type { StrategyMetrics } from "@/hooks/useProjections";
+import { formatCurrency, formatPercent, formatAge } from "@/lib/utils";
 
 interface StrategyComparisonProps {
   baselineMetrics: StrategyMetrics;
@@ -24,23 +25,6 @@ export function StrategyComparison({
   optimizationGoal = 'minimize-taxes',
   survivorEnabled = false,
 }: StrategyComparisonProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const formatPercent = (value: number) => {
-    return `${(value * 100).toFixed(1)}%`;
-  };
-
-  const formatAge = (age: number | null) => {
-    if (age === null) return "Never";
-    return `Age ${age}`;
-  };
 
   // Calculate savings comparing baseline (no conversions) to optimized (fill-22)
   const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
