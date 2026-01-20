@@ -32,6 +32,10 @@ interface SummaryCardsProps {
   rothDepletionAge?: number | null;
   bracketConsistency?: BracketAnalysis | null;
   survivorAnalysis?: SurvivorAnalysis | null;
+  finalTraditionalBalance?: number;
+  finalRothBalance?: number;
+  finalTaxableBalance?: number;
+  finalAge?: number;
 }
 
 export function SummaryCards({ 
@@ -55,7 +59,11 @@ export function SummaryCards({
   rothUsageAge,
   rothDepletionAge,
   bracketConsistency,
-  survivorAnalysis
+  survivorAnalysis,
+  finalTraditionalBalance = 0,
+  finalRothBalance = 0,
+  finalTaxableBalance = 0,
+  finalAge = 100
 }: SummaryCardsProps) {
 
   const baseCards = [
@@ -209,7 +217,9 @@ export function SummaryCards({
     {
       title: "Traditional Depleted",
       value: tradDepletionAge || 0,
-      subtitle: tradDepletionAge ? `Age ${tradDepletionAge}` : "Not depleted",
+      subtitle: tradDepletionAge 
+        ? `Age ${tradDepletionAge}` 
+        : `Not depleted at age ${finalAge}: ${formatCurrency(finalTraditionalBalance)}`,
       icon: TrendingDown,
       color: "text-muted-foreground",
       isAge: true,
@@ -218,7 +228,9 @@ export function SummaryCards({
     {
       title: "Brokerage Fully Depleted",
       value: taxableDepletionAge || 0,
-      subtitle: taxableDepletionAge ? `Age ${taxableDepletionAge}` : "Not depleted",
+      subtitle: taxableDepletionAge 
+        ? `Age ${taxableDepletionAge}` 
+        : `Not depleted at age ${finalAge}: ${formatCurrency(finalTaxableBalance)}`,
       icon: Landmark,
       color: "text-success",
       isAge: true,
@@ -227,7 +239,9 @@ export function SummaryCards({
     {
       title: "Roth Fully Depleted",
       value: rothDepletionAge || 0,
-      subtitle: rothDepletionAge ? `Age ${rothDepletionAge}` : "Not depleted",
+      subtitle: rothDepletionAge 
+        ? `Age ${rothDepletionAge}` 
+        : `Not depleted at age ${finalAge}: ${formatCurrency(finalRothBalance)}`,
       icon: DollarSign,
       color: "text-warning",
       isAge: true,

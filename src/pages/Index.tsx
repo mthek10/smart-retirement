@@ -200,6 +200,9 @@ const Index = () => {
       : 0;
     const totalPortfolio = accounts.spouse1Traditional + accounts.spouse2Traditional + accounts.roth + accounts.taxable;
 
+    // Get final year balances for "not depleted" display
+    const finalProjection = projections.length > 0 ? projections[projections.length - 1] : null;
+
     return { 
       totalPortfolio, 
       lifetimeTotalTaxes,
@@ -216,6 +219,10 @@ const Index = () => {
       totalEmploymentIncome,
       total401kContributions,
       avgWithdrawal,
+      finalTraditionalBalance: finalProjection?.traditionalBalance ?? 0,
+      finalRothBalance: finalProjection?.rothBalance ?? 0,
+      finalTaxableBalance: finalProjection?.taxableBalance ?? 0,
+      finalAge: finalProjection?.age ?? 100,
       ...detailedMetrics
     };
   }, [projections, accounts, detailedMetrics]);
