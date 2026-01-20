@@ -13,10 +13,14 @@ import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
 import { MonteCarloResults } from "@/components/MonteCarloResults";
+import { IncomeAlertsBanner } from "@/components/IncomeAlertsBanner";
+import { BracketFillGauge } from "@/components/BracketFillGauge";
+import { ActionItems } from "@/components/ActionItems";
 import { useTwoPassProjections } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculateBracketConsistency } from "@/lib/taxCalculations";
+import { getCurrentYearAlerts } from "@/lib/incomeAlerts";
 
 const Index = () => {
   const [accounts, setAccounts] = useState({
@@ -227,6 +231,19 @@ const Index = () => {
     };
   }, [projections, accounts, detailedMetrics]);
 
+  // Generate income alerts for current year
+  const incomeAlerts = useMemo(() => {
+    return getCurrentYearAlerts(
+      projections,
+      taxSettings.acaSettings.householdSize,
+      taxSettings.inflationRate,
+      taxSettings.filingStatus
+    );
+  }, [projections, taxSettings.acaSettings.householdSize, taxSettings.inflationRate, taxSettings.filingStatus]);
+
+  // Get current year income for bracket gauge
+  const currentYearIncome = projections.length > 0 ? projections[0].totalIncome : 0;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -240,6 +257,11 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
+          {/* Income Alerts Banner */}
+          {incomeAlerts.length > 0 && (
+            <IncomeAlertsBanner alerts={incomeAlerts} />
+          )}
+
           <SummaryCards {...summary} />
 
           <Tabs defaultValue="inputs" className="w-full">
@@ -281,6 +303,27 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="charts" className="mt-6 space-y-6">
+              {/* Action Items and Bracket Gauge */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                <ActionItems
+                  projections={projections}
+                  filingStatus={taxSettings.filingStatus}
+                  inflationRate={taxSettings.inflationRate}
+                  rothConversionStrategy={taxSettings.rothConversionStrategy}
+                  spouse1Age={taxSettings.spouse1Age}
+                  spouse2Age={taxSettings.spouse2Age}
+                  spouse1SSClaimAge={ssData.spouse1.claimAge}
+                  spouse2SSClaimAge={ssData.spouse2.claimAge}
+                  acaEnabled={taxSettings.acaSettings.enabled}
+                />
+                <BracketFillGauge
+                  grossIncome={currentYearIncome}
+                  filingStatus={taxSettings.filingStatus}
+                  yearIndex={0}
+                  inflationRate={taxSettings.inflationRate}
+                />
+              </div>
+
               <StrategyComparison
                 baselineMetrics={twoPassResults.baselineMetrics}
                 optimizedMetrics={twoPassResults.optimizedMetrics}
