@@ -38,10 +38,12 @@ const Index = () => {
     spouse1: {
       estimatedBenefit: 3000,
       claimAge: 67,
+      lifeExpectancy: 90,
     },
     spouse2: {
       estimatedBenefit: 3000,
       claimAge: 67,
+      lifeExpectancy: 90,
     },
   });
 

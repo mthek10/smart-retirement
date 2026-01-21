@@ -1,21 +1,27 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, TrendingUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
+import { Info, TrendingUp, ChevronDown, ChevronUp, Calculator } from "lucide-react";
 import { calculateSocialSecurityBenefit, calculateFullRetirementAge } from "@/lib/taxCalculations";
 import { formatCurrency } from "@/lib/utils";
+import { SSBreakevenAnalysis } from "@/components/SSBreakevenAnalysis";
 
 interface SocialSecurityPlannerProps {
   ssData: {
     spouse1: {
       estimatedBenefit: number;
       claimAge: number;
+      lifeExpectancy: number;
     };
     spouse2: {
       estimatedBenefit: number;
       claimAge: number;
+      lifeExpectancy: number;
     };
   };
   onChange: (data: any) => void;
@@ -25,6 +31,8 @@ interface SocialSecurityPlannerProps {
 }
 
 export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1Age, spouse2Age }: SocialSecurityPlannerProps) {
+  const [openBreakeven, setOpenBreakeven] = useState<'spouse1' | 'spouse2' | null>(null);
+
   const handleChange = (spouse: 'spouse1' | 'spouse2', field: string, value: number) => {
     onChange({
       ...ssData,
@@ -46,6 +54,7 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
     const benefitChange = ((actualBenefit - data.estimatedBenefit) / data.estimatedBenefit) * 100;
     const isDelayed = data.claimAge > fullRetirementAge;
     const isEarly = data.claimAge < fullRetirementAge;
+    const isBreakevenOpen = openBreakeven === spouse;
 
     return (
       <div className="space-y-4">
@@ -84,6 +93,23 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
           />
         </div>
 
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <Label>Life Expectancy: {data.lifeExpectancy}</Label>
+            <span className="text-sm text-muted-foreground">
+              Range: 75-100
+            </span>
+          </div>
+          <Slider
+            value={[data.lifeExpectancy]}
+            onValueChange={([value]) => handleChange(spouse, 'lifeExpectancy', value)}
+            min={75}
+            max={100}
+            step={1}
+            className="w-full"
+          />
+        </div>
+
         <div className="p-4 bg-accent rounded-lg space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Adjusted Monthly Benefit</span>
@@ -117,8 +143,8 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
 
         {isDelayed && (
           <Alert className="border-none bg-transparent">
-            <TrendingUp className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-600">
+            <TrendingUp className="h-4 w-4 text-success" />
+            <AlertDescription className="text-success">
               Delaying until age {data.claimAge} increases monthly benefit by{' '}
               {benefitChange.toFixed(1)}% through delayed retirement credits. This increase is permanent and compounds with cost-of-living adjustments.
             </AlertDescription>
@@ -132,6 +158,27 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
             <span className="text-xs">Automatically calculated based on current age ({currentAge})</span>
           </p>
         </div>
+
+        {/* Breakeven Analysis Collapsible */}
+        <Collapsible open={isBreakevenOpen} onOpenChange={(open) => setOpenBreakeven(open ? spouse : null)}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Calculator className="h-4 w-4" />
+                View Breakeven Analysis
+              </span>
+              {isBreakevenOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <SSBreakevenAnalysis
+              monthlyBenefitAtFRA={data.estimatedBenefit}
+              currentAge={currentAge}
+              lifeExpectancy={data.lifeExpectancy}
+              selectedClaimAge={data.claimAge}
+            />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     );
   };
