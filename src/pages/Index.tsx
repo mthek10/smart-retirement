@@ -16,8 +16,11 @@ import { MonteCarloResults } from "@/components/MonteCarloResults";
 import { IncomeAlertsBanner } from "@/components/IncomeAlertsBanner";
 import { BracketFillGauge } from "@/components/BracketFillGauge";
 import { ActionItems } from "@/components/ActionItems";
+import { ScenarioManager } from "@/components/ScenarioManager";
+import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { useTwoPassProjections } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
+import { useScenarios } from "@/hooks/useScenarios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculateBracketConsistency } from "@/lib/taxCalculations";
 import { getCurrentYearAlerts } from "@/lib/incomeAlerts";
@@ -98,6 +101,23 @@ const Index = () => {
 
   // Monte Carlo simulation results
   const monteCarloResults = useMonteCarloSimulation(accounts, ssData, taxSettings, monteCarloSettings);
+
+  // Scenario management for comparing strategies
+  const { scenarios, addScenario, removeScenario, renameScenario, clearScenarios } = useScenarios();
+
+  // Get current strategy name for display
+  const currentStrategyName = useMemo(() => {
+    const strategy = taxSettings.rothConversionStrategy;
+    if (strategy === 'none') return 'No Conversions';
+    if (strategy === 'fill_10') return 'Fill to 10%';
+    if (strategy === 'fill_12') return 'Fill to 12%';
+    if (strategy === 'fill_22') return 'Fill to 22%';
+    if (strategy === 'fill_24') return 'Fill to 24%';
+    if (strategy === 'survivor_smooth') return 'Survivor Smoothing';
+    if (strategy === 'optimize_consistency') return 'Optimize Consistency';
+    if (strategy === 'custom') return 'Custom Amount';
+    return 'Current';
+  }, [taxSettings.rothConversionStrategy]);
 
   const chartData = useMemo(() => {
     return projections.map(p => ({
@@ -326,21 +346,32 @@ const Index = () => {
                 />
               </div>
 
+              {/* Scenario Manager and Comparison */}
+              <div className="grid gap-6 lg:grid-cols-1">
+                <ScenarioManager
+                  scenarios={scenarios}
+                  currentMetrics={twoPassResults.currentMetrics}
+                  currentAccounts={accounts}
+                  currentSSData={ssData}
+                  currentTaxSettings={taxSettings}
+                  onAddScenario={addScenario}
+                  onRemoveScenario={removeScenario}
+                  onRenameScenario={renameScenario}
+                  onClearScenarios={clearScenarios}
+                />
+                <ScenarioComparison
+                  scenarios={scenarios}
+                  currentMetrics={twoPassResults.currentMetrics}
+                  currentStrategyName={currentStrategyName}
+                />
+              </div>
+
               <StrategyComparison
                 baselineMetrics={twoPassResults.baselineMetrics}
                 optimizedMetrics={twoPassResults.optimizedMetrics}
                 currentMetrics={twoPassResults.currentMetrics}
                 survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
-                currentStrategyName={
-                  taxSettings.rothConversionStrategy === 'none' ? 'No Conversions' :
-                  taxSettings.rothConversionStrategy === 'fill_10' ? 'Fill to 10%' :
-                  taxSettings.rothConversionStrategy === 'fill_12' ? 'Fill to 12%' :
-                  taxSettings.rothConversionStrategy === 'fill_22' ? 'Fill to 22%' :
-                  taxSettings.rothConversionStrategy === 'fill_24' ? 'Fill to 24%' :
-                  taxSettings.rothConversionStrategy === 'survivor_smooth' ? 'Survivor Smoothing' :
-                  taxSettings.rothConversionStrategy === 'optimize_consistency' ? 'Optimize Consistency' :
-                  taxSettings.rothConversionStrategy === 'custom' ? 'Custom Amount' : 'Current'
-                }
+                currentStrategyName={currentStrategyName}
                 showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
                 optimizationGoal={taxSettings.optimizationGoal}
                 survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
