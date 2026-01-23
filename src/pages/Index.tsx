@@ -18,6 +18,7 @@ import { BracketFillGauge } from "@/components/BracketFillGauge";
 import { ActionItems } from "@/components/ActionItems";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
+import { RMDPlanner } from "@/components/RMDPlanner";
 import { useTwoPassProjections } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
@@ -381,6 +382,21 @@ const Index = () => {
                 settings={monteCarloSettings}
                 onSettingsChange={setMonteCarloSettings}
               />
+              
+              {/* RMD Planning Center */}
+              <RMDPlanner
+                spouse1TradBalance={accounts.spouse1Traditional}
+                spouse2TradBalance={accounts.spouse2Traditional}
+                rothBalance={accounts.roth}
+                spouse1Age={taxSettings.spouse1Age}
+                spouse2Age={taxSettings.spouse2Age}
+                filingStatus={taxSettings.filingStatus}
+                rothConversionStrategy={taxSettings.rothConversionStrategy}
+                growthRate={accounts.traditionalReturn}
+                inflationRate={taxSettings.inflationRate}
+                otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
+              />
+              
               <div className="grid gap-6 lg:grid-cols-2">
                 <BracketAnalysisCard analysis={detailedMetrics.bracketConsistency} projections={projections} />
                 <BracketChart data={projections} />
