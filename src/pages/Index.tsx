@@ -264,8 +264,10 @@ const Index = () => {
     );
   }, [projections, taxSettings.acaSettings.householdSize, taxSettings.inflationRate, taxSettings.filingStatus]);
 
-  // Get current year income for bracket gauge
-  const currentYearIncome = projections.length > 0 ? projections[0].totalIncome : 0;
+  // Get current year income for bracket gauge (includes Roth conversions since they're taxable)
+  const currentYearIncome = projections.length > 0 
+    ? projections[0].totalIncome + projections[0].rothConversion 
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">

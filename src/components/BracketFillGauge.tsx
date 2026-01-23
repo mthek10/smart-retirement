@@ -58,7 +58,7 @@ export function BracketFillGauge({
               Tax Bracket Fill Gauge
             </CardTitle>
             <CardDescription>
-              Current year taxable income vs. bracket threshold
+              Taxable income (including Roth conversions) vs. bracket threshold
             </CardDescription>
           </div>
           <Badge 
