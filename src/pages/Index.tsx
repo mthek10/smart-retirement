@@ -281,133 +281,134 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="space-y-8">
-          {/* Income Alerts Banner */}
-          {incomeAlerts.length > 0 && (
-            <IncomeAlertsBanner alerts={incomeAlerts} />
-          )}
+        <Tabs defaultValue="setup" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="setup">Setup</TabsTrigger>
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="projections">Projections</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+          </TabsList>
 
-          <SummaryCards {...summary} />
-
-          <Tabs defaultValue="inputs" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="inputs">Inputs</TabsTrigger>
-              <TabsTrigger value="projections">Projections</TabsTrigger>
-              <TabsTrigger value="charts">Charts</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="inputs" className="space-y-6 mt-6">
-              <HouseholdInputs taxSettings={taxSettings} onChange={setTaxSettings} />
-              
-              <div className="grid gap-6 lg:grid-cols-2">
-                <AccountInputs accounts={accounts} onChange={setAccounts} filingStatus={taxSettings.filingStatus} />
-                <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} />
-              </div>
-              
-              <div className="grid gap-6 lg:grid-cols-2">
-                <SocialSecurityPlanner 
-                  ssData={ssData} 
-                  onChange={setSsData} 
-                  filingStatus={taxSettings.filingStatus} 
-                  spouse1Age={taxSettings.spouse1Age}
-                  spouse2Age={taxSettings.spouse2Age}
-                />
-                <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
-              </div>
-              
-              <div className="grid gap-6 lg:grid-cols-1">
-                <ACASettings 
-                  acaSettings={taxSettings.acaSettings} 
-                  onChange={(newAcaSettings) => setTaxSettings({...taxSettings, acaSettings: newAcaSettings})} 
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="projections" className="mt-6">
-              <ProjectionTable projections={projections} />
-            </TabsContent>
-
-            <TabsContent value="charts" className="mt-6 space-y-6">
-              {/* Action Items and Bracket Gauge */}
-              <div className="grid gap-6 lg:grid-cols-2">
-                <ActionItems
-                  projections={projections}
-                  filingStatus={taxSettings.filingStatus}
-                  inflationRate={taxSettings.inflationRate}
-                  rothConversionStrategy={taxSettings.rothConversionStrategy}
-                  spouse1Age={taxSettings.spouse1Age}
-                  spouse2Age={taxSettings.spouse2Age}
-                  spouse1SSClaimAge={ssData.spouse1.claimAge}
-                  spouse2SSClaimAge={ssData.spouse2.claimAge}
-                  acaEnabled={taxSettings.acaSettings.enabled}
-                />
-                <BracketFillGauge
-                  grossIncome={currentYearIncome}
-                  filingStatus={taxSettings.filingStatus}
-                  yearIndex={0}
-                  inflationRate={taxSettings.inflationRate}
-                />
-              </div>
-
-              {/* Scenario Manager and Comparison */}
-              <div className="grid gap-6 lg:grid-cols-1">
-                <ScenarioManager
-                  scenarios={scenarios}
-                  currentMetrics={twoPassResults.currentMetrics}
-                  currentAccounts={accounts}
-                  currentSSData={ssData}
-                  currentTaxSettings={taxSettings}
-                  onAddScenario={addScenario}
-                  onRemoveScenario={removeScenario}
-                  onRenameScenario={renameScenario}
-                  onClearScenarios={clearScenarios}
-                />
-                <ScenarioComparison
-                  scenarios={scenarios}
-                  currentMetrics={twoPassResults.currentMetrics}
-                  currentStrategyName={currentStrategyName}
-                />
-              </div>
-
-              <StrategyComparison
-                baselineMetrics={twoPassResults.baselineMetrics}
-                optimizedMetrics={twoPassResults.optimizedMetrics}
-                currentMetrics={twoPassResults.currentMetrics}
-                survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
-                currentStrategyName={currentStrategyName}
-                showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
-                optimizationGoal={taxSettings.optimizationGoal}
-                survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
-              />
-              <MonteCarloResults
-                results={monteCarloResults}
-                settings={monteCarloSettings}
-                onSettingsChange={setMonteCarloSettings}
-              />
-              
-              {/* RMD Planning Center */}
-              <RMDPlanner
-                spouse1TradBalance={accounts.spouse1Traditional}
-                spouse2TradBalance={accounts.spouse2Traditional}
-                rothBalance={accounts.roth}
+          <TabsContent value="setup" className="space-y-6 mt-6">
+            <HouseholdInputs taxSettings={taxSettings} onChange={setTaxSettings} />
+            
+            <div className="grid gap-6 lg:grid-cols-2">
+              <AccountInputs accounts={accounts} onChange={setAccounts} filingStatus={taxSettings.filingStatus} />
+              <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} />
+            </div>
+            
+            <div className="grid gap-6 lg:grid-cols-2">
+              <SocialSecurityPlanner 
+                ssData={ssData} 
+                onChange={setSsData} 
+                filingStatus={taxSettings.filingStatus} 
                 spouse1Age={taxSettings.spouse1Age}
                 spouse2Age={taxSettings.spouse2Age}
-                filingStatus={taxSettings.filingStatus}
-                rothConversionStrategy={taxSettings.rothConversionStrategy}
-                growthRate={accounts.traditionalReturn}
-                inflationRate={taxSettings.inflationRate}
-                otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
               />
-              
-              <div className="grid gap-6 lg:grid-cols-2">
-                <BracketAnalysisCard analysis={detailedMetrics.bracketConsistency} projections={projections} />
-                <BracketChart data={projections} />
-              </div>
-              <ProjectionChart data={chartData} />
-              <TaxChart data={taxChartData} />
-            </TabsContent>
-          </Tabs>
-        </div>
+              <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
+            </div>
+            
+            <div className="grid gap-6 lg:grid-cols-1">
+              <ACASettings 
+                acaSettings={taxSettings.acaSettings} 
+                onChange={(newAcaSettings) => setTaxSettings({...taxSettings, acaSettings: newAcaSettings})} 
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="dashboard" className="space-y-6 mt-6">
+            {/* Income Alerts Banner */}
+            {incomeAlerts.length > 0 && (
+              <IncomeAlertsBanner alerts={incomeAlerts} />
+            )}
+
+            <SummaryCards {...summary} />
+
+            {/* Action Items and Bracket Gauge */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <ActionItems
+                projections={projections}
+                filingStatus={taxSettings.filingStatus}
+                inflationRate={taxSettings.inflationRate}
+                rothConversionStrategy={taxSettings.rothConversionStrategy}
+                spouse1Age={taxSettings.spouse1Age}
+                spouse2Age={taxSettings.spouse2Age}
+                spouse1SSClaimAge={ssData.spouse1.claimAge}
+                spouse2SSClaimAge={ssData.spouse2.claimAge}
+                acaEnabled={taxSettings.acaSettings.enabled}
+              />
+              <BracketFillGauge
+                grossIncome={currentYearIncome}
+                filingStatus={taxSettings.filingStatus}
+                yearIndex={0}
+                inflationRate={taxSettings.inflationRate}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="projections" className="mt-6">
+            <ProjectionTable projections={projections} />
+          </TabsContent>
+
+          <TabsContent value="analysis" className="mt-6 space-y-6">
+            {/* Scenario Manager and Comparison */}
+            <div className="grid gap-6 lg:grid-cols-1">
+              <ScenarioManager
+                scenarios={scenarios}
+                currentMetrics={twoPassResults.currentMetrics}
+                currentAccounts={accounts}
+                currentSSData={ssData}
+                currentTaxSettings={taxSettings}
+                onAddScenario={addScenario}
+                onRemoveScenario={removeScenario}
+                onRenameScenario={renameScenario}
+                onClearScenarios={clearScenarios}
+              />
+              <ScenarioComparison
+                scenarios={scenarios}
+                currentMetrics={twoPassResults.currentMetrics}
+                currentStrategyName={currentStrategyName}
+              />
+            </div>
+
+            <StrategyComparison
+              baselineMetrics={twoPassResults.baselineMetrics}
+              optimizedMetrics={twoPassResults.optimizedMetrics}
+              currentMetrics={twoPassResults.currentMetrics}
+              survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
+              currentStrategyName={currentStrategyName}
+              showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
+              optimizationGoal={taxSettings.optimizationGoal}
+              survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
+            />
+            <MonteCarloResults
+              results={monteCarloResults}
+              settings={monteCarloSettings}
+              onSettingsChange={setMonteCarloSettings}
+            />
+            
+            {/* RMD Planning Center */}
+            <RMDPlanner
+              spouse1TradBalance={accounts.spouse1Traditional}
+              spouse2TradBalance={accounts.spouse2Traditional}
+              rothBalance={accounts.roth}
+              spouse1Age={taxSettings.spouse1Age}
+              spouse2Age={taxSettings.spouse2Age}
+              filingStatus={taxSettings.filingStatus}
+              rothConversionStrategy={taxSettings.rothConversionStrategy}
+              growthRate={accounts.traditionalReturn}
+              inflationRate={taxSettings.inflationRate}
+              otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
+            />
+            
+            <div className="grid gap-6 lg:grid-cols-2">
+              <BracketAnalysisCard analysis={detailedMetrics.bracketConsistency} projections={projections} />
+              <BracketChart data={projections} />
+            </div>
+            <ProjectionChart data={chartData} />
+            <TaxChart data={taxChartData} />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
