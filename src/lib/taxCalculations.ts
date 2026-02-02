@@ -49,8 +49,10 @@ export function getRothConversionLimit(
 
   const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
+  const standardDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
 
   // Map strategy to bracket limit (subtract $1 to stay safely inside the bracket)
+  // These are TAXABLE income thresholds
   const strategyMap: Record<string, number> = {
     'fill_10': brackets[0].max - 1, // Top of 10% bracket
     'fill_12': brackets[1].max - 1, // Top of 12% bracket
@@ -58,8 +60,13 @@ export function getRothConversionLimit(
     'fill_24': brackets[3].max - 1, // Top of 24% bracket
   };
 
-  const baseLimit = strategyMap[strategy] || 0;
-  return baseLimit * inflationMultiplier;
+  const taxableIncomeLimit = strategyMap[strategy] || 0;
+  
+  // Convert to GROSS income limit by adding standard deduction
+  // This allows comparison against gross ordinary income in the projection logic
+  const grossIncomeLimit = taxableIncomeLimit + standardDeduction;
+  
+  return grossIncomeLimit * inflationMultiplier;
 }
 
 export const standardDeductions2024: Record<string, number> = {
