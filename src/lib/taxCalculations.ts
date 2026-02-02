@@ -50,12 +50,12 @@ export function getRothConversionLimit(
   const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
 
-  // Map strategy to bracket limit
+  // Map strategy to bracket limit (subtract $1 to stay safely inside the bracket)
   const strategyMap: Record<string, number> = {
-    'fill_10': brackets[0].max, // Top of 10% bracket
-    'fill_12': brackets[1].max, // Top of 12% bracket
-    'fill_22': brackets[2].max, // Top of 22% bracket
-    'fill_24': brackets[3].max, // Top of 24% bracket
+    'fill_10': brackets[0].max - 1, // Top of 10% bracket
+    'fill_12': brackets[1].max - 1, // Top of 12% bracket
+    'fill_22': brackets[2].max - 1, // Top of 22% bracket
+    'fill_24': brackets[3].max - 1, // Top of 24% bracket
   };
 
   const baseLimit = strategyMap[strategy] || 0;

@@ -105,7 +105,8 @@ export function getBracketRoom(
   for (let i = 0; i < brackets.length; i++) {
     const inflatedMin = brackets[i].min * inflationMultiplier;
     const inflatedMax = brackets[i].max * inflationMultiplier;
-    if (taxableIncome >= inflatedMin && taxableIncome < inflatedMax) {
+    // Use <= for max to include the exact boundary in the lower bracket
+    if (taxableIncome >= inflatedMin && taxableIncome <= inflatedMax) {
       currentBracketIndex = i;
       break;
     }
