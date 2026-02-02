@@ -112,6 +112,7 @@ export interface ProjectionRow {
   takeHome: number;
   rmd: number;
   totalIncome: number;
+  ordinaryIncome: number; // Gross ordinary income for tax bracket calculations (includes taxable SS)
   rothConversion: number;
   marginalBracket: number;
   conversionExcessReinvested: number;
@@ -817,6 +818,7 @@ export function calculateProjections(
       takeHome,
       rmd,
       totalIncome: ssAnnual + totalWithdrawals + netWages,
+      ordinaryIncome: totalOrdinaryIncome, // Gross ordinary income used for tax bracket calculations
       rothConversion,
       marginalBracket,
       conversionExcessReinvested,

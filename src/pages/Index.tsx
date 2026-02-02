@@ -264,10 +264,10 @@ const Index = () => {
     );
   }, [projections, taxSettings.acaSettings.householdSize, taxSettings.inflationRate, taxSettings.filingStatus]);
 
-  // Get current year income for bracket gauge (includes Roth conversions since they're taxable)
-  const currentYearIncome = projections.length > 0 
-    ? projections[0].totalIncome + projections[0].rothConversion 
-    : 0;
+  // Get current year gross ordinary income for bracket gauge
+  // This is the totalOrdinaryIncome from projections (includes taxable SS, traditional withdrawals, 
+  // Roth conversions, and taxable wages) - used to determine the tax bracket
+  const currentYearGrossIncome = projections.length > 0 ? projections[0].ordinaryIncome : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -338,7 +338,7 @@ const Index = () => {
                 acaEnabled={taxSettings.acaSettings.enabled}
               />
               <BracketFillGauge
-                grossIncome={currentYearIncome}
+                grossIncome={currentYearGrossIncome}
                 filingStatus={taxSettings.filingStatus}
                 yearIndex={0}
                 inflationRate={taxSettings.inflationRate}
