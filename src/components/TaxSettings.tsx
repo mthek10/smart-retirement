@@ -150,16 +150,23 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
 
         <div className="space-y-2">
           <Label htmlFor="inflationRate">Inflation Rate (%)</Label>
-          <Input
-            id="inflationRate"
-            type="number"
-            step="0.1"
-            min="0"
-            max="15"
-            placeholder="3.0"
-            value={taxSettings.inflationRate || ''}
-            onChange={(e) => handleChange('inflationRate', parseFloat(e.target.value) || 3)}
-          />
+          <Select
+            value={String(taxSettings.inflationRate || 2.5)}
+            onValueChange={(value) => handleChange('inflationRate', parseFloat(value))}
+          >
+            <SelectTrigger id="inflationRate">
+              <SelectValue placeholder="Select inflation rate" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1.5">1.5%</SelectItem>
+              <SelectItem value="2">2.0%</SelectItem>
+              <SelectItem value="2.5">2.5%</SelectItem>
+              <SelectItem value="3">3.0%</SelectItem>
+              <SelectItem value="3.5">3.5%</SelectItem>
+              <SelectItem value="4">4.0%</SelectItem>
+              <SelectItem value="5">5.0%</SelectItem>
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted-foreground">
             Applied to Social Security benefits and standard deduction
           </p>
