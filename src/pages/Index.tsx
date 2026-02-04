@@ -58,7 +58,7 @@ const Index = () => {
     spouse1Age: 60,
     spouse2Age: 58,
     targetTakeHome: 200000,
-    inflationRate: 3,
+    inflationRate: 2.5,
     rothConversionStrategy: 'none',
     rothConversionCustom: 94300,
     acaSettings: {
