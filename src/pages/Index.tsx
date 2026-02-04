@@ -53,11 +53,11 @@ const Index = () => {
 
   const [taxSettings, setTaxSettings] = useState({
     filingStatus: 'married',
-    state: 'none',
+    state: 'other',
     stateRate: 5,
     spouse1Age: 60,
     spouse2Age: 58,
-    targetTakeHome: 80000,
+    targetTakeHome: 200000,
     inflationRate: 3,
     rothConversionStrategy: 'none',
     rothConversionCustom: 94300,
