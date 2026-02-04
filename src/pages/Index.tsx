@@ -294,7 +294,7 @@ const Index = () => {
             
             <div className="grid gap-6 lg:grid-cols-2">
               <AccountInputs accounts={accounts} onChange={setAccounts} filingStatus={taxSettings.filingStatus} />
-              <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} />
+              <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} spouse1Age={taxSettings.spouse1Age} spouse2Age={taxSettings.spouse2Age} />
             </div>
             
             <div className="grid gap-6 lg:grid-cols-2">

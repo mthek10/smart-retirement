@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface EmploymentInputsProps {
   taxSettings: {
@@ -22,9 +23,10 @@ interface EmploymentInputsProps {
     };
   };
   onChange: (settings: any) => void;
+  spouse1Age: number;
+  spouse2Age: number;
 }
-
-export function EmploymentInputs({ taxSettings, onChange }: EmploymentInputsProps) {
+export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age }: EmploymentInputsProps) {
   const handleSpouse1Change = (field: string, value: number | boolean) => {
     onChange({
       ...taxSettings,
@@ -66,14 +68,32 @@ export function EmploymentInputs({ taxSettings, onChange }: EmploymentInputsProp
 
           <div className="space-y-2">
             <Label htmlFor="spouse1RetirementAge">Expected Retirement Age</Label>
-            <Input
-              id="spouse1RetirementAge"
-              type="number"
-              min="50"
-              max="75"
-              value={taxSettings.spouse1Employment.retirementAge || ''}
-              onChange={(e) => handleSpouse1Change('retirementAge', parseFloat(e.target.value) || 65)}
-            />
+            <div className="flex items-center gap-4">
+              <Input
+                id="spouse1RetirementAge"
+                type="number"
+                min="50"
+                max="75"
+                value={taxSettings.spouse1Employment.retirementAge || ''}
+                onChange={(e) => handleSpouse1Change('retirementAge', parseFloat(e.target.value) || 65)}
+                disabled={taxSettings.spouse1Employment.retirementAge === spouse1Age}
+                className="flex-1"
+              />
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="spouse1-use-current-age"
+                  checked={taxSettings.spouse1Employment.retirementAge === spouse1Age}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      handleSpouse1Change('retirementAge', spouse1Age);
+                    }
+                  }}
+                />
+                <Label htmlFor="spouse1-use-current-age" className="text-sm whitespace-nowrap cursor-pointer">
+                  Already retired
+                </Label>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center justify-between space-x-2">
@@ -141,14 +161,32 @@ export function EmploymentInputs({ taxSettings, onChange }: EmploymentInputsProp
 
             <div className="space-y-2">
               <Label htmlFor="spouse2RetirementAge">Expected Retirement Age</Label>
-              <Input
-                id="spouse2RetirementAge"
-                type="number"
-                min="50"
-                max="75"
-                value={taxSettings.spouse2Employment.retirementAge || ''}
-                onChange={(e) => handleSpouse2Change('retirementAge', parseFloat(e.target.value) || 65)}
-              />
+              <div className="flex items-center gap-4">
+                <Input
+                  id="spouse2RetirementAge"
+                  type="number"
+                  min="50"
+                  max="75"
+                  value={taxSettings.spouse2Employment.retirementAge || ''}
+                  onChange={(e) => handleSpouse2Change('retirementAge', parseFloat(e.target.value) || 65)}
+                  disabled={taxSettings.spouse2Employment.retirementAge === spouse2Age}
+                  className="flex-1"
+                />
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="spouse2-use-current-age"
+                    checked={taxSettings.spouse2Employment.retirementAge === spouse2Age}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        handleSpouse2Change('retirementAge', spouse2Age);
+                      }
+                    }}
+                  />
+                  <Label htmlFor="spouse2-use-current-age" className="text-sm whitespace-nowrap cursor-pointer">
+                    Already retired
+                  </Label>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between space-x-2">
