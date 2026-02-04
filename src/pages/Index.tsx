@@ -35,7 +35,7 @@ const Index = () => {
     traditionalReturn: 3,
     rothReturn: 3,
     taxableReturn: 3,
-    taxableCostBasisPercent: 50,
+    taxableCostBasisPercent: 33,
   });
 
   const [ssData, setSsData] = useState({
