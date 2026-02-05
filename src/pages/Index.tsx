@@ -314,6 +314,19 @@ const Index = () => {
                 onChange={(newAcaSettings) => setTaxSettings({...taxSettings, acaSettings: newAcaSettings})} 
               />
             </div>
+
+            <div className="flex justify-center">
+              <Tabs value="dashboard">
+                <TabsList className="bg-transparent">
+                  <TabsTrigger 
+                    value="dashboard" 
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 px-8"
+                  >
+                    Go to Dashboard →
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </TabsContent>
 
           <TabsContent value="dashboard" className="space-y-6 mt-6">
