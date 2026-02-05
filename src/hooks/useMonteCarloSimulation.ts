@@ -176,8 +176,8 @@ export function useMonteCarloSimulation(
   ssData: SSData,
   taxSettings: TaxSettings,
   settings: MonteCarloSettings = {
-    numSimulations: 100,
-    returnMean: 0.07,
+    numSimulations: 1000,
+    returnMean: 0.03,
     returnStdDev: 0.15,
   }
 ): MonteCarloResult {
