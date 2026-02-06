@@ -15,6 +15,11 @@ interface TaxSettingsProps {
     rothConversionStrategy: string;
     rothConversionCustom: number;
     optimizationGoal?: string;
+    stateRelocation?: {
+      enabled: boolean;
+      targetState: string;
+      relocationAge: number;
+    };
   };
   onChange: (settings: any) => void;
 }
@@ -124,7 +129,7 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
               <SelectItem value="WI">Wisconsin</SelectItem>
               <SelectItem value="WY">Wyoming</SelectItem>
               <SelectItem value="other">Other (Custom Rate)</SelectItem>
-            </SelectContent>
+          </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
             State income tax, capital gains tax, and Social Security taxation
@@ -147,6 +152,85 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
             </p>
           </div>
         )}
+
+        {/* State Relocation Planning */}
+        <div className="space-y-4 pt-4 border-t">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="stateRelocationEnabled" className="text-sm font-medium">
+              Plan State Relocation
+            </Label>
+            <input
+              type="checkbox"
+              id="stateRelocationEnabled"
+              checked={taxSettings.stateRelocation?.enabled || false}
+              onChange={(e) => {
+                const current = taxSettings.stateRelocation || { enabled: false, targetState: 'FL', relocationAge: 65 };
+                onChange({ 
+                  ...taxSettings, 
+                  stateRelocation: { ...current, enabled: e.target.checked } 
+                });
+              }}
+              className="h-4 w-4 rounded border-border"
+            />
+          </div>
+          
+          {taxSettings.stateRelocation?.enabled && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="relocationAge">Relocation Age</Label>
+                <Input
+                  id="relocationAge"
+                  type="number"
+                  step="1"
+                  placeholder="65"
+                  value={taxSettings.stateRelocation?.relocationAge || 65}
+                  onChange={(e) => {
+                    const current = taxSettings.stateRelocation || { enabled: true, targetState: 'FL', relocationAge: 65 };
+                    onChange({
+                      ...taxSettings,
+                      stateRelocation: { ...current, relocationAge: parseInt(e.target.value) || 65 }
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="targetState">Target State</Label>
+                <Select
+                  value={taxSettings.stateRelocation?.targetState || 'FL'}
+                  onValueChange={(value) => {
+                    const current = taxSettings.stateRelocation || { enabled: true, targetState: 'FL', relocationAge: 65 };
+                    onChange({
+                      ...taxSettings,
+                      stateRelocation: { ...current, targetState: value }
+                    });
+                  }}
+                >
+                  <SelectTrigger id="targetState">
+                    <SelectValue placeholder="Select target state" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="AK">Alaska (No Income Tax)</SelectItem>
+                    <SelectItem value="FL">Florida (No Income Tax)</SelectItem>
+                    <SelectItem value="NV">Nevada (No Income Tax)</SelectItem>
+                    <SelectItem value="NH">New Hampshire (No Income Tax)</SelectItem>
+                    <SelectItem value="SD">South Dakota (No Income Tax)</SelectItem>
+                    <SelectItem value="TN">Tennessee (No Income Tax)</SelectItem>
+                    <SelectItem value="TX">Texas (No Income Tax)</SelectItem>
+                    <SelectItem value="WA">Washington (No Income Tax)</SelectItem>
+                    <SelectItem value="WY">Wyoming (No Income Tax)</SelectItem>
+                    <SelectItem value="AZ">Arizona (2.5% Flat)</SelectItem>
+                    <SelectItem value="CO">Colorado (4.4% Flat)</SelectItem>
+                    <SelectItem value="NC">North Carolina (4.5% Flat)</SelectItem>
+                    <SelectItem value="PA">Pennsylvania (3.07% Flat)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Model switching to a lower-tax state at a specific age. Popular retirement destinations shown.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="inflationRate">Inflation Rate (%)</Label>

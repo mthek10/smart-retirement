@@ -66,6 +66,12 @@ export interface ACASettings {
   customBenchmarkPremium: number;
 }
 
+export interface StateRelocationSettings {
+  enabled: boolean;
+  targetState: string;
+  relocationAge: number;
+}
+
 export interface TaxSettings {
   filingStatus: string;
   state: string;
@@ -81,6 +87,7 @@ export interface TaxSettings {
   spouse1Employment: EmploymentSettings;
   spouse2Employment: EmploymentSettings;
   survivorSettings: SurvivorSettings;
+  stateRelocation?: StateRelocationSettings;
 }
 
 export interface ProjectionRow {
@@ -698,10 +705,16 @@ export function calculateProjections(
     let stateTax = 0;
     let stateCapitalGainsTax = 0;
     
-    if (taxSettings.state === 'other') {
+    // Determine effective state (considering relocation planning)
+    const effectiveState = taxSettings.stateRelocation?.enabled && 
+      spouse1CurrentAge >= (taxSettings.stateRelocation?.relocationAge || 65)
+      ? taxSettings.stateRelocation.targetState
+      : taxSettings.state;
+    
+    if (effectiveState === 'other') {
       stateTax = totalOrdinaryIncome * (taxSettings.stateRate / 100);
       stateCapitalGainsTax = capitalGains * (taxSettings.stateRate / 100);
-    } else if (taxSettings.state && taxSettings.state !== 'none') {
+    } else if (effectiveState && effectiveState !== 'none') {
       const olderLivingSpouseAge = spouse1Alive && spouse2Alive 
         ? Math.max(spouse1CurrentAge, spouse2CurrentAge)
         : (spouse1Alive ? spouse1CurrentAge : spouse2CurrentAge);
@@ -709,13 +722,13 @@ export function calculateProjections(
         ssAnnual,
         agi,
         effectiveFilingStatus,
-        taxSettings.state,
+        effectiveState,
         olderLivingSpouseAge
       );
       
       const nonSSIncome = ordinaryIncome;
-      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, taxSettings.state, effectiveFilingStatus);
-      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, taxSettings.state, effectiveFilingStatus);
+      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, effectiveState, effectiveFilingStatus);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus);
       stateTax = stateSSTax + stateIncomeTax;
     }
 

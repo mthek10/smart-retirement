@@ -356,6 +356,7 @@ const Index = () => {
                 spouse1SSClaimAge={ssData.spouse1.claimAge}
                 spouse2SSClaimAge={ssData.spouse2.claimAge}
                 acaEnabled={taxSettings.acaSettings.enabled}
+                taxableUnrealizedGains={accounts.taxable * ((100 - accounts.taxableCostBasisPercent) / 100)}
               />
               <BracketFillGauge
                 grossIncome={currentYearGrossIncome}

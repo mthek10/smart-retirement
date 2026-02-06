@@ -7,9 +7,11 @@ import {
   Calendar, 
   DollarSign,
   HeartPulse,
-  PiggyBank
+  PiggyBank,
+  Coins
 } from "lucide-react";
 import { getBracketRoom } from "@/lib/incomeAlerts";
+import { calculateCapitalGainsHarvestingRoom, standardDeductions2024 } from "@/lib/taxCalculations";
 import type { ProjectionRow } from "@/hooks/useProjections";
 
 interface ActionItemsProps {
@@ -22,12 +24,13 @@ interface ActionItemsProps {
   spouse1SSClaimAge: number;
   spouse2SSClaimAge: number;
   acaEnabled: boolean;
+  taxableUnrealizedGains?: number; // Optional: unrealized gains in taxable account
 }
 
 interface ActionItem {
   id: string;
   priority: 'high' | 'medium' | 'low';
-  category: 'roth' | 'ss' | 'irmaa' | 'rmd' | 'aca' | 'general';
+  category: 'roth' | 'ss' | 'irmaa' | 'rmd' | 'aca' | 'general' | 'cg-harvest';
   title: string;
   description: string;
   impact?: string;
@@ -58,6 +61,7 @@ const getCategoryIcon = (category: ActionItem['category']) => {
     case 'rmd': return <AlertTriangle className="h-4 w-4" />;
     case 'aca': return <HeartPulse className="h-4 w-4" />;
     case 'general': return <DollarSign className="h-4 w-4" />;
+    case 'cg-harvest': return <Coins className="h-4 w-4" />;
   }
 };
 
@@ -71,6 +75,7 @@ export function ActionItems({
   spouse1SSClaimAge,
   spouse2SSClaimAge,
   acaEnabled,
+  taxableUnrealizedGains,
 }: ActionItemsProps) {
   if (projections.length === 0) return null;
 
@@ -98,6 +103,40 @@ export function ActionItems({
       title: 'Roth Strategy Active',
       description: `Your current strategy is filling to the ${bracketInfo.currentBracket}% bracket. You're optimizing your tax situation.`,
       icon: <CheckCircle2 className="h-5 w-5 text-success" />,
+    });
+  }
+
+  // 1b. Capital Gains Harvesting Opportunity (0% LTCG bracket)
+  const standardDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  const taxableIncomeForCG = Math.max(0, currentYear.ordinaryIncome - standardDeduction);
+  const cgHarvesting = calculateCapitalGainsHarvestingRoom(
+    taxableIncomeForCG,
+    filingStatus,
+    0,
+    inflationRate / 100
+  );
+  
+  if (cgHarvesting.harvestingAvailable && taxableUnrealizedGains && taxableUnrealizedGains > 1000) {
+    const harvestableAmount = Math.min(cgHarvesting.roomInZeroBracket, taxableUnrealizedGains);
+    actionItems.push({
+      id: 'cg-harvesting',
+      priority: 'high',
+      category: 'cg-harvest',
+      title: 'Capital Gains Harvesting Opportunity',
+      description: `You have ${formatCurrency(cgHarvesting.roomInZeroBracket)} of room in the 0% LTCG bracket. Consider selling appreciated assets to realize gains tax-free.`,
+      impact: `Harvest up to ${formatCurrency(harvestableAmount)} in gains at 0% federal tax`,
+      icon: <Coins className="h-5 w-5 text-success" />,
+    });
+  } else if (cgHarvesting.harvestingAvailable && currentYear.taxableBalance > 10000) {
+    // Show opportunity even without knowing exact unrealized gains
+    actionItems.push({
+      id: 'cg-harvesting-opportunity',
+      priority: 'medium',
+      category: 'cg-harvest',
+      title: '0% Capital Gains Rate Available',
+      description: `Your income leaves ${formatCurrency(cgHarvesting.roomInZeroBracket)} room in the 0% LTCG bracket. Review your taxable account for gains you could realize tax-free.`,
+      impact: `Potential to reset cost basis on appreciated shares at no federal tax cost`,
+      icon: <Coins className="h-5 w-5 text-primary" />,
     });
   }
 
