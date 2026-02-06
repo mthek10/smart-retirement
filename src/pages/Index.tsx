@@ -23,10 +23,12 @@ import { useTwoPassProjections } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { calculateBracketConsistency } from "@/lib/taxCalculations";
 import { getCurrentYearAlerts } from "@/lib/incomeAlerts";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("setup");
   const [accounts, setAccounts] = useState({
     spouse1Traditional: 2500000,
     spouse2Traditional: 2500000,
@@ -281,7 +283,7 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="setup" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="setup">Setup</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -316,16 +318,9 @@ const Index = () => {
             </div>
 
             <div className="flex justify-center">
-              <Tabs value="dashboard">
-                <TabsList className="bg-transparent">
-                  <TabsTrigger 
-                    value="dashboard" 
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 px-8"
-                  >
-                    Go to Dashboard →
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <Button onClick={() => setActiveTab("dashboard")} className="px-8">
+                Go to Dashboard →
+              </Button>
             </div>
           </TabsContent>
 
