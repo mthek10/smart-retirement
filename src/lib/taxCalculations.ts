@@ -135,6 +135,29 @@ export const capitalGainsBrackets2024: Record<string, TaxBracket[]> = {
   ],
 };
 
+// Calculate capital gains harvesting opportunity (room in 0% LTCG bracket)
+export function calculateCapitalGainsHarvestingRoom(
+  taxableIncome: number,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): { zeroRateBracketTop: number; roomInZeroBracket: number; harvestingAvailable: boolean } {
+  const brackets = capitalGainsBrackets2024[filingStatus] || capitalGainsBrackets2024.single;
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
+  
+  // The 0% LTCG bracket top (first bracket max)
+  const zeroRateBracketTop = brackets[0].max * inflationMultiplier;
+  
+  // Room remaining in 0% bracket = bracket top - taxable income (but not less than 0)
+  const roomInZeroBracket = Math.max(0, zeroRateBracketTop - taxableIncome);
+  
+  return {
+    zeroRateBracketTop,
+    roomInZeroBracket,
+    harvestingAvailable: roomInZeroBracket > 1000, // Consider meaningful if > $1000
+  };
+}
+
 // Net Investment Income Tax (NIIT) thresholds for 2024
 export const niitThresholds2024: Record<string, number> = {
   single: 200000,
