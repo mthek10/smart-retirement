@@ -239,7 +239,8 @@ const Index = () => {
     const avgWithdrawal = projections.length > 0 
       ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 
       : 0;
-    const totalPortfolio = accounts.spouse1Traditional + accounts.spouse2Traditional + accounts.roth + accounts.taxable;
+    const isMarried = taxSettings.filingStatus === 'married';
+    const totalPortfolio = accounts.spouse1Traditional + (isMarried ? accounts.spouse2Traditional : 0) + accounts.roth + accounts.taxable;
 
     // Get final year balances for "not depleted" display
     const finalProjection = projections.length > 0 ? projections[projections.length - 1] : null;
