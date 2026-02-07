@@ -127,6 +127,145 @@ export interface ProjectionRow {
 }
 
 /**
+ * Iterative binary search solver to find withdrawal amount achieving target take-home.
+ * Extracted from calculateProjections for readability.
+ */
+function solveRequiredWithdrawal(
+  targetTakeHome: number,
+  ssAnnual: number,
+  currentBalances: { tradBalance: number; rothBalance: number; taxableBalance: number },
+  currentRMD: number,
+  yearIndex: number,
+  spouse1Age: number,
+  spouse2Age: number,
+  taxableWages: number,
+  effectiveFilingStatus: string,
+  costBasisPercent: number,
+  conversionStrategy: string,
+  inflationRate: number,
+  rothConversionCustom: number,
+  state: string,
+  stateRate: number,
+): number {
+  let low = Math.max(0, currentRMD);
+  let high = Math.max(
+    targetTakeHome * 3,
+    currentBalances.tradBalance + currentBalances.rothBalance + currentBalances.taxableBalance
+  );
+  
+  const tolerance = 100;
+  const maxIterations = 30;
+  const inflationFraction = inflationRate / 100;
+  
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const testWithdrawal = (low + high) / 2;
+    
+    let testTaxable = currentBalances.taxableBalance;
+    let testTrad = currentBalances.tradBalance;
+    let testRoth = currentBalances.rothBalance;
+    
+    let remaining = testWithdrawal;
+    let capitalGainsRealized = 0;
+    let traditionalWithdrawn = 0;
+    
+    if (currentRMD > 0 && testTrad > 0) {
+      const rmdWithdrawal = Math.min(currentRMD, testTrad, remaining);
+      traditionalWithdrawn = rmdWithdrawal;
+      testTrad -= rmdWithdrawal;
+      remaining -= rmdWithdrawal;
+    }
+    
+    if (remaining > 0 && testTaxable > 0) {
+      const fromTaxable = Math.min(remaining, testTaxable);
+      capitalGainsRealized = fromTaxable * ((100 - costBasisPercent) / 100);
+      testTaxable -= fromTaxable;
+      remaining -= fromTaxable;
+    }
+    
+    if (remaining > 0 && testTrad > 0) {
+      const fromTrad = Math.min(remaining, testTrad);
+      traditionalWithdrawn += fromTrad;
+      testTrad -= fromTrad;
+      remaining -= fromTrad;
+    }
+    
+    if (remaining > 0 && testRoth > 0) {
+      testRoth -= Math.min(remaining, testRoth);
+    }
+    
+    let rothConversion = 0;
+    const targetIncomeLimit = getRothConversionLimit(
+      conversionStrategy,
+      effectiveFilingStatus,
+      yearIndex,
+      inflationFraction,
+      rothConversionCustom
+    );
+    if (targetIncomeLimit > 0 && testTrad > 0) {
+      const currentIncome = ssAnnual + traditionalWithdrawn;
+      const conversionRoom = Math.max(0, targetIncomeLimit - currentIncome);
+      rothConversion = Math.min(conversionRoom, testTrad);
+    }
+    
+    const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages;
+    const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGainsRealized, effectiveFilingStatus);
+    const totalOrdinaryIncome = ordinaryIncome + taxableSS;
+    
+    const federalTax = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, yearIndex, inflationFraction);
+    const federalCapitalGainsTax = calculateCapitalGainsTax(capitalGainsRealized, totalOrdinaryIncome, effectiveFilingStatus, yearIndex, inflationFraction);
+    
+    let stateTax = 0;
+    let stateCapitalGainsTax = 0;
+    
+    if (state === 'other') {
+      stateTax = totalOrdinaryIncome * (stateRate / 100);
+      stateCapitalGainsTax = capitalGainsRealized * (stateRate / 100);
+    } else if (state && state !== 'none') {
+      const agi = totalOrdinaryIncome + capitalGainsRealized;
+      const stateSSTax = calculateStateSocialSecurityTax(ssAnnual, agi, effectiveFilingStatus, state, spouse1Age);
+      const nonSSIncome = ordinaryIncome;
+      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, state, effectiveFilingStatus);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGainsRealized, nonSSIncome, state, effectiveFilingStatus);
+      stateTax = stateSSTax + stateIncomeTax;
+    }
+    
+    const magi = totalOrdinaryIncome + capitalGainsRealized;
+    let irmaa = 0;
+    if (spouse1Age >= 65 && spouse1Age <= 100) {
+      irmaa += calculateIRMAA(magi, yearIndex, inflationFraction);
+    }
+    if (spouse2Age >= 65 && spouse2Age <= 100) {
+      irmaa += calculateIRMAA(magi, yearIndex, inflationFraction);
+    }
+    
+    let medicarePremiums = 0;
+    if (spouse1Age >= 65 && spouse1Age <= 100) {
+      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
+    }
+    if (spouse2Age >= 65 && spouse2Age <= 100) {
+      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
+    }
+    
+    const niit = calculateNIIT(capitalGainsRealized, magi, effectiveFilingStatus, yearIndex, inflationFraction);
+    const amt = calculateAMT(totalOrdinaryIncome, capitalGainsRealized, effectiveFilingStatus, yearIndex, inflationFraction);
+    
+    const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt;
+    
+    if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
+      return testWithdrawal;
+    }
+    
+    if (calculatedTakeHome < targetTakeHome) {
+      low = testWithdrawal;
+    } else {
+      high = testWithdrawal;
+    }
+  }
+  
+  return (low + high) / 2;
+}
+
+/**
  * Core projection calculation function - can be called with different strategies
  */
 export function calculateProjections(
@@ -145,150 +284,6 @@ export function calculateProjections(
   
   // Use override strategy if provided, otherwise use settings
   const effectiveConversionStrategy = strategyOverride ?? taxSettings.rothConversionStrategy;
-
-  // Iterative solver to find withdrawal amount that achieves target take home
-  const calculateRequiredWithdrawal = (
-    targetTakeHome: number,
-    ssAnnual: number,
-    currentBalances: { tradBalance: number; rothBalance: number; taxableBalance: number },
-    currentRMD: number,
-    yearIndex: number,
-    spouse1Age: number,
-    spouse2Age: number,
-    taxableWages: number,
-    effectiveFilingStatus: string
-  ): number => {
-    let low = Math.max(0, currentRMD);
-    let high = Math.max(
-      targetTakeHome * 3,
-      currentBalances.tradBalance + currentBalances.rothBalance + currentBalances.taxableBalance
-    );
-    
-    const tolerance = 100;
-    const maxIterations = 30;
-    
-    for (let iter = 0; iter < maxIterations; iter++) {
-      const testWithdrawal = (low + high) / 2;
-      
-      let testTaxable = currentBalances.taxableBalance;
-      let testTrad = currentBalances.tradBalance;
-      let testRoth = currentBalances.rothBalance;
-      
-      let remaining = testWithdrawal;
-      let capitalGainsRealized = 0;
-      let traditionalWithdrawn = 0;
-      let rothWithdrawn = 0;
-      
-      if (currentRMD > 0 && testTrad > 0) {
-        const rmdWithdrawal = Math.min(currentRMD, testTrad, remaining);
-        traditionalWithdrawn = rmdWithdrawal;
-        testTrad -= rmdWithdrawal;
-        remaining -= rmdWithdrawal;
-      }
-      
-      if (remaining > 0 && testTaxable > 0) {
-        const fromTaxable = Math.min(remaining, testTaxable);
-        capitalGainsRealized = fromTaxable * ((100 - accounts.taxableCostBasisPercent) / 100);
-        testTaxable -= fromTaxable;
-        remaining -= fromTaxable;
-      }
-      
-      if (remaining > 0 && testTrad > 0) {
-        const fromTrad = Math.min(remaining, testTrad);
-        traditionalWithdrawn += fromTrad;
-        testTrad -= fromTrad;
-        remaining -= fromTrad;
-      }
-      
-      if (remaining > 0 && testRoth > 0) {
-        const fromRoth = Math.min(remaining, testRoth);
-        rothWithdrawn = fromRoth;
-        testRoth -= fromRoth;
-        remaining -= fromRoth;
-      }
-      
-      let rothConversion = 0;
-      const targetIncomeLimit = getRothConversionLimit(
-        effectiveConversionStrategy,
-        effectiveFilingStatus,
-        yearIndex,
-        taxSettings.inflationRate / 100,
-        taxSettings.rothConversionCustom
-      );
-      if (targetIncomeLimit > 0 && testTrad > 0) {
-        const currentIncome = ssAnnual + traditionalWithdrawn;
-        const conversionRoom = Math.max(0, targetIncomeLimit - currentIncome);
-        rothConversion = Math.min(conversionRoom, testTrad);
-      }
-      
-      const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages;
-      const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGainsRealized, effectiveFilingStatus);
-      const totalOrdinaryIncome = ordinaryIncome + taxableSS;
-      
-      const federalTax = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, yearIndex, taxSettings.inflationRate / 100);
-      const federalCapitalGainsTax = calculateCapitalGainsTax(capitalGainsRealized, totalOrdinaryIncome, effectiveFilingStatus, yearIndex, taxSettings.inflationRate / 100);
-      
-      let stateTax = 0;
-      let stateCapitalGainsTax = 0;
-      
-      if (taxSettings.state === 'other') {
-        stateTax = totalOrdinaryIncome * (taxSettings.stateRate / 100);
-        stateCapitalGainsTax = capitalGainsRealized * (taxSettings.stateRate / 100);
-      } else if (taxSettings.state && taxSettings.state !== 'none') {
-        const agi = totalOrdinaryIncome + capitalGainsRealized;
-        const stateSSTax = calculateStateSocialSecurityTax(
-          ssAnnual,
-          agi,
-          effectiveFilingStatus,
-          taxSettings.state,
-          spouse1Age
-        );
-        
-        const nonSSIncome = ordinaryIncome;
-        const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, taxSettings.state, effectiveFilingStatus);
-        stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGainsRealized, nonSSIncome, taxSettings.state, effectiveFilingStatus);
-        stateTax = stateSSTax + stateIncomeTax;
-      }
-      
-      const magi = totalOrdinaryIncome + capitalGainsRealized;
-      let irmaa = 0;
-      if (spouse1Age >= 65 && spouse1Age <= 100) {
-        irmaa += calculateIRMAA(magi, yearIndex, taxSettings.inflationRate / 100);
-      }
-      if (spouse2Age >= 65 && spouse2Age <= 100) {
-        irmaa += calculateIRMAA(magi, yearIndex, taxSettings.inflationRate / 100);
-      }
-      
-      let medicarePremiums = 0;
-      if (spouse1Age >= 65 && spouse1Age <= 100) {
-        medicarePremiums += calculateMedicarePremiums(yearIndex, taxSettings.inflationRate / 100);
-      }
-      if (spouse2Age >= 65 && spouse2Age <= 100) {
-        medicarePremiums += calculateMedicarePremiums(yearIndex, taxSettings.inflationRate / 100);
-      }
-      
-      const niit = calculateNIIT(capitalGainsRealized, magi, effectiveFilingStatus, yearIndex, taxSettings.inflationRate / 100);
-      const amt = calculateAMT(totalOrdinaryIncome, capitalGainsRealized, effectiveFilingStatus, yearIndex, taxSettings.inflationRate / 100);
-      
-      const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt;
-      
-      if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
-        return testWithdrawal;
-      }
-      
-      if (calculatedTakeHome < targetTakeHome) {
-        low = testWithdrawal;
-      } else {
-        high = testWithdrawal;
-      }
-      
-      if (iter === maxIterations - 1) {
-        return testWithdrawal;
-      }
-    }
-    
-    return (low + high) / 2;
-  };
 
   let spouse1SSAtDeath = 0;
   let spouse2SSAtDeath = 0;
@@ -489,7 +484,7 @@ export function calculateProjections(
     const adjustedTargetTakeHome = effectiveTargetTakeHome - netWages;
     const excessIncome = adjustedTargetTakeHome < 0 ? Math.abs(adjustedTargetTakeHome) : 0;
     
-    let requiredWithdrawal = adjustedTargetTakeHome > 0 ? calculateRequiredWithdrawal(
+    let requiredWithdrawal = adjustedTargetTakeHome > 0 ? solveRequiredWithdrawal(
       adjustedTargetTakeHome,
       ssAnnual,
       { tradBalance, rothBalance, taxableBalance },
@@ -498,7 +493,13 @@ export function calculateProjections(
       spouse1CurrentAge,
       spouse2CurrentAge,
       taxableWages,
-      effectiveFilingStatus
+      effectiveFilingStatus,
+      accounts.taxableCostBasisPercent,
+      effectiveConversionStrategy,
+      taxSettings.inflationRate,
+      taxSettings.rothConversionCustom,
+      taxSettings.state,
+      taxSettings.stateRate,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {

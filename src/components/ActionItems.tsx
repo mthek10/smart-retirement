@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import { getBracketRoom } from "@/lib/incomeAlerts";
 import { calculateCapitalGainsHarvestingRoom, standardDeductions2024 } from "@/lib/taxCalculations";
+import { formatCurrency } from "@/lib/utils";
 import type { ProjectionRow } from "@/hooks/useProjections";
-
 interface ActionItemsProps {
   projections: ProjectionRow[];
   filingStatus: string;
@@ -37,13 +37,6 @@ interface ActionItem {
   icon: React.ReactNode;
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-};
 
 const getPriorityColor = (priority: ActionItem['priority']) => {
   switch (priority) {
