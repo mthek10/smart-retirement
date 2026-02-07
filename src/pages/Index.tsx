@@ -178,79 +178,99 @@ const Index = () => {
     return allTaxData.slice(0, Math.min(lastNonZeroIndex + 3, allTaxData.length));
   }, [projections]);
 
-  const detailedMetrics = useMemo(() => {
+  const summary = useMemo(() => {
     if (projections.length === 0) {
       return {
-        tradDepletionAge: null,
-        taxableDepletionAge: null,
-        rothUsageAge: null,
-        rothDepletionAge: null,
-        bracketConsistency: null,
+        totalPortfolio: 0,
+        lifetimeTotalTaxes: 0,
+        totalFederalTax: 0,
+        totalFederalCGTax: 0,
+        totalStateTax: 0,
+        totalStateCGTax: 0,
+        totalMedicareCosts: 0,
+        totalACASubsidy: 0,
+        totalACAPremium: 0,
+        totalNIIT: 0,
+        totalAMT: 0,
+        totalPayrollTax: 0,
+        totalEmploymentIncome: 0,
+        total401kContributions: 0,
+        avgWithdrawal: 0,
+        finalTraditionalBalance: 0,
+        finalRothBalance: 0,
+        finalTaxableBalance: 0,
+        finalAge: 100,
+        tradDepletionAge: null as number | null,
+        taxableDepletionAge: null as number | null,
+        rothUsageAge: null as number | null,
+        rothDepletionAge: null as number | null,
+        bracketConsistency: null as ReturnType<typeof calculateBracketConsistency> | null,
         avgBracket: 0,
         yearsInTarget: 0,
       };
     }
 
-    // Find when each account first depletes (balance drops below threshold) using transition logic
-    const tradDepletionIndex = projections.findIndex((p, index) =>
-      p.traditionalBalance < 1000 && index > 0 && projections[index - 1].traditionalBalance >= 1000
-    );
-    const taxableDepletionIndex = projections.findIndex((p, index) =>
-      p.taxableBalance < 1000 && index > 0 && projections[index - 1].taxableBalance >= 1000
-    );
-    const rothDepletionIndex = projections.findIndex((p, index) =>
-      p.rothBalance < 1000 && index > 0 && projections[index - 1].rothBalance >= 1000
-    );
+    // Single-pass accumulation over projections (replaces 14 separate .reduce() calls)
+    let totalFederalTax = 0, totalFederalCGTax = 0, totalStateTax = 0, totalStateCGTax = 0;
+    let totalIRMAA = 0, totalMedicarePremiums = 0, totalNIIT = 0, totalAMT = 0;
+    let totalPayrollTax = 0, totalACASubsidy = 0, totalACAPremium = 0;
+    let totalEmploymentIncome = 0, total401kContributions = 0, totalWithdrawals = 0;
 
-    const finalTradDepletionAge = tradDepletionIndex >= 0 ? projections[tradDepletionIndex].age : null;
-    const finalTaxableDepletionAge = taxableDepletionIndex >= 0 ? projections[taxableDepletionIndex].age : null;
-    const finalRothDepletionAge = rothDepletionIndex >= 0 ? projections[rothDepletionIndex].age : null;
+    // Depletion tracking (single pass, avoids duplicate logic in detailedMetrics)
+    let tradDepletionAge: number | null = null;
+    let taxableDepletionAge: number | null = null;
+    let rothDepletionAge: number | null = null;
+    const DEPLETION_THRESHOLD = 1000;
 
-    // Find when Roth starts being used (balance decreases)
-    const initialRothBalance = accounts.roth;
-    const rothUsageProjection = projections.find(p => p.rothBalance < initialRothBalance - 1000);
-    
-    // Calculate bracket consistency with filing status and inflation rate
-    const consistency = calculateBracketConsistency(projections, taxSettings.filingStatus, taxSettings.inflationRate / 100);
-    
-    return {
-      tradDepletionAge: finalTradDepletionAge,
-      taxableDepletionAge: finalTaxableDepletionAge,
-      rothUsageAge: rothUsageProjection ? rothUsageProjection.age : null,
-      rothDepletionAge: finalRothDepletionAge,
-      bracketConsistency: consistency,
-      avgBracket: consistency.avgBracket,
-      yearsInTarget: consistency.yearsInTarget,
-    };
-  }, [projections, taxSettings.spouse1Age, accounts.roth]);
+    for (let i = 0; i < projections.length; i++) {
+      const p = projections[i];
+      totalFederalTax += p.federalTax;
+      totalFederalCGTax += p.federalCapitalGainsTax;
+      totalStateTax += p.stateTax;
+      totalStateCGTax += p.stateCapitalGainsTax;
+      totalIRMAA += p.irmaa;
+      totalMedicarePremiums += (p.medicarePremiums || 0);
+      totalNIIT += p.niit;
+      totalAMT += p.amt;
+      totalPayrollTax += (p.payrollTax || 0);
+      totalACASubsidy += (p.acaSubsidy || 0);
+      totalACAPremium += (p.acaPremium || 0);
+      totalEmploymentIncome += (p.employmentIncome || 0);
+      total401kContributions += (p.contributions401k || 0);
+      totalWithdrawals += p.withdrawals;
 
-  const summary = useMemo(() => {
-    const totalFederalTax = projections.reduce((sum, p) => sum + p.federalTax, 0);
-    const totalFederalCGTax = projections.reduce((sum, p) => sum + p.federalCapitalGainsTax, 0);
-    const totalStateTax = projections.reduce((sum, p) => sum + p.stateTax, 0);
-    const totalStateCGTax = projections.reduce((sum, p) => sum + p.stateCapitalGainsTax, 0);
-    const totalIRMAA = projections.reduce((sum, p) => sum + p.irmaa, 0);
-    const totalMedicarePremiums = projections.reduce((sum, p) => sum + (p.medicarePremiums || 0), 0);
+      // Depletion detection (transition from above to below threshold)
+      if (i > 0) {
+        const prev = projections[i - 1];
+        if (tradDepletionAge === null && prev.traditionalBalance >= DEPLETION_THRESHOLD && p.traditionalBalance < DEPLETION_THRESHOLD) {
+          tradDepletionAge = p.age;
+        }
+        if (taxableDepletionAge === null && prev.taxableBalance >= DEPLETION_THRESHOLD && p.taxableBalance < DEPLETION_THRESHOLD) {
+          taxableDepletionAge = p.age;
+        }
+        if (rothDepletionAge === null && prev.rothBalance >= DEPLETION_THRESHOLD && p.rothBalance < DEPLETION_THRESHOLD) {
+          rothDepletionAge = p.age;
+        }
+      }
+    }
+
     const totalMedicareCosts = totalIRMAA + totalMedicarePremiums;
-    const totalNIIT = projections.reduce((sum, p) => sum + p.niit, 0);
-    const totalAMT = projections.reduce((sum, p) => sum + p.amt, 0);
-    const totalPayrollTax = projections.reduce((sum, p) => sum + (p.payrollTax || 0), 0);
-    const totalACASubsidy = projections.reduce((sum, p) => sum + (p.acaSubsidy || 0), 0);
-    const totalACAPremium = projections.reduce((sum, p) => sum + (p.acaPremium || 0), 0);
     const lifetimeTotalTaxes = totalFederalTax + totalFederalCGTax + totalStateTax + totalStateCGTax + totalMedicareCosts + totalNIIT + totalAMT + totalPayrollTax;
-    const totalEmploymentIncome = projections.reduce((sum, p) => sum + (p.employmentIncome || 0), 0);
-    const total401kContributions = projections.reduce((sum, p) => sum + (p.contributions401k || 0), 0);
-    const avgWithdrawal = projections.length > 0 
-      ? projections.reduce((sum, p) => sum + p.withdrawals, 0) / projections.length 
-      : 0;
+    const avgWithdrawal = totalWithdrawals / projections.length;
+
     const isMarried = taxSettings.filingStatus === 'married';
     const totalPortfolio = accounts.spouse1Traditional + (isMarried ? accounts.spouse2Traditional : 0) + accounts.roth + accounts.taxable;
 
-    // Get final year balances for "not depleted" display
-    const finalProjection = projections.length > 0 ? projections[projections.length - 1] : null;
+    // Roth usage age (when balance first decreases meaningfully)
+    const rothUsageProjection = projections.find(p => p.rothBalance < accounts.roth - 1000);
 
-    return { 
-      totalPortfolio, 
+    // Bracket consistency analysis
+    const bracketConsistency = calculateBracketConsistency(projections, taxSettings.filingStatus, taxSettings.inflationRate / 100);
+
+    const finalProjection = projections[projections.length - 1];
+
+    return {
+      totalPortfolio,
       lifetimeTotalTaxes,
       totalFederalTax,
       totalFederalCGTax,
@@ -269,9 +289,15 @@ const Index = () => {
       finalRothBalance: finalProjection?.rothBalance ?? 0,
       finalTaxableBalance: finalProjection?.taxableBalance ?? 0,
       finalAge: finalProjection?.age ?? 100,
-      ...detailedMetrics
+      tradDepletionAge,
+      taxableDepletionAge,
+      rothUsageAge: rothUsageProjection ? rothUsageProjection.age : null,
+      rothDepletionAge,
+      bracketConsistency,
+      avgBracket: bracketConsistency.avgBracket,
+      yearsInTarget: bracketConsistency.yearsInTarget,
     };
-  }, [projections, accounts, detailedMetrics]);
+  }, [projections, accounts, taxSettings.filingStatus, taxSettings.inflationRate]);
 
   // Generate income alerts for current year
   const incomeAlerts = useMemo(() => {
@@ -428,7 +454,7 @@ const Index = () => {
             />
             
             <div className="grid gap-6 lg:grid-cols-2">
-              <BracketAnalysisCard analysis={detailedMetrics.bracketConsistency} projections={projections} />
+              <BracketAnalysisCard analysis={summary.bracketConsistency} projections={projections} />
               <BracketChart data={projections} />
             </div>
             <ProjectionChart data={chartData} />
