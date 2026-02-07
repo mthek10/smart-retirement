@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { AccountInputs } from "@/components/AccountInputs";
 import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
@@ -114,8 +115,11 @@ const Index = () => {
   };
 
 
+  // Debounce Monte Carlo settings so heavy simulation only runs after user stops adjusting
+  const debouncedMonteCarloSettings = useDebouncedValue(monteCarloSettings, 500);
+
   // Monte Carlo simulation results
-  const monteCarloResults = useMonteCarloSimulation(accounts, ssData, taxSettings, monteCarloSettings);
+  const monteCarloResults = useMonteCarloSimulation(accounts, ssData, taxSettings, debouncedMonteCarloSettings);
 
   // Scenario management for comparing strategies
   const { scenarios, addScenario, removeScenario, renameScenario, clearScenarios } = useScenarios();
