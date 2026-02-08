@@ -396,6 +396,12 @@ const Index = () => {
                 inflationRate={taxSettings.inflationRate}
               />
             </div>
+
+            <div className="flex justify-center">
+              <Button onClick={() => setActiveTab("projections")} className="px-8">
+                View Projections →
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="projections" className="mt-6">
