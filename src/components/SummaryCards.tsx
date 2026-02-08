@@ -76,7 +76,7 @@ function SummaryCard({ card }: { card: CardData }) {
       <CardContent>
         <div className={cn("text-2xl font-bold", card.color)}>
           {card.isScore
-            ? `${card.value.toFixed(1)} / 10`
+            ? `${(10 - card.value).toFixed(1)} / 10`
             : card.isPercent
             ? `${card.value.toFixed(0)}%`
             : card.isAge
@@ -322,20 +322,21 @@ export function SummaryCards({
   const optimizationCards: CardData[] = [];
 
   if (bracketConsistency) {
+    const displayScore = 10 - bracketConsistency.score;
     optimizationCards.push({
       title: "Bracket Consistency",
       value: bracketConsistency.score,
       subtitle: `Avg ${(bracketConsistency.avgBracket * 100).toFixed(0)}% bracket • ${bracketConsistency.yearsInTarget} years consistent`,
       icon:
-        bracketConsistency.score < 4
+        displayScore >= 7
           ? CheckCircle2
-          : bracketConsistency.score < 6
+          : displayScore >= 4
           ? Target
           : AlertTriangle,
       color:
-        bracketConsistency.score < 3
+        displayScore >= 7
           ? "text-green-600"
-          : bracketConsistency.score < 6
+          : displayScore >= 4
           ? "text-yellow-600"
           : "text-destructive",
       isScore: true,
