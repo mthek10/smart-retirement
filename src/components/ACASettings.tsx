@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -68,13 +68,13 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
 
             <div className="space-y-2">
               <Label htmlFor="customBenchmarkPremium">Custom Benchmark Premium (optional)</Label>
-              <Input
+              <DebouncedInput
                 id="customBenchmarkPremium"
                 type="number"
                 step="10"
                 placeholder="0"
                 value={acaSettings.customBenchmarkPremium || ''}
-                onChange={(e) => handleChange('customBenchmarkPremium', parseFloat(e.target.value) || 0)}
+                onChange={(value) => handleChange('customBenchmarkPremium', parseFloat(value) || 0)}
               />
               <p className="text-xs text-muted-foreground">
                 Override default premium calculation with your local marketplace silver plan rate (monthly). Leave at 0 to use national averages.

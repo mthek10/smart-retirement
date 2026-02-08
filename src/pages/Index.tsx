@@ -92,8 +92,13 @@ const Index = () => {
     optimizationGoal: 'minimize-taxes',
   });
 
+  // Debounce heavy inputs so the projection engine only runs after typing stops
+  const debouncedAccounts = useDebouncedValue(accounts, 400);
+  const debouncedSSData = useDebouncedValue(ssData, 400);
+  const debouncedTaxSettings = useDebouncedValue(taxSettings, 400);
+
   // Use projections from the two-pass hook to avoid duplicate calculations
-  const twoPassResults = useTwoPassProjections(accounts, ssData, taxSettings);
+  const twoPassResults = useTwoPassProjections(debouncedAccounts, debouncedSSData, debouncedTaxSettings);
   const projections = twoPassResults.currentProjections;
 
   // Monte Carlo simulation settings - returnMean syncs with Roth IRA return
@@ -118,8 +123,8 @@ const Index = () => {
   // Debounce Monte Carlo settings so heavy simulation only runs after user stops adjusting
   const debouncedMonteCarloSettings = useDebouncedValue(monteCarloSettings, 500);
 
-  // Monte Carlo simulation results
-  const monteCarloResults = useMonteCarloSimulation(accounts, ssData, taxSettings, debouncedMonteCarloSettings);
+  // Monte Carlo simulation results (use debounced values for heavy computation)
+  const monteCarloResults = useMonteCarloSimulation(debouncedAccounts, debouncedSSData, debouncedTaxSettings, debouncedMonteCarloSettings);
 
   // Scenario management for comparing strategies
   const { scenarios, addScenario, removeScenario, renameScenario, clearScenarios } = useScenarios();

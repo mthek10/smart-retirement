@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -56,26 +56,26 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
           
           <div className="space-y-2">
             <Label htmlFor="spouse1Income">Current Annual Salary (W-2)</Label>
-            <Input
+            <DebouncedInput
               id="spouse1Income"
               type="number"
               step="1000"
               placeholder="0"
               value={taxSettings.spouse1Employment.currentIncome || ''}
-              onChange={(e) => handleSpouse1Change('currentIncome', parseFloat(e.target.value) || 0)}
+              onChange={(value) => handleSpouse1Change('currentIncome', parseFloat(value) || 0)}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="spouse1RetirementAge">Expected Retirement Age</Label>
             <div className="flex items-center gap-4">
-              <Input
+              <DebouncedInput
                 id="spouse1RetirementAge"
                 type="number"
                 min="50"
                 max="75"
                 value={taxSettings.spouse1Employment.retirementAge || ''}
-                onChange={(e) => handleSpouse1Change('retirementAge', parseFloat(e.target.value) || 65)}
+                onChange={(value) => handleSpouse1Change('retirementAge', parseFloat(value) || 65)}
                 disabled={taxSettings.spouse1Employment.retirementAge === spouse1Age}
                 className="flex-1"
               />
@@ -109,14 +109,14 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
             <>
               <div className="space-y-2">
                 <Label htmlFor="spouse1Contribution">Annual Employee 401(k) Contribution ($)</Label>
-                <Input
+                <DebouncedInput
                   id="spouse1Contribution"
                   type="number"
                   step="1000"
                   min="0"
                   placeholder="23000"
                   value={taxSettings.spouse1Employment.contribution401kAmount || ''}
-                  onChange={(e) => handleSpouse1Change('contribution401kAmount', parseFloat(e.target.value) || 0)}
+                  onChange={(value) => handleSpouse1Change('contribution401kAmount', parseFloat(value) || 0)}
                 />
                 <p className="text-xs text-muted-foreground">
                   2024 limit: $23,000 ($30,500 if age 50+). Automatically increases with inflation.
@@ -125,14 +125,14 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
 
               <div className="space-y-2">
                 <Label htmlFor="spouse1Match">Annual Employer Match ($)</Label>
-                <Input
+                <DebouncedInput
                   id="spouse1Match"
                   type="number"
                   step="1000"
                   min="0"
                   placeholder="10000"
                   value={taxSettings.spouse1Employment.employerMatchAmount || ''}
-                  onChange={(e) => handleSpouse1Change('employerMatchAmount', parseFloat(e.target.value) || 0)}
+                  onChange={(value) => handleSpouse1Change('employerMatchAmount', parseFloat(value) || 0)}
                 />
                 <p className="text-xs text-muted-foreground">
                   Enter your employer's total annual match amount. Automatically increases with inflation.
@@ -149,26 +149,26 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
             
             <div className="space-y-2">
               <Label htmlFor="spouse2Income">Current Annual Salary (W-2)</Label>
-              <Input
+              <DebouncedInput
                 id="spouse2Income"
                 type="number"
                 step="1000"
                 placeholder="0"
                 value={taxSettings.spouse2Employment.currentIncome || ''}
-                onChange={(e) => handleSpouse2Change('currentIncome', parseFloat(e.target.value) || 0)}
+                onChange={(value) => handleSpouse2Change('currentIncome', parseFloat(value) || 0)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="spouse2RetirementAge">Expected Retirement Age</Label>
               <div className="flex items-center gap-4">
-                <Input
+                <DebouncedInput
                   id="spouse2RetirementAge"
                   type="number"
                   min="50"
                   max="75"
                   value={taxSettings.spouse2Employment.retirementAge || ''}
-                  onChange={(e) => handleSpouse2Change('retirementAge', parseFloat(e.target.value) || 65)}
+                  onChange={(value) => handleSpouse2Change('retirementAge', parseFloat(value) || 65)}
                   disabled={taxSettings.spouse2Employment.retirementAge === spouse2Age}
                   className="flex-1"
                 />
@@ -202,14 +202,14 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
               <>
                 <div className="space-y-2">
                   <Label htmlFor="spouse2Contribution">Annual Employee 401(k) Contribution ($)</Label>
-                  <Input
+                  <DebouncedInput
                     id="spouse2Contribution"
                     type="number"
                     step="1000"
                     min="0"
                     placeholder="23000"
                     value={taxSettings.spouse2Employment.contribution401kAmount || ''}
-                    onChange={(e) => handleSpouse2Change('contribution401kAmount', parseFloat(e.target.value) || 0)}
+                    onChange={(value) => handleSpouse2Change('contribution401kAmount', parseFloat(value) || 0)}
                   />
                   <p className="text-xs text-muted-foreground">
                     2024 limit: $23,000 ($30,500 if age 50+). Automatically increases with inflation.
@@ -218,14 +218,14 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
 
                 <div className="space-y-2">
                   <Label htmlFor="spouse2Match">Annual Employer Match ($)</Label>
-                  <Input
+                  <DebouncedInput
                     id="spouse2Match"
                     type="number"
                     step="1000"
                     min="0"
                     placeholder="10000"
                     value={taxSettings.spouse2Employment.employerMatchAmount || ''}
-                    onChange={(e) => handleSpouse2Change('employerMatchAmount', parseFloat(e.target.value) || 0)}
+                    onChange={(value) => handleSpouse2Change('employerMatchAmount', parseFloat(value) || 0)}
                   />
                   <p className="text-xs text-muted-foreground">
                     Enter your employer's total annual match amount. Automatically increases with inflation.

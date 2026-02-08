@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -64,12 +64,12 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
           <Label htmlFor={`${spouse}-estimatedBenefit`}>
             Estimated Monthly Benefit at Full Retirement Age
           </Label>
-          <Input
+          <DebouncedInput
             id={`${spouse}-estimatedBenefit`}
             type="number"
             placeholder="3000"
             value={data.estimatedBenefit || ''}
-            onChange={(e) => handleChange(spouse, 'estimatedBenefit', parseFloat(e.target.value) || 0)}
+            onChange={(value) => handleChange(spouse, 'estimatedBenefit', parseFloat(value) || 0)}
           />
           <p className="text-sm text-muted-foreground">
             Annual: {formatCurrency(data.estimatedBenefit * 12)}

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { DebouncedInput } from "@/components/ui/DebouncedInput";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -53,13 +53,13 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
       <CardContent className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="targetTakeHome">Annual Take Home (First Year)</Label>
-          <Input
+          <DebouncedInput
             id="targetTakeHome"
             type="number"
             step="1000"
             placeholder="80000"
             value={taxSettings.targetTakeHome || ''}
-            onChange={(e) => handleChange('targetTakeHome', parseFloat(e.target.value) || 80000)}
+            onChange={(value) => handleChange('targetTakeHome', parseFloat(value) || 80000)}
           />
           <p className="text-xs text-muted-foreground">
             Your desired after-tax income (including Social Security). Model will calculate withdrawals needed to achieve this.
@@ -139,13 +139,13 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
         {taxSettings.state === 'other' && (
           <div className="space-y-2">
             <Label htmlFor="stateRate">State Income Tax Rate (%)</Label>
-            <Input
+            <DebouncedInput
               id="stateRate"
               type="number"
               step="0.1"
               placeholder="0.0"
               value={taxSettings.stateRate || ''}
-              onChange={(e) => handleChange('stateRate', parseFloat(e.target.value) || 0)}
+              onChange={(value) => handleChange('stateRate', parseFloat(value) || 0)}
             />
             <p className="text-xs text-muted-foreground">
               Custom state income tax rate (does not include SS-specific rules)
@@ -178,17 +178,17 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
             <>
               <div className="space-y-2">
                 <Label htmlFor="relocationAge">Relocation Age</Label>
-                <Input
+                <DebouncedInput
                   id="relocationAge"
                   type="number"
                   step="1"
                   placeholder="65"
                   value={taxSettings.stateRelocation?.relocationAge || 65}
-                  onChange={(e) => {
+                  onChange={(value) => {
                     const current = taxSettings.stateRelocation || { enabled: true, targetState: 'FL', relocationAge: 65 };
                     onChange({
                       ...taxSettings,
-                      stateRelocation: { ...current, relocationAge: parseInt(e.target.value) || 65 }
+                      stateRelocation: { ...current, relocationAge: parseInt(value) || 65 }
                     });
                   }}
                 />
@@ -309,13 +309,13 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           {taxSettings.rothConversionStrategy === 'custom' && (
             <div className="space-y-2">
               <Label htmlFor="rothConversionCustom">Custom Target Income Limit</Label>
-              <Input
+              <DebouncedInput
                 id="rothConversionCustom"
                 type="number"
                 step="1000"
                 placeholder="94300"
                 value={taxSettings.rothConversionCustom || ''}
-                onChange={(e) => handleChange('rothConversionCustom', parseFloat(e.target.value) || 94300)}
+                onChange={(value) => handleChange('rothConversionCustom', parseFloat(value) || 94300)}
               />
               <p className="text-xs text-muted-foreground">
                 Convert up to this taxable income level (adjusted for inflation each year)
