@@ -280,7 +280,10 @@ export function calculateProjections(
   let rothBalance = accounts.roth;
   let taxableBalance = accounts.taxable;
 
-  const maxYears = Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age);
+  const isMarried = taxSettings.filingStatus === 'married';
+  const maxYears = isMarried
+    ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
+    : 100 - taxSettings.spouse1Age;
   
   // Use override strategy if provided, otherwise use settings
   const effectiveConversionStrategy = strategyOverride ?? taxSettings.rothConversionStrategy;
@@ -293,18 +296,18 @@ export function calculateProjections(
   for (let i = 0; i <= maxYears; i++) {
     const year = new Date().getFullYear() + i;
     const spouse1CurrentAge = taxSettings.spouse1Age + i;
-    const spouse2CurrentAge = taxSettings.spouse2Age + i;
+    const spouse2CurrentAge = isMarried ? taxSettings.spouse2Age + i : spouse1CurrentAge;
     
-    const survivorEnabled = taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married';
+    const survivorEnabled = taxSettings.survivorSettings?.enabled && isMarried;
     const spouse1DeathAge = taxSettings.survivorSettings?.spouse1DeathAge;
     const spouse2DeathAge = taxSettings.survivorSettings?.spouse2DeathAge;
     
     const spouse1Alive = !survivorEnabled || 
       spouse1DeathAge === null || 
       spouse1CurrentAge < spouse1DeathAge;
-    const spouse2Alive = !survivorEnabled || 
+    const spouse2Alive = isMarried && (!survivorEnabled || 
       spouse2DeathAge === null || 
-      spouse2CurrentAge < spouse2DeathAge;
+      spouse2CurrentAge < spouse2DeathAge);
     
     if (!spouse1Alive && spouse1DeathYearIndex === null) {
       spouse1DeathYearIndex = i;
@@ -321,7 +324,7 @@ export function calculateProjections(
       ? taxSettings.filingStatus 
       : 'single';
     
-    const age = spouse1Alive && spouse2Alive 
+    const age = isMarried && spouse1Alive && spouse2Alive 
       ? Math.max(spouse1CurrentAge, spouse2CurrentAge)
       : (spouse1Alive ? spouse1CurrentAge : spouse2CurrentAge);
 
