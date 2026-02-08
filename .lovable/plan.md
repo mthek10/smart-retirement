@@ -1,67 +1,66 @@
 
+# Fix Input Lag on Setup Tab
 
-## Fix: Bracket Badge Showing 35% Instead of 24%
+## Problem
+Typing in text fields on the Setup tab causes noticeable lag because every keystroke immediately triggers the full projection engine. The `useTwoPassProjections` hook runs up to 4 complete projection calculations (each iterating 40+ years with binary search per year) synchronously on every state change.
 
-### Root Cause
+Some input components already use `DebouncedInput` (HouseholdInputs, AccountInputs), but several others use raw `<Input>` and trigger recalculations instantly:
+- TaxSettings (target take-home, state rate, custom Roth amount, relocation age)
+- EmploymentInputs (salary, retirement age, 401k contributions, employer match)
+- SocialSecurityPlanner (estimated benefit)
+- ACASettings (custom benchmark premium)
 
-The `getBracketRoom()` function in `src/lib/incomeAlerts.ts` has a boundary condition bug. When taxable income equals **exactly** the top of a bracket (e.g., $383,900 for married filing jointly at 24%), the algorithm fails to match the bracket correctly.
+## Solution
 
-**The bug is on line 108:**
-```typescript
-if (taxableIncome >= inflatedMin && taxableIncome < inflatedMax)
+Rather than adding debouncing to each individual input (whack-a-mole), debounce the **inputs to the projection engine itself**. This is a single, centralized fix that protects against lag from any input -- current or future.
+
+### Step 1: Debounce the projection inputs
+
+In `Index.tsx`, apply the existing `useDebouncedValue` hook to the three state objects that feed `useTwoPassProjections`:
+
+```text
+const debouncedAccounts = useDebouncedValue(accounts, 400);
+const debouncedSSData = useDebouncedValue(ssData, 400);
+const debouncedTaxSettings = useDebouncedValue(taxSettings, 400);
 ```
 
-When income = $383,900 (the 24% bracket max for married):
-- 24% bracket: min=$201,050, max=$383,900 → `383,900 < 383,900` is FALSE, so it skips
-- 32% bracket: min=$383,900, max=$487,450 → `383,900 >= 383,900 && 383,900 < 487,450` is TRUE
+Then pass the debounced values to the projection hook:
 
-So technically, at the exact boundary, the algorithm correctly identifies the **next** bracket (32%). But the "Fill to 24%" strategy should fill **up to but not exceeding** the 24% bracket top, meaning taxable income should be `$383,899` or slightly less, not exactly `$383,900`.
-
-This suggests the **real bug** might be in how the Roth conversion strategy calculates the target income - it may be filling to the bracket top **inclusive** rather than staying just below it.
-
----
-
-### Two-Part Fix
-
-#### Part 1: Fix `getBracketRoom()` Edge Case Handling
-
-**File: `src/lib/incomeAlerts.ts`**
-
-Update the bracket-finding logic to handle the edge case more gracefully. When income is exactly at a bracket boundary, treat it as still being in the lower bracket for display purposes:
-
-```typescript
-// Find current bracket
-let currentBracketIndex = 0;
-for (let i = 0; i < brackets.length; i++) {
-  const inflatedMin = brackets[i].min * inflationMultiplier;
-  const inflatedMax = brackets[i].max * inflationMultiplier;
-  // Use <= for max to include the exact boundary in the lower bracket
-  if (taxableIncome >= inflatedMin && taxableIncome <= inflatedMax) {
-    currentBracketIndex = i;
-    break;
-  }
-  if (i === brackets.length - 1) {
-    currentBracketIndex = i;
-  }
-}
+```text
+const twoPassResults = useTwoPassProjections(debouncedAccounts, debouncedSSData, debouncedTaxSettings);
 ```
 
-#### Part 2: Verify Roth Conversion Strategy Logic
+### Step 2: Update downstream consumers
 
-**File: `src/hooks/useProjections.ts`** (needs investigation)
+Other heavy consumers that depend on `projections` already derive from `twoPassResults`, so they automatically benefit. The Monte Carlo simulation already has its own debouncing, but its inputs should also use the debounced values:
 
-Check that the "Fill to 24%" strategy calculates conversions to stay **within** the bracket, not at the exact boundary. The conversion amount should target:
+```text
+const monteCarloResults = useMonteCarloSimulation(
+  debouncedAccounts, debouncedSSData, debouncedTaxSettings, debouncedMonteCarloSettings
+);
 ```
-conversionAmount = bracketTop - currentTaxableIncome - 1
-```
-(subtracting $1 to stay safely inside the bracket)
 
----
+### Step 3: Convert remaining raw Inputs to DebouncedInput
 
-### Expected Result
+For consistent immediate visual feedback (characters appearing instantly while typing), switch the remaining raw `<Input>` components to `<DebouncedInput>`:
 
-After these fixes:
-- When you select "Fill to 24%", the bracket badge will correctly show **24%**
-- The gauge will show ~100% filled in the 24% bracket
-- The "Room Remaining" will show $0 or a very small amount
+- **EmploymentInputs.tsx** - 8 Input fields (salary, retirement age, 401k amounts, employer match for both spouses)
+- **SocialSecurityPlanner.tsx** - 2 Input fields (estimated benefit for each spouse)
+- **TaxSettings.tsx** - 3 Input fields (target take-home, state rate, custom Roth conversion amount, relocation age)
+- **ACASettings.tsx** - 1 Input field (custom benchmark premium)
 
+This ensures users see their keystrokes immediately without waiting for the debounce.
+
+## What stays the same
+- All Select dropdowns, Switches, Checkboxes, and Sliders will continue to trigger updates immediately (they're discrete choices, not typing)
+- The UI components on the Setup tab continue to show the un-debounced (immediate) values for responsive feedback
+- The Dashboard, Projections, and Analysis tabs update after a 400ms pause in typing
+
+## Technical details
+
+Files to modify:
+1. **src/pages/Index.tsx** - Add 3 `useDebouncedValue` calls, pass debounced values to projection/Monte Carlo hooks
+2. **src/components/EmploymentInputs.tsx** - Replace `Input` with `DebouncedInput` on numeric fields
+3. **src/components/SocialSecurityPlanner.tsx** - Replace `Input` with `DebouncedInput` on benefit fields
+4. **src/components/TaxSettings.tsx** - Replace `Input` with `DebouncedInput` on numeric fields
+5. **src/components/ACASettings.tsx** - Replace `Input` with `DebouncedInput` on premium field
