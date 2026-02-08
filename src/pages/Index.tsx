@@ -1,10 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { AccountInputs } from "@/components/AccountInputs";
-import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
-import { TaxSettings } from "@/components/TaxSettings";
-import { ACASettings } from "@/components/ACASettings";
-import { EmploymentInputs } from "@/components/EmploymentInputs";
-import { HouseholdInputs } from "@/components/HouseholdInputs";
+import { SetupWizard } from "@/components/SetupWizard";
 import { ProjectionTable } from "@/components/ProjectionTable";
 import { ProjectionChart } from "@/components/ProjectionChart";
 import { TaxChart } from "@/components/TaxChart";
@@ -342,37 +337,16 @@ const Index = () => {
             <TabsTrigger value="analysis" onClick={commitInputs}>Analysis</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="setup" className="space-y-6 mt-6">
-            <HouseholdInputs taxSettings={taxSettings} onChange={setTaxSettings} />
-            
-            <div className="grid gap-6 lg:grid-cols-2">
-              <AccountInputs accounts={accounts} onChange={handleAccountsChange} filingStatus={taxSettings.filingStatus} />
-              <EmploymentInputs taxSettings={taxSettings} onChange={setTaxSettings} spouse1Age={taxSettings.spouse1Age} spouse2Age={taxSettings.spouse2Age} />
-            </div>
-            
-            <div className="grid gap-6 lg:grid-cols-2">
-              <SocialSecurityPlanner 
-                ssData={ssData} 
-                onChange={setSsData} 
-                filingStatus={taxSettings.filingStatus} 
-                spouse1Age={taxSettings.spouse1Age}
-                spouse2Age={taxSettings.spouse2Age}
-              />
-              <TaxSettings taxSettings={taxSettings} onChange={setTaxSettings} />
-            </div>
-            
-            <div className="grid gap-6 lg:grid-cols-1">
-              <ACASettings 
-                acaSettings={taxSettings.acaSettings} 
-                onChange={(newAcaSettings) => setTaxSettings({...taxSettings, acaSettings: newAcaSettings})} 
-              />
-            </div>
-
-            <div className="flex justify-center">
-              <Button onClick={() => { commitInputs(); setActiveTab("dashboard"); }} className="px-8">
-                Calculate & Go to Dashboard →
-              </Button>
-            </div>
+          <TabsContent value="setup">
+            <SetupWizard
+              accounts={accounts}
+              onAccountsChange={handleAccountsChange}
+              ssData={ssData}
+              onSSDataChange={setSsData}
+              taxSettings={taxSettings}
+              onTaxSettingsChange={setTaxSettings}
+              onCalculate={() => { commitInputs(); setActiveTab("dashboard"); }}
+            />
           </TabsContent>
 
           <TabsContent value="dashboard" className="space-y-6 mt-6">
