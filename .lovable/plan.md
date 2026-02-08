@@ -1,66 +1,69 @@
 
-# Fix Input Lag on Setup Tab
+
+# Run Calculations Only on "Go to Dashboard" Click
 
 ## Problem
-Typing in text fields on the Setup tab causes noticeable lag because every keystroke immediately triggers the full projection engine. The `useTwoPassProjections` hook runs up to 4 complete projection calculations (each iterating 40+ years with binary search per year) synchronously on every state change.
-
-Some input components already use `DebouncedInput` (HouseholdInputs, AccountInputs), but several others use raw `<Input>` and trigger recalculations instantly:
-- TaxSettings (target take-home, state rate, custom Roth amount, relocation age)
-- EmploymentInputs (salary, retirement age, 401k contributions, employer match)
-- SocialSecurityPlanner (estimated benefit)
-- ACASettings (custom benchmark premium)
+Even with debouncing, the projection engine still recalculates while users are editing fields on the Setup tab. Users want calculations to run only when they explicitly click the "Go to Dashboard" button.
 
 ## Solution
+Introduce a "committed inputs" pattern: the projection engine reads from a frozen snapshot of the inputs, and that snapshot only updates when the user clicks "Go to Dashboard" (or switches tabs manually).
 
-Rather than adding debouncing to each individual input (whack-a-mole), debounce the **inputs to the projection engine itself**. This is a single, centralized fix that protects against lag from any input -- current or future.
+### Step 1: Replace debounced values with committed state
 
-### Step 1: Debounce the projection inputs
+In `src/pages/Index.tsx`:
+- Remove the three `useDebouncedValue` calls for `accounts`, `ssData`, and `taxSettings`
+- Add "committed" versions of these state objects using `useState`:
+  ```text
+  const [committedAccounts, setCommittedAccounts] = useState(accounts);
+  const [committedSSData, setCommittedSSData] = useState(ssData);
+  const [committedTaxSettings, setCommittedTaxSettings] = useState(taxSettings);
+  ```
+- Create a `commitInputs` function that snapshots the current values:
+  ```text
+  const commitInputs = () => {
+    setCommittedAccounts(accounts);
+    setCommittedSSData(ssData);
+    setCommittedTaxSettings(taxSettings);
+  };
+  ```
 
-In `Index.tsx`, apply the existing `useDebouncedValue` hook to the three state objects that feed `useTwoPassProjections`:
+### Step 2: Wire up the "Go to Dashboard" button
 
+Update the "Go to Dashboard" button's `onClick` to call `commitInputs` before switching tabs:
 ```text
-const debouncedAccounts = useDebouncedValue(accounts, 400);
-const debouncedSSData = useDebouncedValue(ssData, 400);
-const debouncedTaxSettings = useDebouncedValue(taxSettings, 400);
+<Button onClick={() => { commitInputs(); setActiveTab("dashboard"); }}>
+  Go to Dashboard ->
+</Button>
 ```
 
-Then pass the debounced values to the projection hook:
-
+Also commit inputs when the user clicks directly on the Dashboard, Projections, or Analysis tab triggers (not Setup), so switching tabs always gives fresh results:
 ```text
-const twoPassResults = useTwoPassProjections(debouncedAccounts, debouncedSSData, debouncedTaxSettings);
+<TabsList>
+  <TabsTrigger value="setup">Setup</TabsTrigger>
+  <TabsTrigger value="dashboard" onClick={commitInputs}>Dashboard</TabsTrigger>
+  <TabsTrigger value="projections" onClick={commitInputs}>Projections</TabsTrigger>
+  <TabsTrigger value="analysis" onClick={commitInputs}>Analysis</TabsTrigger>
+</TabsList>
 ```
 
-### Step 2: Update downstream consumers
+### Step 3: Pass committed values to heavy hooks
 
-Other heavy consumers that depend on `projections` already derive from `twoPassResults`, so they automatically benefit. The Monte Carlo simulation already has its own debouncing, but its inputs should also use the debounced values:
-
+Replace the debounced inputs with the committed ones:
 ```text
-const monteCarloResults = useMonteCarloSimulation(
-  debouncedAccounts, debouncedSSData, debouncedTaxSettings, debouncedMonteCarloSettings
-);
+const twoPassResults = useTwoPassProjections(committedAccounts, committedSSData, committedTaxSettings);
+const monteCarloResults = useMonteCarloSimulation(committedAccounts, committedSSData, committedTaxSettings, ...);
 ```
 
-### Step 3: Convert remaining raw Inputs to DebouncedInput
+The `useMemo` inside these hooks will only recalculate when the committed values change -- which only happens on explicit user action.
 
-For consistent immediate visual feedback (characters appearing instantly while typing), switch the remaining raw `<Input>` components to `<DebouncedInput>`:
+### Step 4: Keep DebouncedInput components
 
-- **EmploymentInputs.tsx** - 8 Input fields (salary, retirement age, 401k amounts, employer match for both spouses)
-- **SocialSecurityPlanner.tsx** - 2 Input fields (estimated benefit for each spouse)
-- **TaxSettings.tsx** - 3 Input fields (target take-home, state rate, custom Roth conversion amount, relocation age)
-- **ACASettings.tsx** - 1 Input field (custom benchmark premium)
+The `DebouncedInput` components added in the previous change still serve a purpose: they give immediate typing feedback in the text fields. They stay as-is since they handle the local display value vs. the state update. The key difference is that even when the state updates (after debounce), no projection runs until the user commits.
 
-This ensures users see their keystrokes immediately without waiting for the debounce.
+## What changes for the user
+- Typing on the Setup tab will feel completely instant -- zero lag, zero background calculations
+- Clicking "Go to Dashboard" (or any other tab) triggers the full calculation
+- Clicking directly on Dashboard/Projections/Analysis tabs also triggers recalculation, so users always see up-to-date results
 
-## What stays the same
-- All Select dropdowns, Switches, Checkboxes, and Sliders will continue to trigger updates immediately (they're discrete choices, not typing)
-- The UI components on the Setup tab continue to show the un-debounced (immediate) values for responsive feedback
-- The Dashboard, Projections, and Analysis tabs update after a 400ms pause in typing
-
-## Technical details
-
-Files to modify:
-1. **src/pages/Index.tsx** - Add 3 `useDebouncedValue` calls, pass debounced values to projection/Monte Carlo hooks
-2. **src/components/EmploymentInputs.tsx** - Replace `Input` with `DebouncedInput` on numeric fields
-3. **src/components/SocialSecurityPlanner.tsx** - Replace `Input` with `DebouncedInput` on benefit fields
-4. **src/components/TaxSettings.tsx** - Replace `Input` with `DebouncedInput` on numeric fields
-5. **src/components/ACASettings.tsx** - Replace `Input` with `DebouncedInput` on premium field
+## Files to modify
+1. **src/pages/Index.tsx** -- Remove `useDebouncedValue` calls, add committed state + `commitInputs` function, wire up buttons and tab triggers, pass committed values to hooks
