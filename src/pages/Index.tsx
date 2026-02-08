@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useState, useMemo, useCallback } from "react";
 import { AccountInputs } from "@/components/AccountInputs";
 import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
@@ -92,13 +91,20 @@ const Index = () => {
     optimizationGoal: 'minimize-taxes',
   });
 
-  // Debounce heavy inputs so the projection engine only runs after typing stops
-  const debouncedAccounts = useDebouncedValue(accounts, 400);
-  const debouncedSSData = useDebouncedValue(ssData, 400);
-  const debouncedTaxSettings = useDebouncedValue(taxSettings, 400);
+  // Committed state: projections only recalculate when the user explicitly
+  // clicks "Go to Dashboard" or switches to a non-Setup tab.
+  const [committedAccounts, setCommittedAccounts] = useState(accounts);
+  const [committedSSData, setCommittedSSData] = useState(ssData);
+  const [committedTaxSettings, setCommittedTaxSettings] = useState(taxSettings);
 
-  // Use projections from the two-pass hook to avoid duplicate calculations
-  const twoPassResults = useTwoPassProjections(debouncedAccounts, debouncedSSData, debouncedTaxSettings);
+  const commitInputs = useCallback(() => {
+    setCommittedAccounts(accounts);
+    setCommittedSSData(ssData);
+    setCommittedTaxSettings(taxSettings);
+  }, [accounts, ssData, taxSettings]);
+
+  // Use projections from the two-pass hook (reads committed snapshots only)
+  const twoPassResults = useTwoPassProjections(committedAccounts, committedSSData, committedTaxSettings);
   const projections = twoPassResults.currentProjections;
 
   // Monte Carlo simulation settings - returnMean syncs with Roth IRA return
@@ -120,11 +126,8 @@ const Index = () => {
   };
 
 
-  // Debounce Monte Carlo settings so heavy simulation only runs after user stops adjusting
-  const debouncedMonteCarloSettings = useDebouncedValue(monteCarloSettings, 500);
-
-  // Monte Carlo simulation results (use debounced values for heavy computation)
-  const monteCarloResults = useMonteCarloSimulation(debouncedAccounts, debouncedSSData, debouncedTaxSettings, debouncedMonteCarloSettings);
+  // Monte Carlo simulation results (reads committed snapshots only)
+  const monteCarloResults = useMonteCarloSimulation(committedAccounts, committedSSData, committedTaxSettings, monteCarloSettings);
 
   // Scenario management for comparing strategies
   const { scenarios, addScenario, removeScenario, renameScenario, clearScenarios } = useScenarios();
@@ -334,9 +337,9 @@ const Index = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="setup">Setup</TabsTrigger>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="projections">Projections</TabsTrigger>
-            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger value="dashboard" onClick={commitInputs}>Dashboard</TabsTrigger>
+            <TabsTrigger value="projections" onClick={commitInputs}>Projections</TabsTrigger>
+            <TabsTrigger value="analysis" onClick={commitInputs}>Analysis</TabsTrigger>
           </TabsList>
 
           <TabsContent value="setup" className="space-y-6 mt-6">
@@ -366,7 +369,7 @@ const Index = () => {
             </div>
 
             <div className="flex justify-center">
-              <Button onClick={() => setActiveTab("dashboard")} className="px-8">
+              <Button onClick={() => { commitInputs(); setActiveTab("dashboard"); }} className="px-8">
                 Go to Dashboard →
               </Button>
             </div>
