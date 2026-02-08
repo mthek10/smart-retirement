@@ -1,7 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingDown, Landmark, Activity, Target, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DollarSign,
+  TrendingDown,
+  Landmark,
+  Activity,
+  Target,
+  AlertTriangle,
+  CheckCircle2,
+  Shield,
+  ChevronDown,
+  HeartPulse,
+  Receipt,
+  BarChart3,
+} from "lucide-react";
 import type { BracketAnalysis } from "@/lib/taxCalculations";
 import { formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface SurvivorAnalysis {
   peakBracket: number;
@@ -38,14 +54,91 @@ interface SummaryCardsProps {
   finalAge?: number;
 }
 
-export function SummaryCards({ 
-  totalPortfolio, 
+interface CardData {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  color: string;
+  subtitle?: string;
+  isAge?: boolean;
+  isScore?: boolean;
+  isPercent?: boolean;
+}
+
+function SummaryCard({ card }: { card: CardData }) {
+  const Icon = card.icon;
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+        <Icon className={cn("h-4 w-4", card.color)} />
+      </CardHeader>
+      <CardContent>
+        <div className={cn("text-2xl font-bold", card.color)}>
+          {card.isScore
+            ? `${card.value.toFixed(1)} / 10`
+            : card.isPercent
+            ? `${card.value.toFixed(0)}%`
+            : card.isAge
+            ? card.value > 0
+              ? `Age ${card.value}`
+              : "N/A"
+            : formatCurrency(card.value)}
+        </div>
+        {card.subtitle && (
+          <p className="text-xs text-muted-foreground mt-1">{card.subtitle}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  icon: Icon,
+  children,
+  defaultOpen = false,
+  badge,
+}: {
+  title: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  badge?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border bg-card px-4 py-3 text-left hover:bg-accent/50 transition-colors cursor-pointer">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium text-sm">{title}</span>
+          {badge && (
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              {badge}
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-muted-foreground transition-transform duration-200",
+            open && "rotate-180"
+          )}
+        />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-3">{children}</CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+export function SummaryCards({
+  totalPortfolio,
   lifetimeTotalTaxes,
   totalFederalTax,
   totalFederalCGTax,
   totalStateTax,
   totalStateCGTax,
-  totalMedicareCosts, 
+  totalMedicareCosts,
   totalACASubsidy,
   totalACAPremium,
   totalNIIT,
@@ -63,51 +156,85 @@ export function SummaryCards({
   finalTraditionalBalance = 0,
   finalRothBalance = 0,
   finalTaxableBalance = 0,
-  finalAge = 100
+  finalAge = 100,
 }: SummaryCardsProps) {
+  // ── Account Depletion (hero cards) ──
+  const accountCards: CardData[] = [
+    {
+      title: "Traditional IRA",
+      value: tradDepletionAge || 0,
+      subtitle: tradDepletionAge
+        ? `Depleted at age ${tradDepletionAge}`
+        : `Not depleted at age ${finalAge}: ${formatCurrency(finalTraditionalBalance)}`,
+      icon: Landmark,
+      color: tradDepletionAge ? "text-destructive" : "text-primary",
+      isAge: true,
+    },
+    {
+      title: "Brokerage",
+      value: taxableDepletionAge || 0,
+      subtitle: taxableDepletionAge
+        ? `Depleted at age ${taxableDepletionAge}`
+        : `Not depleted at age ${finalAge}: ${formatCurrency(finalTaxableBalance)}`,
+      icon: BarChart3,
+      color: taxableDepletionAge ? "text-destructive" : "text-primary",
+      isAge: true,
+    },
+    {
+      title: "Roth IRA",
+      value: rothDepletionAge || 0,
+      subtitle: rothDepletionAge
+        ? `Depleted at age ${rothDepletionAge}`
+        : `Not depleted at age ${finalAge}: ${formatCurrency(finalRothBalance)}`,
+      icon: Shield,
+      color: rothDepletionAge ? "text-destructive" : "text-primary",
+      isAge: true,
+    },
+  ];
 
-  const baseCards = [
+  // ── Portfolio Overview ──
+  const overviewCards: CardData[] = [
     {
       title: "Total Portfolio",
       value: totalPortfolio,
       icon: Landmark,
       color: "text-primary",
-      isAge: false,
-      subtitle: undefined,
     },
     {
       title: "Avg Annual Withdrawal",
       value: avgWithdrawal,
       icon: Activity,
       color: "text-secondary",
-      isAge: false,
-      subtitle: undefined,
     },
-    ...(totalEmploymentIncome && totalEmploymentIncome > 0 ? [{
-      title: "Total Employment Income",
-      value: totalEmploymentIncome,
-      icon: DollarSign,
-      color: "text-green-600",
-      isAge: false,
-      subtitle: undefined,
-    }] : []),
-    ...(total401kContributions && total401kContributions > 0 ? [{
-      title: "Total 401(k) Contributions",
-      value: total401kContributions,
-      icon: Landmark,
-      color: "text-primary",
-      isAge: false,
-      subtitle: undefined,
-    }] : []),
+    ...(totalEmploymentIncome && totalEmploymentIncome > 0
+      ? [
+          {
+            title: "Total Employment Income",
+            value: totalEmploymentIncome,
+            icon: DollarSign,
+            color: "text-green-600",
+          },
+        ]
+      : []),
+    ...(total401kContributions && total401kContributions > 0
+      ? [
+          {
+            title: "Total 401(k) Contributions",
+            value: total401kContributions,
+            icon: Landmark,
+            color: "text-primary",
+          },
+        ]
+      : []),
   ];
 
-  const taxCards = [
+  // ── Tax Cards ──
+  const taxCards: CardData[] = [
     {
       title: "Lifetime Total Taxes",
       value: lifetimeTotalTaxes,
       icon: TrendingDown,
       color: "text-destructive",
-      isAge: false,
       subtitle: "All taxes combined",
     },
     {
@@ -115,187 +242,196 @@ export function SummaryCards({
       value: totalFederalTax,
       icon: TrendingDown,
       color: "text-destructive",
-      isAge: false,
-      subtitle: undefined,
     },
     {
       title: "Federal Cap Gains Tax",
       value: totalFederalCGTax,
       icon: TrendingDown,
       color: "text-destructive",
-      isAge: false,
-      subtitle: undefined,
     },
     {
       title: "State Income Tax",
       value: totalStateTax,
       icon: TrendingDown,
       color: "text-destructive",
-      isAge: false,
-      subtitle: undefined,
     },
     {
       title: "State Cap Gains Tax",
       value: totalStateCGTax,
       icon: TrendingDown,
       color: "text-destructive",
-      isAge: false,
-      subtitle: undefined,
     },
-    ...(totalPayrollTax > 0 ? [{
-      title: "Payroll Tax",
-      value: totalPayrollTax,
-      icon: TrendingDown,
-      color: "text-destructive",
-      isAge: false,
-      subtitle: undefined,
-    }] : []),
-    {
-      title: "Total Medicare Costs",
-      value: totalMedicareCosts,
-      icon: DollarSign,
-      color: "text-warning",
-      isAge: false,
-      subtitle: "Part B, D & IRMAA",
-    },
-    ...(totalACASubsidy && totalACASubsidy > 0 ? [{
-      title: "Total ACA Subsidy",
-      value: totalACASubsidy,
-      icon: DollarSign,
-      color: "text-green-600",
-      isAge: false,
-      subtitle: "Pre-Medicare premium credits",
-    }] : []),
-    ...(totalACAPremium && totalACAPremium > 0 ? [{
-      title: "Total Healthcare (Pre-65)",
-      value: totalACAPremium - (totalACASubsidy || 0),
-      icon: DollarSign,
-      color: "text-warning",
-      isAge: false,
-      subtitle: "ACA net cost (premium - subsidy)",
-    }] : []),
+    ...(totalPayrollTax > 0
+      ? [
+          {
+            title: "Payroll Tax",
+            value: totalPayrollTax,
+            icon: TrendingDown,
+            color: "text-destructive",
+          },
+        ]
+      : []),
     {
       title: "NIIT",
       value: totalNIIT,
       icon: TrendingDown,
       color: "text-destructive",
-      isAge: false,
-      subtitle: undefined,
     },
     {
       title: "AMT",
       value: totalAMT,
       icon: TrendingDown,
       color: "text-destructive",
-      isAge: false,
-      subtitle: undefined,
     },
   ];
 
-  // Bracket consistency card
-  const bracketCard = bracketConsistency ? {
-    title: "Bracket Consistency",
-    value: bracketConsistency.score,
-    subtitle: `Avg ${(bracketConsistency.avgBracket * 100).toFixed(0)}% bracket • ${bracketConsistency.yearsInTarget} years consistent`,
-    icon: bracketConsistency.score < 4 ? CheckCircle2 : bracketConsistency.score < 6 ? Target : AlertTriangle,
-    color: bracketConsistency.score < 3 ? "text-green-600" : bracketConsistency.score < 6 ? "text-yellow-600" : "text-destructive",
-    isScore: true,
-    isAge: false,
-  } : null;
-
-  const optimizationCards = bracketConsistency ? [
-    ...(bracketCard ? [bracketCard] : []),
-    ...(bracketConsistency.potentialSavings > 0 ? [{
-      title: "Potential Tax Savings",
-      value: bracketConsistency.potentialSavings,
-      subtitle: "Via bracket optimization",
-      icon: TrendingDown,
-      color: "text-green-600",
-      isAge: false,
-      isScore: false,
-    }] : []),
+  // ── Healthcare Cards ──
+  const healthcareCards: CardData[] = [
     {
-      title: "Traditional Depleted",
-      value: tradDepletionAge || 0,
-      subtitle: tradDepletionAge 
-        ? `Age ${tradDepletionAge}` 
-        : `Not depleted at age ${finalAge}: ${formatCurrency(finalTraditionalBalance)}`,
-      icon: TrendingDown,
-      color: "text-muted-foreground",
-      isAge: true,
-      isScore: false,
-    },
-    {
-      title: "Brokerage Fully Depleted",
-      value: taxableDepletionAge || 0,
-      subtitle: taxableDepletionAge 
-        ? `Age ${taxableDepletionAge}` 
-        : `Not depleted at age ${finalAge}: ${formatCurrency(finalTaxableBalance)}`,
-      icon: Landmark,
-      color: "text-success",
-      isAge: true,
-      isScore: false,
-    },
-    {
-      title: "Roth Fully Depleted",
-      value: rothDepletionAge || 0,
-      subtitle: rothDepletionAge 
-        ? `Age ${rothDepletionAge}` 
-        : `Not depleted at age ${finalAge}: ${formatCurrency(finalRothBalance)}`,
-      icon: DollarSign,
+      title: "Total Medicare Costs",
+      value: totalMedicareCosts,
+      icon: HeartPulse,
       color: "text-warning",
-      isAge: true,
-      isScore: false,
+      subtitle: "Part B, D & IRMAA",
     },
-  ] : [];
+    ...(totalACASubsidy && totalACASubsidy > 0
+      ? [
+          {
+            title: "Total ACA Subsidy",
+            value: totalACASubsidy,
+            icon: DollarSign,
+            color: "text-green-600",
+            subtitle: "Pre-Medicare premium credits",
+          },
+        ]
+      : []),
+    ...(totalACAPremium && totalACAPremium > 0
+      ? [
+          {
+            title: "Total Healthcare (Pre-65)",
+            value: totalACAPremium - (totalACASubsidy || 0),
+            icon: DollarSign,
+            color: "text-warning",
+            subtitle: "ACA net cost (premium - subsidy)",
+          },
+        ]
+      : []),
+  ];
 
-  // Survivor smoothing card
-  const survivorCard = survivorAnalysis ? {
-    title: "Survivor Tax Impact",
-    value: survivorAnalysis.peakBracket * 100,
-    subtitle: `Peak ${(survivorAnalysis.peakBracket * 100).toFixed(0)}% • ${survivorAnalysis.yearsInHighBracket} years at 32%+${survivorAnalysis.potentialSavings > 0 ? ` • Save ${formatCurrency(survivorAnalysis.potentialSavings)}` : ''}`,
-    icon: survivorAnalysis.yearsInHighBracket === 0 ? Shield : AlertTriangle,
-    color: survivorAnalysis.yearsInHighBracket === 0 ? "text-green-600" : survivorAnalysis.yearsInHighBracket <= 3 ? "text-yellow-600" : "text-destructive",
-    isScore: false,
-    isAge: false,
-    isPercent: true,
-  } : null;
+  // ── Optimization Cards ──
+  const optimizationCards: CardData[] = [];
 
-  const cards = [...baseCards, ...taxCards, ...optimizationCards, ...(survivorCard ? [survivorCard] : [])];
+  if (bracketConsistency) {
+    optimizationCards.push({
+      title: "Bracket Consistency",
+      value: bracketConsistency.score,
+      subtitle: `Avg ${(bracketConsistency.avgBracket * 100).toFixed(0)}% bracket • ${bracketConsistency.yearsInTarget} years consistent`,
+      icon:
+        bracketConsistency.score < 4
+          ? CheckCircle2
+          : bracketConsistency.score < 6
+          ? Target
+          : AlertTriangle,
+      color:
+        bracketConsistency.score < 3
+          ? "text-green-600"
+          : bracketConsistency.score < 6
+          ? "text-yellow-600"
+          : "text-destructive",
+      isScore: true,
+    });
+
+    if (bracketConsistency.potentialSavings > 0) {
+      optimizationCards.push({
+        title: "Potential Tax Savings",
+        value: bracketConsistency.potentialSavings,
+        subtitle: "Via bracket optimization",
+        icon: TrendingDown,
+        color: "text-green-600",
+      });
+    }
+  }
+
+  if (survivorAnalysis) {
+    optimizationCards.push({
+      title: "Survivor Tax Impact",
+      value: survivorAnalysis.peakBracket * 100,
+      subtitle: `Peak ${(survivorAnalysis.peakBracket * 100).toFixed(0)}% • ${survivorAnalysis.yearsInHighBracket} years at 32%+${
+        survivorAnalysis.potentialSavings > 0
+          ? ` • Save ${formatCurrency(survivorAnalysis.potentialSavings)}`
+          : ""
+      }`,
+      icon:
+        survivorAnalysis.yearsInHighBracket === 0 ? Shield : AlertTriangle,
+      color:
+        survivorAnalysis.yearsInHighBracket === 0
+          ? "text-green-600"
+          : survivorAnalysis.yearsInHighBracket <= 3
+          ? "text-yellow-600"
+          : "text-destructive",
+      isPercent: true,
+    });
+  }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {card.title}
-              </CardTitle>
-              <Icon className={`h-4 w-4 ${card.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${card.color}`}>
-                {'isScore' in card && card.isScore ? (
-                  `${card.value.toFixed(1)} / 10`
-                ) : 'isPercent' in card && card.isPercent ? (
-                  `${card.value.toFixed(0)}%`
-                ) : card.isAge ? (
-                  card.value > 0 ? `Age ${card.value}` : "N/A"
-                ) : (
-                  formatCurrency(card.value)
-                )}
-              </div>
-              {card.subtitle && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {card.subtitle}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="space-y-4">
+      {/* Hero: Account Depletion */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {accountCards.map((card) => (
+          <SummaryCard key={card.title} card={card} />
+        ))}
+      </div>
+
+      {/* Portfolio Overview */}
+      <CollapsibleSection
+        title="Portfolio Overview"
+        icon={Landmark}
+        defaultOpen
+        badge={formatCurrency(totalPortfolio)}
+      >
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {overviewCards.map((card) => (
+            <SummaryCard key={card.title} card={card} />
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Taxes */}
+      <CollapsibleSection
+        title="Taxes"
+        icon={Receipt}
+        badge={formatCurrency(lifetimeTotalTaxes)}
+      >
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {taxCards.map((card) => (
+            <SummaryCard key={card.title} card={card} />
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Healthcare */}
+      <CollapsibleSection
+        title="Healthcare"
+        icon={HeartPulse}
+        badge={formatCurrency(totalMedicareCosts)}
+      >
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {healthcareCards.map((card) => (
+            <SummaryCard key={card.title} card={card} />
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Optimization */}
+      {optimizationCards.length > 0 && (
+        <CollapsibleSection title="Optimization" icon={Target}>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {optimizationCards.map((card) => (
+              <SummaryCard key={card.title} card={card} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
     </div>
   );
 }
