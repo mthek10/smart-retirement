@@ -370,7 +370,7 @@ const Index = () => {
 
             <div className="flex justify-center">
               <Button onClick={() => { commitInputs(); setActiveTab("dashboard"); }} className="px-8">
-                Go to Dashboard →
+                Calculate & Go to Dashboard →
               </Button>
             </div>
           </TabsContent>
