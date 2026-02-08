@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -52,7 +53,10 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="targetTakeHome">Annual Take Home (First Year)</Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="targetTakeHome">Annual Take Home (First Year)</Label>
+            <InfoTooltip text="Your desired after-tax income per year. The model calculates how much to withdraw from each account to deliver this amount after all taxes." />
+          </div>
           <DebouncedInput
             id="targetTakeHome"
             type="number"
@@ -156,9 +160,12 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
         {/* State Relocation Planning */}
         <div className="space-y-4 pt-4 border-t">
           <div className="flex items-center justify-between">
-            <Label htmlFor="stateRelocationEnabled" className="text-sm font-medium">
-              Plan State Relocation
-            </Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="stateRelocationEnabled" className="text-sm font-medium">
+                Plan State Relocation
+              </Label>
+              <InfoTooltip text="Model moving to a lower-tax state at a specific age. This can significantly reduce your lifetime tax burden in retirement." />
+            </div>
             <input
               type="checkbox"
               id="stateRelocationEnabled"
@@ -233,7 +240,10 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="inflationRate">Inflation Rate (%)</Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="inflationRate">Inflation Rate (%)</Label>
+            <InfoTooltip text="Adjusts Social Security benefits, tax brackets, and standard deduction each year. 2.5% is a common long-term assumption." />
+          </div>
           <Select
             value={String(taxSettings.inflationRate || 2.5)}
             onValueChange={(value) => handleChange('inflationRate', parseFloat(value))}
@@ -258,7 +268,10 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
 
         <div className="pt-4 border-t space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="rothConversionStrategy">Roth Conversion Strategy</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="rothConversionStrategy">Roth Conversion Strategy</Label>
+              <InfoTooltip text="Converting Traditional IRA to Roth pays taxes now to avoid higher taxes later. 'Fill to X% Bracket' converts just enough to fill up to that tax bracket each year." />
+            </div>
             <Select
               value={taxSettings.rothConversionStrategy || 'none'}
               onValueChange={(value) => handleChange('rothConversionStrategy', value)}
@@ -326,7 +339,10 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
 
         <div className="pt-4 border-t space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="optimizationGoal">Optimization Goal</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="optimizationGoal">Optimization Goal</Label>
+              <InfoTooltip text="'Minimize Taxes' focuses on reducing total lifetime taxes. 'Maximize Longevity' keeps your portfolio lasting longer. 'Balanced' weighs both objectives." />
+            </div>
             <Select
               value={taxSettings.optimizationGoal || 'minimize-taxes'}
               onValueChange={(value) => handleChange('optimizationGoal', value)}

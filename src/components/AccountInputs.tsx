@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Label } from "@/components/ui/label";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { formatCurrency } from "@/lib/utils";
 
 interface AccountInputsProps {
@@ -37,9 +38,12 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
         {/* Spouse 1 Traditional */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="spouse1Traditional">
-              {isMarried ? "Spouse 1 Traditional IRA/401(k)" : "Traditional IRA/401(k)"}
-            </Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="spouse1Traditional">
+                {isMarried ? "Spouse 1 Traditional IRA/401(k)" : "Traditional IRA/401(k)"}
+              </Label>
+              <InfoTooltip text="Pre-tax retirement accounts. Withdrawals are taxed as ordinary income. Subject to Required Minimum Distributions (RMDs) starting at age 73." />
+            </div>
             <DebouncedInput
               id="spouse1Traditional"
               type="number"
@@ -53,7 +57,10 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="traditionalReturn">Annual Return (%)</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="traditionalReturn">Annual Return (%)</Label>
+              <InfoTooltip text="Expected annual growth rate for this account. A conservative 3-4% is typical for retirement planning; historical stock market average is ~7% after inflation." />
+            </div>
             <DebouncedInput
               id="traditionalReturn"
               type="number"
@@ -95,7 +102,10 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="roth">Roth IRA</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="roth">Roth IRA</Label>
+              <InfoTooltip text="After-tax retirement account. Withdrawals are tax-free in retirement. No RMDs required. Ideal for tax-free growth." />
+            </div>
             <DebouncedInput
               id="roth"
               type="number"
@@ -126,7 +136,10 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="taxable">Brokerage</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="taxable">Brokerage</Label>
+              <InfoTooltip text="Taxable investment account. Capital gains are taxed when sold. Long-term gains (held 1+ year) receive favorable tax rates." />
+            </div>
             <DebouncedInput
               id="taxable"
               type="number"
@@ -157,7 +170,10 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="taxableCostBasisPercent">Cost Basis (%)</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="taxableCostBasisPercent">Cost Basis (%)</Label>
+              <InfoTooltip text="The portion of your brokerage account that represents your original investment (not gains). A 33% cost basis means 67% is unrealized gains that will be taxed when sold." />
+            </div>
             <DebouncedInput
               id="taxableCostBasisPercent"
               type="number"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AccountInputs } from "@/components/AccountInputs";
 import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
@@ -11,12 +11,12 @@ import { ChevronLeft, ChevronRight, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: "household", label: "Household" },
-  { id: "accounts", label: "Accounts" },
-  { id: "employment", label: "Employment" },
-  { id: "social-security", label: "Social Security" },
-  { id: "tax", label: "Tax Settings" },
-  { id: "aca", label: "Healthcare" },
+  { id: "household", label: "Household", description: "Tell us about your household so we can determine your filing status and model your timeline." },
+  { id: "accounts", label: "Accounts", description: "Enter your current retirement account balances. These are the starting point for all projections." },
+  { id: "employment", label: "Employment", description: "If either spouse is still working, enter current income and 401(k) contributions here." },
+  { id: "social-security", label: "Social Security", description: "Set your expected Social Security benefits and claiming ages. This significantly impacts your tax picture." },
+  { id: "tax", label: "Tax Settings", description: "Set your desired take-home income and Roth conversion strategy. This drives the entire withdrawal plan." },
+  { id: "aca", label: "Healthcare", description: "Configure ACA marketplace settings for pre-Medicare years. Income levels affect subsidy eligibility." },
 ] as const;
 
 interface SetupWizardProps {
@@ -39,6 +39,7 @@ interface SetupWizardProps {
   taxSettings: any;
   onTaxSettingsChange: (settings: any) => void;
   onCalculate: () => void;
+  onStepNavigate?: (goToStep: (step: number) => void) => void;
 }
 
 export function SetupWizard({
@@ -49,8 +50,14 @@ export function SetupWizard({
   taxSettings,
   onTaxSettingsChange,
   onCalculate,
+  onStepNavigate,
 }: SetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
+
+  // Expose the goToStep function to parent via callback ref
+  useEffect(() => {
+    onStepNavigate?.(setCurrentStep);
+  }, [onStepNavigate]);
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
 
@@ -134,6 +141,11 @@ export function SetupWizard({
           ))}
         </div>
       </div>
+
+      {/* Step description */}
+      <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-3">
+        {STEPS[currentStep].description}
+      </p>
 
       {/* Step content */}
       <div className="min-h-[300px]">{renderStepContent()}</div>

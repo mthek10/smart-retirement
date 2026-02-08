@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   DollarSign,
   TrendingDown,
@@ -13,6 +14,7 @@ import {
   HeartPulse,
   Receipt,
   BarChart3,
+  Pencil,
 } from "lucide-react";
 import type { BracketAnalysis } from "@/lib/taxCalculations";
 import { formatCurrency } from "@/lib/utils";
@@ -52,6 +54,7 @@ interface SummaryCardsProps {
   finalRothBalance?: number;
   finalTaxableBalance?: number;
   finalAge?: number;
+  onNavigateToSetup?: (stepIndex: number) => void;
 }
 
 interface CardData {
@@ -93,18 +96,33 @@ function SummaryCard({ card }: { card: CardData }) {
   );
 }
 
+function EditLink({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+      title={`Edit ${label}`}
+    >
+      <Pencil className="h-3 w-3" />
+      <span>Edit</span>
+    </button>
+  );
+}
+
 function CollapsibleSection({
   title,
   icon: Icon,
   children,
   defaultOpen = false,
   badge,
+  editAction,
 }: {
   title: string;
   icon: React.ElementType;
   children: React.ReactNode;
   defaultOpen?: boolean;
   badge?: string;
+  editAction?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -119,12 +137,19 @@ function CollapsibleSection({
             </span>
           )}
         </div>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 text-muted-foreground transition-transform duration-200",
-            open && "rotate-180"
+        <div className="flex items-center gap-2">
+          {editAction && (
+            <span onClick={(e) => e.stopPropagation()}>
+              {editAction}
+            </span>
           )}
-        />
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+              open && "rotate-180"
+            )}
+          />
+        </div>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-3">{children}</CollapsibleContent>
     </Collapsible>
@@ -157,6 +182,7 @@ export function SummaryCards({
   finalRothBalance = 0,
   finalTaxableBalance = 0,
   finalAge = 100,
+  onNavigateToSetup,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
   const accountCards: CardData[] = [
@@ -377,6 +403,12 @@ export function SummaryCards({
   return (
     <div className="space-y-4">
       {/* Hero: Account Depletion */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-sm font-medium text-muted-foreground">Account Depletion Timeline</span>
+        {onNavigateToSetup && (
+          <EditLink onClick={() => onNavigateToSetup(1)} label="Accounts" />
+        )}
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
         {accountCards.map((card) => (
           <SummaryCard key={card.title} card={card} />
@@ -389,6 +421,7 @@ export function SummaryCards({
         icon={Landmark}
         defaultOpen
         badge={formatCurrency(totalPortfolio)}
+        editAction={onNavigateToSetup && <EditLink onClick={() => onNavigateToSetup(1)} label="Accounts" />}
       >
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {overviewCards.map((card) => (
@@ -402,6 +435,7 @@ export function SummaryCards({
         title="Taxes"
         icon={Receipt}
         badge={formatCurrency(lifetimeTotalTaxes)}
+        editAction={onNavigateToSetup && <EditLink onClick={() => onNavigateToSetup(4)} label="Tax Settings" />}
       >
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {taxCards.map((card) => (
@@ -415,6 +449,7 @@ export function SummaryCards({
         title="Healthcare"
         icon={HeartPulse}
         badge={formatCurrency(totalMedicareCosts)}
+        editAction={onNavigateToSetup && <EditLink onClick={() => onNavigateToSetup(5)} label="Healthcare" />}
       >
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {healthcareCards.map((card) => (
@@ -425,7 +460,11 @@ export function SummaryCards({
 
       {/* Optimization */}
       {optimizationCards.length > 0 && (
-        <CollapsibleSection title="Optimization" icon={Target}>
+        <CollapsibleSection
+          title="Optimization"
+          icon={Target}
+          editAction={onNavigateToSetup && <EditLink onClick={() => onNavigateToSetup(4)} label="Tax Settings" />}
+        >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {optimizationCards.map((card) => (
               <SummaryCard key={card.title} card={card} />

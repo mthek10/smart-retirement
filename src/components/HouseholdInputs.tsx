@@ -5,6 +5,7 @@ import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle } from "lucide-react";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface SurvivorSettings {
   enabled: boolean;
@@ -128,9 +129,12 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="survivorEnabled" className="text-base font-medium">
-                    Model Survivor Scenario
-                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="survivorEnabled" className="text-base font-medium">
+                      Model Survivor Scenario
+                    </Label>
+                    <InfoTooltip text="Simulates the financial impact when one spouse passes away. Filing status switches to Single, one Social Security benefit is lost, and spending needs typically decrease to 70-80%." />
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Simulate the financial impact when one spouse passes away
                   </p>
@@ -185,7 +189,10 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="survivorSpending">Survivor Spending Adjustment (%)</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="survivorSpending">Survivor Spending Adjustment (%)</Label>
+                      <InfoTooltip text="After a spouse passes, living expenses typically drop. 75% means the survivor needs 75% of the couple's original spending." />
+                    </div>
                     <DebouncedInput
                       id="survivorSpending"
                       type="number"
