@@ -404,8 +404,14 @@ const Index = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="projections" className="mt-6">
+          <TabsContent value="projections" className="mt-6 space-y-6">
             <ProjectionTable projections={projections} />
+
+            <div className="flex justify-center">
+              <Button onClick={() => setActiveTab("analysis")} className="px-8">
+                View Analysis →
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="analysis" className="mt-6 space-y-6">
