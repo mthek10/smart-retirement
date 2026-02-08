@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { SetupWizard } from "@/components/SetupWizard";
 import { ProjectionTable } from "@/components/ProjectionTable";
 import { ProjectionChart } from "@/components/ProjectionChart";
+import { ProjectionSummary } from "@/components/ProjectionSummary";
 import { TaxChart } from "@/components/TaxChart";
 import { BracketChart } from "@/components/BracketChart";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
@@ -24,6 +25,15 @@ import { getCurrentYearAlerts } from "@/lib/incomeAlerts";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("setup");
+  const wizardStepRef = useRef<(step: number) => void>();
+
+  const navigateToSetupStep = useCallback((stepIndex: number) => {
+    setActiveTab("setup");
+    // Use a timeout so the tab switches first, then the wizard navigates
+    setTimeout(() => {
+      wizardStepRef.current?.(stepIndex);
+    }, 50);
+  }, []);
   const [accounts, setAccounts] = useState({
     spouse1Traditional: 2500000,
     spouse2Traditional: 2500000,
@@ -346,6 +356,7 @@ const Index = () => {
               taxSettings={taxSettings}
               onTaxSettingsChange={setTaxSettings}
               onCalculate={() => { commitInputs(); setActiveTab("dashboard"); }}
+              onStepNavigate={(fn) => { wizardStepRef.current = fn; }}
             />
           </TabsContent>
 
@@ -355,7 +366,7 @@ const Index = () => {
               <IncomeAlertsBanner alerts={incomeAlerts} />
             )}
 
-            <SummaryCards {...summary} />
+            <SummaryCards {...summary} onNavigateToSetup={navigateToSetupStep} />
 
             {/* Action Items and Bracket Gauge */}
             <div className="grid gap-6 lg:grid-cols-2">
@@ -387,6 +398,17 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="projections" className="mt-6 space-y-6">
+            <ProjectionSummary
+              projections={projections}
+              tradDepletionAge={summary.tradDepletionAge}
+              taxableDepletionAge={summary.taxableDepletionAge}
+              rothDepletionAge={summary.rothDepletionAge}
+              lifetimeTotalTaxes={summary.lifetimeTotalTaxes}
+              finalAge={summary.finalAge}
+              finalTraditionalBalance={summary.finalTraditionalBalance}
+              finalRothBalance={summary.finalRothBalance}
+              finalTaxableBalance={summary.finalTaxableBalance}
+            />
             <ProjectionTable projections={projections} />
 
             <div className="flex justify-center">
