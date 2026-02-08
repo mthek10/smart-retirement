@@ -127,7 +127,7 @@ export function SSBreakevenAnalysis({
           {selectedClaimAge !== optimalResult.age && benefitDifference > 0 && (
             <Alert className="mt-4 border-none bg-warning/10">
               <TrendingUp className="h-4 w-4 text-warning" />
-              <AlertDescription className="text-warning-foreground">
+              <AlertDescription className="text-foreground">
                 Based on a life expectancy of {lifeExpectancy}, claiming at age {optimalResult.age} instead of {selectedClaimAge} would 
                 provide an additional {formatCurrency(benefitDifference)} in lifetime benefits.
               </AlertDescription>
