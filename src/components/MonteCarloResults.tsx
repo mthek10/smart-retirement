@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,40 @@ interface MonteCarloResultsProps {
 }
 
 export function MonteCarloResults({ results, settings, onSettingsChange }: MonteCarloResultsProps) {
+  // Local state for sliders to give instant feedback without triggering recalculations
+  const [localReturnMean, setLocalReturnMean] = useState(settings.returnMean * 100);
+  const [localReturnStdDev, setLocalReturnStdDev] = useState(settings.returnStdDev * 100);
+
+  // Sync local state when external settings change
+  useEffect(() => {
+    setLocalReturnMean(settings.returnMean * 100);
+  }, [settings.returnMean]);
+
+  useEffect(() => {
+    setLocalReturnStdDev(settings.returnStdDev * 100);
+  }, [settings.returnStdDev]);
+
+  // Debounce: propagate slider changes after 400ms of inactivity
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newMean = localReturnMean / 100;
+      if (newMean !== settings.returnMean) {
+        onSettingsChange({ ...settings, returnMean: newMean });
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [localReturnMean]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newStdDev = localReturnStdDev / 100;
+      if (newStdDev !== settings.returnStdDev) {
+        onSettingsChange({ ...settings, returnStdDev: newStdDev });
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [localReturnStdDev]);
+
   const getSuccessBadge = (rate: number) => {
     if (rate >= 0.9) return <Badge className="bg-green-600">Excellent</Badge>;
     if (rate >= 0.75) return <Badge className="bg-amber-600">Good</Badge>;
@@ -104,29 +138,23 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
             />
           </div>
           <div className="space-y-2">
-            <Label>Expected Return: {formatPercent(settings.returnMean)}</Label>
+            <Label>Expected Return: {formatPercent(localReturnMean / 100)}</Label>
             <Slider
-              value={[settings.returnMean * 100]}
+              value={[localReturnMean]}
               min={0}
               max={15}
               step={0.5}
-              onValueChange={([v]) => onSettingsChange({
-                ...settings,
-                returnMean: v / 100,
-              })}
+              onValueChange={([v]) => setLocalReturnMean(v)}
             />
           </div>
           <div className="space-y-2">
-            <Label>Volatility (σ): {formatPercent(settings.returnStdDev)}</Label>
+            <Label>Volatility (σ): {formatPercent(localReturnStdDev / 100)}</Label>
             <Slider
-              value={[settings.returnStdDev * 100]}
+              value={[localReturnStdDev]}
               min={5}
               max={30}
               step={1}
-              onValueChange={([v]) => onSettingsChange({
-                ...settings,
-                returnStdDev: v / 100,
-              })}
+              onValueChange={([v]) => setLocalReturnStdDev(v)}
             />
           </div>
         </div>
