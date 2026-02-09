@@ -178,6 +178,26 @@ export function ActionItems({
     });
   }
 
+  // 3b. Pre-RMD Optimization Window
+  if (yearsToRMD > 0 && yearsToRMD <= 15 && currentYear.traditionalBalance > 100000) {
+    const tradBalance = currentYear.traditionalBalance;
+    const annualConversionRoom = bracketInfo.roomInBracket;
+    const totalConvertible = annualConversionRoom * yearsToRMD;
+    const percentReducible = Math.min(100, Math.round((totalConvertible / tradBalance) * 100));
+
+    actionItems.push({
+      id: 'pre-rmd-window',
+      priority: yearsToRMD <= 5 ? 'high' : 'medium',
+      category: 'rmd',
+      title: `Pre-RMD Optimization Window: ${yearsToRMD} Years`,
+      description: `You have a ${yearsToRMD}-year window before RMDs begin to reduce your Traditional IRA balance of ${formatCurrency(tradBalance)} through strategic Roth conversions. Converting at today's lower tax rates can avoid forced distributions at potentially higher rates.`,
+      impact: annualConversionRoom > 5000
+        ? `Up to ${formatCurrency(annualConversionRoom)}/year in conversions within your ${bracketInfo.currentBracket}% bracket could reduce your Traditional balance by ~${percentReducible}%`
+        : `Review your tax bracket for Roth conversion opportunities before RMDs begin`,
+      icon: <PiggyBank className="h-5 w-5 text-primary" />,
+    });
+  }
+
   // 4. ACA Subsidy Optimization (if under 65 and ACA enabled)
   if (acaEnabled && spouse1Age < 65) {
     const acaSubsidy = currentYear.acaSubsidy || 0;
