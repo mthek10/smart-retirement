@@ -62,7 +62,7 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
         
         <div className="space-y-2">
           <Label htmlFor={`${spouse}-estimatedBenefit`}>
-            Estimated Monthly Benefit at Full Retirement Age
+            Estimated Monthly Benefit at Full Retirement Age (age {fullRetirementAge === Math.floor(fullRetirementAge) ? fullRetirementAge : `${Math.floor(fullRetirementAge)} yrs ${Math.round((fullRetirementAge % 1) * 12)} mo`})
           </Label>
           <DebouncedInput
             id={`${spouse}-estimatedBenefit`}
