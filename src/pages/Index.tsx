@@ -405,7 +405,7 @@ const Index = () => {
               />
             </SummaryCards>
 
-            <div className="flex justify-center">
+            <div className="flex justify-end pt-2">
               <Button onClick={() => setActiveTab("projections")} className="px-8">
                 View Projections →
               </Button>
@@ -415,7 +415,7 @@ const Index = () => {
           <TabsContent value="projections" className="mt-6 space-y-6">
             <ProjectionTable projections={projections} />
 
-            <div className="flex justify-center">
+            <div className="flex justify-end pt-2">
               <Button onClick={() => setActiveTab("analysis")} className="px-8">
                 View Analysis →
               </Button>
@@ -462,7 +462,7 @@ const Index = () => {
               visibleTabs={['strategies']}
             />
 
-            <div className="flex justify-center">
+            <div className="flex justify-end pt-2">
               <Button onClick={() => setActiveTab("charts")} className="px-8">
                 View Charts →
               </Button>
