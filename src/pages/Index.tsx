@@ -419,19 +419,8 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="analysis" className="mt-6 space-y-6">
-            {/* Scenario Manager and Comparison */}
+            {/* Scenario Comparison */}
             <div className="grid gap-6 lg:grid-cols-1">
-              <ScenarioManager
-                scenarios={scenarios}
-                currentMetrics={twoPassResults.currentMetrics}
-                currentAccounts={accounts}
-                currentSSData={ssData}
-                currentTaxSettings={taxSettings}
-                onAddScenario={addScenario}
-                onRemoveScenario={removeScenario}
-                onRenameScenario={renameScenario}
-                onClearScenarios={clearScenarios}
-              />
               <ScenarioComparison
                 scenarios={scenarios}
                 currentMetrics={twoPassResults.currentMetrics}
