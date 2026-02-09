@@ -54,7 +54,7 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
       <CardContent className="space-y-6">
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
-            <Label htmlFor="targetTakeHome">Annual Take Home (First Year)</Label>
+            <Label htmlFor="targetTakeHome">Annual Take Home (First Year) After All Taxes</Label>
             <InfoTooltip text="Your desired after-tax income per year. The model calculates how much to withdraw from each account to deliver this amount after all taxes." />
           </div>
           <DebouncedInput
