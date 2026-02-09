@@ -55,6 +55,7 @@ interface SummaryCardsProps {
   finalTaxableBalance?: number;
   finalAge?: number;
   onNavigateToSetup?: (stepIndex: number) => void;
+  children?: React.ReactNode;
 }
 
 interface CardData {
@@ -184,6 +185,7 @@ export function SummaryCards({
   finalTaxableBalance = 0,
   finalAge = 100,
   onNavigateToSetup,
+  children,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
   const accountCards: CardData[] = [
@@ -415,6 +417,8 @@ export function SummaryCards({
           <SummaryCard key={card.title} card={card} />
         ))}
       </div>
+
+      {children}
 
       {/* Portfolio Overview */}
       <CollapsibleSection

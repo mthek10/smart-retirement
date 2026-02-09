@@ -367,29 +367,29 @@ const Index = () => {
               <IncomeAlertsBanner alerts={incomeAlerts} />
             )}
 
-            <SummaryCards {...summary} onNavigateToSetup={navigateToSetupStep} />
-
-            {/* Action Items and Bracket Gauge */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              <ActionItems
-                projections={projections}
-                filingStatus={taxSettings.filingStatus}
-                inflationRate={taxSettings.inflationRate}
-                rothConversionStrategy={taxSettings.rothConversionStrategy}
-                spouse1Age={taxSettings.spouse1Age}
-                spouse2Age={taxSettings.spouse2Age}
-                spouse1SSClaimAge={ssData.spouse1.claimAge}
-                spouse2SSClaimAge={ssData.spouse2.claimAge}
-                acaEnabled={taxSettings.acaSettings.enabled}
-                taxableUnrealizedGains={accounts.taxable * ((100 - accounts.taxableCostBasisPercent) / 100)}
-              />
-              <BracketFillGauge
-                grossIncome={currentYearGrossIncome}
-                filingStatus={taxSettings.filingStatus}
-                yearIndex={0}
-                inflationRate={taxSettings.inflationRate}
-              />
-            </div>
+            <SummaryCards {...summary} onNavigateToSetup={navigateToSetupStep}>
+              {/* Action Items and Bracket Gauge */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                <ActionItems
+                  projections={projections}
+                  filingStatus={taxSettings.filingStatus}
+                  inflationRate={taxSettings.inflationRate}
+                  rothConversionStrategy={taxSettings.rothConversionStrategy}
+                  spouse1Age={taxSettings.spouse1Age}
+                  spouse2Age={taxSettings.spouse2Age}
+                  spouse1SSClaimAge={ssData.spouse1.claimAge}
+                  spouse2SSClaimAge={ssData.spouse2.claimAge}
+                  acaEnabled={taxSettings.acaSettings.enabled}
+                  taxableUnrealizedGains={accounts.taxable * ((100 - accounts.taxableCostBasisPercent) / 100)}
+                />
+                <BracketFillGauge
+                  grossIncome={currentYearGrossIncome}
+                  filingStatus={taxSettings.filingStatus}
+                  yearIndex={0}
+                  inflationRate={taxSettings.inflationRate}
+                />
+              </div>
+            </SummaryCards>
 
             <div className="flex justify-center">
               <Button onClick={() => setActiveTab("projections")} className="px-8">
