@@ -480,6 +480,7 @@ const Index = () => {
               inflationRate={taxSettings.inflationRate}
               otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
               visibleTabs={['chart']}
+              showSummary={false}
             />
             <div className="grid gap-6 lg:grid-cols-2">
               <BracketAnalysisCard analysis={summary.bracketConsistency} projections={projections} />
