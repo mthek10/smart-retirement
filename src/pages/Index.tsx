@@ -445,6 +445,14 @@ const Index = () => {
               onSettingsChange={setMonteCarloSettings}
             />
             
+            <div className="flex justify-center">
+              <Button onClick={() => setActiveTab("charts")} className="px-8">
+                View Charts →
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="charts" className="mt-6 space-y-6">
             {/* RMD Planning Center */}
             <RMDPlanner
               spouse1TradBalance={accounts.spouse1Traditional}
@@ -458,15 +466,6 @@ const Index = () => {
               inflationRate={taxSettings.inflationRate}
               otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
             />
-            
-            <div className="flex justify-center">
-              <Button onClick={() => setActiveTab("charts")} className="px-8">
-                View Charts →
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="charts" className="mt-6 space-y-6">
             <div className="grid gap-6 lg:grid-cols-2">
               <BracketAnalysisCard analysis={summary.bracketConsistency} projections={projections} />
               <BracketChart data={projections} />
