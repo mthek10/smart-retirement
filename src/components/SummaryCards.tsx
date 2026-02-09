@@ -89,7 +89,10 @@ function SummaryCard({ card }: { card: CardData }) {
             : formatCurrency(card.value)}
         </div>
         {card.subtitle && (
-          <p className="text-xs text-muted-foreground mt-1">{card.subtitle}</p>
+          <p className={cn(
+            "mt-1",
+            card.isAge ? cn("text-lg font-semibold", card.color) : "text-xs text-muted-foreground"
+          )}>{card.subtitle}</p>
         )}
       </CardContent>
     </Card>
@@ -193,7 +196,7 @@ export function SummaryCards({
         ? `Depleted at age ${tradDepletionAge}`
         : `Not depleted at age ${finalAge}: ${formatCurrency(finalTraditionalBalance)}`,
       icon: Landmark,
-      color: tradDepletionAge ? "text-destructive" : "text-primary",
+      color: tradDepletionAge ? "text-destructive" : "text-green-600",
       isAge: true,
     },
     {
@@ -203,7 +206,7 @@ export function SummaryCards({
         ? `Depleted at age ${taxableDepletionAge}`
         : `Not depleted at age ${finalAge}: ${formatCurrency(finalTaxableBalance)}`,
       icon: BarChart3,
-      color: taxableDepletionAge ? "text-destructive" : "text-primary",
+      color: taxableDepletionAge ? "text-destructive" : "text-green-600",
       isAge: true,
     },
     {
@@ -213,7 +216,7 @@ export function SummaryCards({
         ? `Depleted at age ${rothDepletionAge}`
         : `Not depleted at age ${finalAge}: ${formatCurrency(finalRothBalance)}`,
       icon: Shield,
-      color: rothDepletionAge ? "text-destructive" : "text-primary",
+      color: rothDepletionAge ? "text-destructive" : "text-green-600",
       isAge: true,
     },
   ];
