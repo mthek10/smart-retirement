@@ -459,7 +459,7 @@ const Index = () => {
               growthRate={accounts.traditionalReturn}
               inflationRate={taxSettings.inflationRate}
               otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
-              visibleTabs={['table', 'strategies']}
+              visibleTabs={['strategies']}
             />
 
             <div className="flex justify-center">
