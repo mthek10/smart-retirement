@@ -356,7 +356,7 @@ const Index = () => {
               onSSDataChange={setSsData}
               taxSettings={taxSettings}
               onTaxSettingsChange={setTaxSettings}
-              onCalculate={() => { commitInputs(); setActiveTab("dashboard"); }}
+              onCalculate={() => { commitInputs(); setActiveTab("dashboard"); window.scrollTo({ top: 0 }); }}
               onStepNavigate={(fn) => { wizardStepRef.current = fn; }}
             />
           </TabsContent>
