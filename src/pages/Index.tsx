@@ -391,14 +391,6 @@ const Index = () => {
               </div>
             </SummaryCards>
 
-            <div className="flex justify-center">
-              <Button onClick={() => setActiveTab("projections")} className="px-8">
-                View Projections →
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="projections" className="mt-6 space-y-6">
             <ProjectionSummary
               projections={projections}
               tradDepletionAge={summary.tradDepletionAge}
@@ -410,6 +402,15 @@ const Index = () => {
               finalRothBalance={summary.finalRothBalance}
               finalTaxableBalance={summary.finalTaxableBalance}
             />
+
+            <div className="flex justify-center">
+              <Button onClick={() => setActiveTab("projections")} className="px-8">
+                View Projections →
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="projections" className="mt-6 space-y-6">
             <ProjectionTable projections={projections} />
 
             <div className="flex justify-center">
