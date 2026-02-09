@@ -28,6 +28,11 @@ interface ActionItemsProps {
   acaEnabled: boolean;
   taxableUnrealizedGains?: number;
   stateCode?: string;
+  stateRelocation?: {
+    enabled: boolean;
+    targetState: string;
+    relocationAge: number;
+  };
 }
 
 interface ActionItem {
@@ -74,6 +79,7 @@ export function ActionItems({
   acaEnabled,
   taxableUnrealizedGains,
   stateCode,
+  stateRelocation,
 }: ActionItemsProps) {
   if (projections.length === 0) return null;
 
@@ -255,7 +261,38 @@ export function ActionItems({
     }
   }
 
-  // Sort by priority
+  // 7. Pre-Move Advice: Moving to a Higher Tax State
+  const highTaxStates: Record<string, string> = {
+    CA: 'California (up to 13.3%)', NY: 'New York (up to 10.9%)', NJ: 'New Jersey (up to 10.75%)',
+    OR: 'Oregon (up to 9.9%)', MN: 'Minnesota (up to 9.85%)', DC: 'D.C. (up to 10.75%)',
+    HI: 'Hawaii (up to 11%)', CT: 'Connecticut (up to 6.99%)', VT: 'Vermont (up to 8.75%)',
+  };
+
+  if (stateRelocation?.enabled && stateRelocation.targetState) {
+    const targetIsHighTax = highTaxStates[stateRelocation.targetState];
+    const currentIsLowerTax = !stateCode || stateCode === 'none' || zeroTaxStates.includes(stateCode) ||
+      (stateCode !== 'other' && !highTaxStates[stateCode]);
+    
+    if (targetIsHighTax && currentIsLowerTax) {
+      const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
+      const tips: string[] = [];
+      tips.push('Realize capital gains before moving to avoid higher state CG taxes');
+      tips.push('Accelerate Roth conversions now while in a lower-tax state');
+      tips.push('Consider selling appreciated real estate or investments pre-move');
+      tips.push('Exercise stock options or RSUs before establishing residency');
+
+      actionItems.push({
+        id: 'high-tax-state-move',
+        priority: yearsUntilMove <= 3 ? 'high' : 'medium',
+        category: 'state-tax',
+        title: `Prepare for Move to ${stateRelocation.targetState} (Higher Tax State)`,
+        description: `You're planning to move to ${targetIsHighTax} in ${yearsUntilMove} ${yearsUntilMove === 1 ? 'year' : 'years'}. Take these steps before relocating to minimize your tax impact:`,
+        impact: `• ${tips.join('\n• ')}`,
+        icon: <MapPin className="h-5 w-5 text-warning" />,
+      });
+    }
+  }
+
   const priorityOrder = { high: 0, medium: 1, low: 2 };
   actionItems.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
@@ -302,9 +339,9 @@ export function ActionItems({
                   {item.description}
                 </p>
                 {item.impact && (
-                  <p className="text-sm font-medium text-primary mt-2">
+                  <div className="text-sm font-medium text-primary mt-2 whitespace-pre-line">
                     💡 {item.impact}
-                  </p>
+                  </div>
                 )}
               </div>
             </div>

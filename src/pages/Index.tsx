@@ -94,6 +94,11 @@ const Index = () => {
       survivorSpendingPercent: 75,
     },
     optimizationGoal: 'minimize-taxes',
+    stateRelocation: {
+      enabled: false,
+      targetState: 'FL',
+      relocationAge: 65,
+    },
   });
 
   // Committed state: projections only recalculate when the user explicitly
@@ -381,6 +386,7 @@ const Index = () => {
                 acaEnabled={taxSettings.acaSettings.enabled}
                 taxableUnrealizedGains={accounts.taxable * ((100 - accounts.taxableCostBasisPercent) / 100)}
                 stateCode={taxSettings.state}
+                stateRelocation={taxSettings.stateRelocation}
               />
 
               {/* Key Takeaways */}
