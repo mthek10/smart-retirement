@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { TrendingUp, AlertTriangle, DollarSign, Calendar } from "lucide-react";
+import { TrendingUp, AlertTriangle, DollarSign, Calendar, Lightbulb } from "lucide-react";
 
 interface ProjectionSummaryProps {
   projections: Array<{
@@ -21,6 +21,7 @@ interface ProjectionSummaryProps {
   finalTraditionalBalance: number;
   finalRothBalance: number;
   finalTaxableBalance: number;
+  spouse1Age?: number;
 }
 
 export function ProjectionSummary({
@@ -33,6 +34,7 @@ export function ProjectionSummary({
   finalTraditionalBalance,
   finalRothBalance,
   finalTaxableBalance,
+  spouse1Age,
 }: ProjectionSummaryProps) {
   if (projections.length === 0) return null;
 
@@ -96,12 +98,24 @@ export function ProjectionSummary({
     });
   }
 
+  // Pre-RMD optimization window
+  if (spouse1Age && spouse1Age < 73 && finalTraditionalBalance > 1000) {
+    const yearsUntilRMD = 73 - spouse1Age;
+    if (yearsUntilRMD > 0 && yearsUntilRMD <= 15) {
+      insights.push({
+        icon: Lightbulb,
+        text: `You have ${yearsUntilRMD} years before RMDs begin at age 73. Consider accelerating Roth conversions now at potentially lower tax rates to reduce future Required Minimum Distributions.`,
+        color: "text-primary",
+      });
+    }
+  }
+
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardContent className="pt-5 pb-4">
         <h3 className="text-sm font-semibold text-foreground mb-3">Key Takeaways</h3>
         <ul className="space-y-2">
-          {insights.slice(0, 4).map((insight, i) => {
+          {insights.slice(0, 5).map((insight, i) => {
             const Icon = insight.icon;
             return (
               <li key={i} className="flex items-start gap-2 text-sm">

@@ -393,6 +393,7 @@ const Index = () => {
                 finalTraditionalBalance={summary.finalTraditionalBalance}
                 finalRothBalance={summary.finalRothBalance}
                 finalTaxableBalance={summary.finalTaxableBalance}
+                spouse1Age={taxSettings.spouse1Age}
               />
 
               {/* Bracket Gauge */}
