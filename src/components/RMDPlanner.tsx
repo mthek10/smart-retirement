@@ -43,6 +43,7 @@ interface RMDPlannerProps {
   growthRate?: number;
   inflationRate?: number;
   otherIncome?: number;
+  visibleTabs?: ('chart' | 'table' | 'strategies')[];
 }
 
 const getDifficultyColor = (difficulty: RMDStrategy['difficulty']) => {
@@ -72,6 +73,7 @@ export function RMDPlanner({
   growthRate = 5,
   inflationRate = 2.5,
   otherIncome = 30000,
+  visibleTabs = ['chart', 'table', 'strategies'],
 }: RMDPlannerProps) {
   const [expandedStrategy, setExpandedStrategy] = useState<string | null>(null);
   
@@ -218,11 +220,11 @@ export function RMDPlanner({
           </div>
         )}
         
-        <Tabs defaultValue="chart" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="chart">RMD Projections</TabsTrigger>
-            <TabsTrigger value="table">Year-by-Year</TabsTrigger>
-            <TabsTrigger value="strategies">Tax Strategies</TabsTrigger>
+        <Tabs defaultValue={visibleTabs[0]} className="w-full">
+          <TabsList className={`grid w-full grid-cols-${visibleTabs.length}`}>
+            {visibleTabs.includes('chart') && <TabsTrigger value="chart">RMD Projections</TabsTrigger>}
+            {visibleTabs.includes('table') && <TabsTrigger value="table">Year-by-Year</TabsTrigger>}
+            {visibleTabs.includes('strategies') && <TabsTrigger value="strategies">Tax Strategies</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="chart" className="space-y-4 mt-4">

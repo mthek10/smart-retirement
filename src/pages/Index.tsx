@@ -444,16 +444,7 @@ const Index = () => {
               settings={monteCarloSettings}
               onSettingsChange={setMonteCarloSettings}
             />
-            
-            <div className="flex justify-center">
-              <Button onClick={() => setActiveTab("charts")} className="px-8">
-                View Charts →
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="charts" className="mt-6 space-y-6">
-            {/* RMD Planning Center */}
+            {/* RMD Year-by-Year & Tax Strategies */}
             <RMDPlanner
               spouse1TradBalance={accounts.spouse1Traditional}
               spouse2TradBalance={accounts.spouse2Traditional}
@@ -465,6 +456,30 @@ const Index = () => {
               growthRate={accounts.traditionalReturn}
               inflationRate={taxSettings.inflationRate}
               otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
+              visibleTabs={['table', 'strategies']}
+            />
+
+            <div className="flex justify-center">
+              <Button onClick={() => setActiveTab("charts")} className="px-8">
+                View Charts →
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="charts" className="mt-6 space-y-6">
+            {/* RMD Charts */}
+            <RMDPlanner
+              spouse1TradBalance={accounts.spouse1Traditional}
+              spouse2TradBalance={accounts.spouse2Traditional}
+              rothBalance={accounts.roth}
+              spouse1Age={taxSettings.spouse1Age}
+              spouse2Age={taxSettings.spouse2Age}
+              filingStatus={taxSettings.filingStatus}
+              rothConversionStrategy={taxSettings.rothConversionStrategy}
+              growthRate={accounts.traditionalReturn}
+              inflationRate={taxSettings.inflationRate}
+              otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
+              visibleTabs={['chart']}
             />
             <div className="grid gap-6 lg:grid-cols-2">
               <BracketAnalysisCard analysis={summary.bracketConsistency} projections={projections} />
