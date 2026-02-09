@@ -340,11 +340,12 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="setup">Setup</TabsTrigger>
             <TabsTrigger value="dashboard" onClick={commitInputs}>Dashboard</TabsTrigger>
             <TabsTrigger value="projections" onClick={commitInputs}>Projections</TabsTrigger>
             <TabsTrigger value="analysis" onClick={commitInputs}>Analysis</TabsTrigger>
+            <TabsTrigger value="charts" onClick={commitInputs}>Charts</TabsTrigger>
           </TabsList>
 
           <TabsContent value="setup">
@@ -458,6 +459,14 @@ const Index = () => {
               otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
             />
             
+            <div className="flex justify-center">
+              <Button onClick={() => setActiveTab("charts")} className="px-8">
+                View Charts →
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="charts" className="mt-6 space-y-6">
             <div className="grid gap-6 lg:grid-cols-2">
               <BracketAnalysisCard analysis={summary.bracketConsistency} projections={projections} />
               <BracketChart data={projections} />
