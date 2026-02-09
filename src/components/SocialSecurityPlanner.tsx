@@ -68,6 +68,7 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
             id={`${spouse}-estimatedBenefit`}
             type="number"
             placeholder="3000"
+            step={100}
             value={data.estimatedBenefit || ''}
             onChange={(value) => handleChange(spouse, 'estimatedBenefit', parseFloat(value) || 0)}
           />
