@@ -229,10 +229,19 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
                     <SelectItem value="CO">Colorado (4.4% Flat)</SelectItem>
                     <SelectItem value="NC">North Carolina (4.5% Flat)</SelectItem>
                     <SelectItem value="PA">Pennsylvania (3.07% Flat)</SelectItem>
+                    <SelectItem value="CA">California (up to 13.3%)</SelectItem>
+                    <SelectItem value="NY">New York (up to 10.9%)</SelectItem>
+                    <SelectItem value="NJ">New Jersey (up to 10.75%)</SelectItem>
+                    <SelectItem value="OR">Oregon (up to 9.9%)</SelectItem>
+                    <SelectItem value="MN">Minnesota (up to 9.85%)</SelectItem>
+                    <SelectItem value="HI">Hawaii (up to 11%)</SelectItem>
+                    <SelectItem value="CT">Connecticut (up to 6.99%)</SelectItem>
+                    <SelectItem value="VT">Vermont (up to 8.75%)</SelectItem>
+                    <SelectItem value="DC">D.C. (up to 10.75%)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Model switching to a lower-tax state at a specific age. Popular retirement destinations shown.
+                  Model switching states at a specific age. For high-tax targets, you'll get pre-move advice.
                 </p>
               </div>
             </>
