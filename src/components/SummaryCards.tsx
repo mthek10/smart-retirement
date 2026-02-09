@@ -77,17 +77,15 @@ function SummaryCard({ card }: { card: CardData }) {
         <Icon className={cn("h-4 w-4", card.color)} />
       </CardHeader>
       <CardContent>
-        <div className={cn("text-2xl font-bold", card.color)}>
-          {card.isScore
-            ? `${(10 - card.value).toFixed(1)} / 10`
-            : card.isPercent
-            ? `${card.value.toFixed(0)}%`
-            : card.isAge
-            ? card.value > 0
-              ? `Age ${card.value}`
-              : "N/A"
-            : formatCurrency(card.value)}
-        </div>
+        {!card.isAge && (
+          <div className={cn("text-2xl font-bold", card.color)}>
+            {card.isScore
+              ? `${(10 - card.value).toFixed(1)} / 10`
+              : card.isPercent
+              ? `${card.value.toFixed(0)}%`
+              : formatCurrency(card.value)}
+          </div>
+        )}
         {card.subtitle && (
           <p className={cn(
             "mt-1",
