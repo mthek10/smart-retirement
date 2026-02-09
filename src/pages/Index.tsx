@@ -380,6 +380,7 @@ const Index = () => {
                 spouse2SSClaimAge={ssData.spouse2.claimAge}
                 acaEnabled={taxSettings.acaSettings.enabled}
                 taxableUnrealizedGains={accounts.taxable * ((100 - accounts.taxableCostBasisPercent) / 100)}
+                stateCode={taxSettings.state}
               />
 
               {/* Key Takeaways */}

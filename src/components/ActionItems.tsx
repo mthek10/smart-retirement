@@ -8,10 +8,12 @@ import {
   DollarSign,
   HeartPulse,
   PiggyBank,
-  Coins
+  Coins,
+  MapPin
 } from "lucide-react";
 import { getBracketRoom } from "@/lib/incomeAlerts";
 import { calculateCapitalGainsHarvestingRoom, standardDeductions2024 } from "@/lib/taxCalculations";
+import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
 import type { ProjectionRow } from "@/hooks/useProjections";
 interface ActionItemsProps {
@@ -24,13 +26,14 @@ interface ActionItemsProps {
   spouse1SSClaimAge: number;
   spouse2SSClaimAge: number;
   acaEnabled: boolean;
-  taxableUnrealizedGains?: number; // Optional: unrealized gains in taxable account
+  taxableUnrealizedGains?: number;
+  stateCode?: string;
 }
 
 interface ActionItem {
   id: string;
   priority: 'high' | 'medium' | 'low';
-  category: 'roth' | 'ss' | 'irmaa' | 'rmd' | 'aca' | 'general' | 'cg-harvest';
+  category: 'roth' | 'ss' | 'irmaa' | 'rmd' | 'aca' | 'general' | 'cg-harvest' | 'state-tax';
   title: string;
   description: string;
   impact?: string;
@@ -55,6 +58,7 @@ const getCategoryIcon = (category: ActionItem['category']) => {
     case 'aca': return <HeartPulse className="h-4 w-4" />;
     case 'general': return <DollarSign className="h-4 w-4" />;
     case 'cg-harvest': return <Coins className="h-4 w-4" />;
+    case 'state-tax': return <MapPin className="h-4 w-4" />;
   }
 };
 
@@ -69,6 +73,7 @@ export function ActionItems({
   spouse2SSClaimAge,
   acaEnabled,
   taxableUnrealizedGains,
+  stateCode,
 }: ActionItemsProps) {
   if (projections.length === 0) return null;
 
@@ -225,6 +230,27 @@ export function ActionItems({
         description: `Your income triggers Medicare premium surcharges starting at age ${irmaaYear.age}. Consider income management strategies.`,
         impact: `Additional ${formatCurrency(irmaaYear.irmaa)}/year in Medicare premiums`,
         icon: <HeartPulse className="h-5 w-5 text-destructive" />,
+      });
+    }
+  }
+
+  // 6. State Tax Relocation Savings
+  const zeroTaxStates = ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'];
+  const isInTaxableState = stateCode && stateCode !== 'none' && !zeroTaxStates.includes(stateCode);
+  
+  if (isInTaxableState) {
+    const lifetimeStateTax = projections.reduce((sum, p) => sum + p.stateTax + p.stateCapitalGainsTax, 0);
+    
+    if (lifetimeStateTax > 5000) {
+      const stateName = stateCode === 'other' ? 'your current state' : stateCode;
+      actionItems.push({
+        id: 'state-tax-relocation',
+        priority: lifetimeStateTax > 100000 ? 'high' : lifetimeStateTax > 25000 ? 'medium' : 'low',
+        category: 'state-tax',
+        title: 'State Tax Relocation Savings',
+        description: `Moving to a zero income-tax state (e.g., FL, TX, NV, WY, NH) could eliminate ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
+        impact: `Average savings of ${formatCurrency(Math.round(lifetimeStateTax / projections.length))}/year in state income and capital gains taxes`,
+        icon: <MapPin className="h-5 w-5 text-primary" />,
       });
     }
   }
