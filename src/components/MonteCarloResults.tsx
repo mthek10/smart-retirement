@@ -217,38 +217,6 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
           ))}
         </div>
 
-        {/* Histogram */}
-        <div>
-          <h4 className="text-sm font-semibold text-muted-foreground mb-3">
-            Final Balance Distribution
-          </h4>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={histogramData} barCategoryGap="20%">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="range" 
-                  tick={{ fontSize: 10 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  formatter={(value: number, name: string) => [value, name]}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    borderColor: 'hsl(var(--border))',
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="baseline" name="No Conversions" fill="hsl(var(--muted-foreground))" opacity={0.6} />
-                <Bar dataKey="current" name={results.current.strategyName} fill="hsl(210, 100%, 50%)" opacity={0.8} />
-                <Bar dataKey="optimized" name="Fill to 22%" fill="hsl(142, 71%, 45%)" opacity={0.8} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
         {/* Key Insight */}
         <div className="p-4 rounded-lg bg-muted/50 border">
