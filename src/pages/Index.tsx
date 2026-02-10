@@ -47,12 +47,12 @@ const Index = () => {
 
   const [ssData, setSsData] = useState({
     spouse1: {
-      estimatedBenefit: 3000,
+      estimatedBenefit: 4000,
       claimAge: 67,
       lifeExpectancy: 90,
     },
     spouse2: {
-      estimatedBenefit: 3000,
+      estimatedBenefit: 4000,
       claimAge: 67,
       lifeExpectancy: 90,
     },
