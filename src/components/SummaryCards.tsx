@@ -194,7 +194,7 @@ export function SummaryCards({
       value: tradDepletionAge || 0,
       subtitle: tradDepletionAge
         ? `Depleted at age ${tradDepletionAge}`
-        : `Not depleted at age ${finalAge}. The remaining balance is ${formatCurrency(finalTraditionalBalance)}`,
+        : `The remaining balance at age ${finalAge} is ${formatCurrency(finalTraditionalBalance)}`,
       icon: Landmark,
       color: tradDepletionAge ? "text-destructive" : "text-green-600",
       isAge: true,
@@ -204,7 +204,7 @@ export function SummaryCards({
       value: taxableDepletionAge || 0,
       subtitle: taxableDepletionAge
         ? `Depleted at age ${taxableDepletionAge}`
-        : `Not depleted at age ${finalAge}. The remaining balance is ${formatCurrency(finalTaxableBalance)}`,
+        : `The remaining balance at age ${finalAge} is ${formatCurrency(finalTaxableBalance)}`,
       icon: BarChart3,
       color: taxableDepletionAge ? "text-destructive" : "text-green-600",
       isAge: true,
@@ -214,7 +214,7 @@ export function SummaryCards({
       value: rothDepletionAge || 0,
       subtitle: rothDepletionAge
         ? `Depleted at age ${rothDepletionAge}`
-        : `Not depleted at age ${finalAge}. The remaining balance is ${formatCurrency(finalRothBalance)}`,
+        : `The remaining balance at age ${finalAge} is ${formatCurrency(finalRothBalance)}`,
       icon: Shield,
       color: rothDepletionAge ? "text-destructive" : "text-green-600",
       isAge: true,
