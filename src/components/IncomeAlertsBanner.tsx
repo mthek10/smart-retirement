@@ -28,11 +28,11 @@ export function IncomeAlertsBanner({ alerts }: IncomeAlertsBannerProps) {
   const getAlertStyles = (severity: IncomeAlert['severity']) => {
     switch (severity) {
       case 'danger': 
-        return 'border-destructive/50 bg-destructive/10 text-destructive dark:border-destructive';
+        return 'border-destructive/50 bg-destructive/10 text-foreground dark:border-destructive';
       case 'warning': 
-        return 'border-warning/50 bg-warning/10 text-warning-foreground dark:border-warning';
+        return 'border-warning/50 bg-warning/10 text-foreground dark:border-warning';
       default: 
-        return 'border-primary/50 bg-primary/10 text-primary-foreground';
+        return 'border-primary/50 bg-primary/10 text-foreground';
     }
   };
 
