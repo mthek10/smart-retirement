@@ -121,8 +121,8 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
         </div>
 
         <div className="rounded-md border">
-          <div className="max-h-[600px] overflow-auto">
-            <table className="w-full caption-bottom text-sm">
+          <div className="max-h-[600px] overflow-auto [transform:rotateX(180deg)]">
+            <table className="w-full caption-bottom text-sm [transform:rotateX(180deg)]">
               <thead>
                 <tr className="border-b transition-colors hover:bg-muted/50">
                   <th className="h-12 px-4 text-left align-middle font-semibold sticky top-0 left-0 z-40 bg-background border-b">Year</th>
