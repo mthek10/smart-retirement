@@ -58,7 +58,23 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
   );
 
   const topScrollRef = useRef<HTMLDivElement>(null);
+  const topScrollInnerRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
+
+  // Keep top scrollbar width in sync with table scroll width
+  useEffect(() => {
+    const table = tableScrollRef.current;
+    if (!table) return;
+    const update = () => {
+      if (topScrollInnerRef.current) {
+        topScrollInnerRef.current.style.width = `${table.scrollWidth}px`;
+      }
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(table);
+    return () => ro.disconnect();
+  }, [activeGroups]);
   const syncingRef = useRef(false);
 
   const syncScroll = useCallback((source: 'top' | 'table') => {
@@ -137,10 +153,10 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
 
         <div className="rounded-md border">
           {/* Top scrollbar synced with table */}
-          <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden" style={{ height: 12 }} onScroll={() => syncScroll('top')}>
-            <div style={{ width: tableScrollRef.current?.scrollWidth || '100%', height: 1 }} />
+          <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden border-b" style={{ height: 12 }} onScroll={() => syncScroll('top')}>
+            <div ref={topScrollInnerRef} style={{ height: 1 }} />
           </div>
-          <div ref={tableScrollRef} className="max-h-[600px] overflow-auto" onScroll={() => syncScroll('table')}>
+          <div ref={tableScrollRef} className="max-h-[600px] overflow-y-auto overflow-x-hidden" onScroll={() => syncScroll('table')}>
             <table className="w-full caption-bottom text-sm">
               <thead>
                 <tr className="border-b transition-colors hover:bg-muted/50">
