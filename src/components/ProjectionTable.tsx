@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -56,6 +56,21 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
   const [activeGroups, setActiveGroups] = useState<Set<ColumnGroup>>(
     new Set(["balances", "income"])
   );
+
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const syncingRef = useRef(false);
+
+  const syncScroll = useCallback((source: 'top' | 'table') => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    const from = source === 'top' ? topScrollRef.current : tableScrollRef.current;
+    const to = source === 'top' ? tableScrollRef.current : topScrollRef.current;
+    if (from && to) {
+      to.scrollLeft = from.scrollLeft;
+    }
+    requestAnimationFrame(() => { syncingRef.current = false; });
+  }, []);
 
   const toggleGroup = (group: ColumnGroup) => {
     setActiveGroups(prev => {
@@ -121,8 +136,12 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
         </div>
 
         <div className="rounded-md border">
-          <div className="max-h-[600px] overflow-auto [transform:rotateX(180deg)]">
-            <table className="w-full caption-bottom text-sm [transform:rotateX(180deg)]">
+          {/* Top scrollbar synced with table */}
+          <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden" style={{ height: 12 }} onScroll={() => syncScroll('top')}>
+            <div style={{ width: tableScrollRef.current?.scrollWidth || '100%', height: 1 }} />
+          </div>
+          <div ref={tableScrollRef} className="max-h-[600px] overflow-auto" onScroll={() => syncScroll('table')}>
+            <table className="w-full caption-bottom text-sm">
               <thead>
                 <tr className="border-b transition-colors hover:bg-muted/50">
                   <th className="h-12 px-4 text-left align-middle font-semibold sticky top-0 left-0 z-40 bg-background border-b">Year</th>
