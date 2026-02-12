@@ -343,10 +343,10 @@ const Index = () => {
               Retirement Drawdown Planner
             </h1>
           </div>
-          <p className="text-primary-foreground/75 mt-1.5 text-sm sm:text-base ml-[1.25rem] pl-3 border-l border-primary-foreground/20">
+          <p className="text-primary-foreground/75 mt-1.5 text-sm sm:text-base pl-4">
             Model tax-efficient retirement withdrawal strategies with Social Security optimization
           </p>
-          <p className="text-primary-foreground/50 mt-2 text-xs ml-[1.25rem] pl-3 italic">
+          <p className="text-primary-foreground/50 mt-2 text-xs pl-4 italic">
             This is not an official financial planning tool — intended for estimation purposes only. Consult a qualified advisor before making financial decisions.
           </p>
         </div>
