@@ -103,7 +103,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
   const strategies = [
     { key: 'baseline', name: 'No Conversions', data: results.baseline, color: 'slate' },
     { key: 'current', name: results.current.strategyName, data: results.current, color: 'blue' },
-    { key: 'optimized', name: 'Fill to 22%', data: results.optimized, color: 'green' },
+    { key: 'optimized', name: 'Fill to 24%', data: results.optimized, color: 'green' },
   ];
 
   return (
@@ -227,7 +227,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
               <p className="text-sm text-muted-foreground mt-1">
                 {results.optimized.successRate > results.baseline.successRate ? (
                   <>
-                    The <span className="font-medium text-green-600 dark:text-green-400">Fill to 22%</span> strategy 
+                    The <span className="font-medium text-green-600 dark:text-green-400">Fill to 24%</span> strategy 
                     shows a {formatPercent(results.optimized.successRate - results.baseline.successRate)} higher 
                     success rate than no conversions across {settings.numSimulations} market scenarios.
                   </>
