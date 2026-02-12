@@ -5,6 +5,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Target } from "lucide-react";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { CustomScrollbar } from "@/components/ui/CustomScrollbar";
 
 interface YearProjection {
   year: number;
@@ -57,36 +58,9 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
     new Set(["balances", "income"])
   );
 
-  const topScrollRef = useRef<HTMLDivElement>(null);
-  const topScrollInnerRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
 
-  // Keep top scrollbar width in sync with table scroll width
-  useEffect(() => {
-    const table = tableScrollRef.current;
-    if (!table) return;
-    const update = () => {
-      if (topScrollInnerRef.current) {
-        topScrollInnerRef.current.style.width = `${table.scrollWidth}px`;
-      }
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(table);
-    return () => ro.disconnect();
-  }, [activeGroups]);
-  const syncingRef = useRef(false);
-
-  const syncScroll = useCallback((source: 'top' | 'table') => {
-    if (syncingRef.current) return;
-    syncingRef.current = true;
-    const from = source === 'top' ? topScrollRef.current : tableScrollRef.current;
-    const to = source === 'top' ? tableScrollRef.current : topScrollRef.current;
-    if (from && to) {
-      to.scrollLeft = from.scrollLeft;
-    }
-    requestAnimationFrame(() => { syncingRef.current = false; });
-  }, []);
+  const show = (group: ColumnGroup) => activeGroups.has(group);
 
   const toggleGroup = (group: ColumnGroup) => {
     setActiveGroups(prev => {
@@ -109,7 +83,6 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
     }
   };
 
-  const show = (group: ColumnGroup) => activeGroups.has(group);
 
   const hasIRMAAWarning = (irmaa: number) => irmaa > 0;
 
@@ -151,12 +124,13 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
           ))}
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border flex flex-col">
           {/* Top horizontal scrollbar */}
-          <div ref={topScrollRef} className="always-show-scrollbar overflow-y-hidden border-b" style={{ height: 16 }} onScroll={() => syncScroll('top')}>
-            <div ref={topScrollInnerRef} style={{ height: 1 }} />
+          <div className="border-b px-1 py-1 flex-shrink-0">
+            <CustomScrollbar scrollRef={tableScrollRef} orientation="horizontal" />
           </div>
-          <div ref={tableScrollRef} className="max-h-[600px] overflow-y-scroll overflow-x-auto hide-horizontal-scrollbar" onScroll={() => syncScroll('table')}>
+          <div className="flex flex-row flex-1 min-h-0">
+            <div ref={tableScrollRef} className="max-h-[600px] overflow-scroll hide-native-scrollbar flex-1">
             <table className="caption-bottom text-sm min-w-max">
               <thead>
                 <tr className="border-b transition-colors hover:bg-muted/50">
@@ -392,6 +366,11 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
               )}
               </tbody>
             </table>
+            </div>
+            {/* Vertical scrollbar */}
+            <div className="flex-shrink-0 py-1 pr-1">
+              <CustomScrollbar scrollRef={tableScrollRef} orientation="vertical" />
+            </div>
           </div>
         </div>
         
