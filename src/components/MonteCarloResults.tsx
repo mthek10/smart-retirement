@@ -41,7 +41,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
       onSettingsChange({ ...settings, returnMean: newMean });
     }, 400);
     return () => clearTimeout(timer);
-  }, [localReturnMean]);
+  }, [localReturnMean, settings, onSettingsChange]);
 
   useEffect(() => {
     const newStdDev = localReturnStdDev / 100;
@@ -51,7 +51,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
       onSettingsChange({ ...settings, returnStdDev: newStdDev });
     }, 400);
     return () => clearTimeout(timer);
-  }, [localReturnStdDev]);
+  }, [localReturnStdDev, settings, onSettingsChange]);
 
   const getSuccessBadge = (rate: number) => {
     if (rate >= 0.9) return <Badge className="bg-green-600">Excellent</Badge>;
@@ -74,30 +74,24 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
     const range = maxBalance - minBalance;
     const binWidth = range / bins;
     
-    const histData = [];
-    
-    for (let i = 0; i < bins; i++) {
-      const binStart = minBalance + i * binWidth;
-      const binEnd = binStart + binWidth;
-      const binLabel = formatCurrencyCompact(binStart);
-      
-      const baselineCount = results.baseline.outcomes.filter(
-        o => o.finalBalance >= binStart && o.finalBalance < binEnd
-      ).length;
-      const currentCount = results.current.outcomes.filter(
-        o => o.finalBalance >= binStart && o.finalBalance < binEnd
-      ).length;
-      const optimizedCount = results.optimized.outcomes.filter(
-        o => o.finalBalance >= binStart && o.finalBalance < binEnd
-      ).length;
-      
-      histData.push({
-        range: binLabel,
-        baseline: baselineCount,
-        current: currentCount,
-        optimized: optimizedCount,
-      });
-    }
+    // Initialize bins
+    const histData = Array.from({ length: bins }, (_, i) => ({
+      range: formatCurrencyCompact(minBalance + i * binWidth),
+      baseline: 0,
+      current: 0,
+      optimized: 0,
+    }));
+
+    // Single-pass bucketing for each strategy
+    const bucketOutcome = (balance: number, key: 'baseline' | 'current' | 'optimized') => {
+      if (balance <= 0) return;
+      const idx = Math.min(bins - 1, Math.floor((balance - minBalance) / binWidth));
+      if (idx >= 0) histData[idx][key]++;
+    };
+
+    for (const o of results.baseline.outcomes) bucketOutcome(o.finalBalance, 'baseline');
+    for (const o of results.current.outcomes) bucketOutcome(o.finalBalance, 'current');
+    for (const o of results.optimized.outcomes) bucketOutcome(o.finalBalance, 'optimized');
     
     return histData;
   }, [results.baseline.outcomes, results.current.outcomes, results.optimized.outcomes]);

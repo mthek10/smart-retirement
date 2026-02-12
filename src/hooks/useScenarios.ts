@@ -34,8 +34,8 @@ export function useScenarios(): ScenarioComparison {
       name,
       createdAt: new Date(),
       accounts: { ...accounts },
-      ssData: JSON.parse(JSON.stringify(ssData)),
-      taxSettings: JSON.parse(JSON.stringify(taxSettings)),
+      ssData: structuredClone(ssData),
+      taxSettings: structuredClone(taxSettings),
       metrics: { ...metrics },
     };
     setScenarios(prev => [...prev, newScenario]);

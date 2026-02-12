@@ -15,7 +15,7 @@ import { ActionItems } from "@/components/ActionItems";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { RMDPlanner } from "@/components/RMDPlanner";
-import { useTwoPassProjections } from "@/hooks/useProjections";
+import { useTwoPassProjections, findDepletionAges } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -125,7 +125,7 @@ const Index = () => {
   });
 
   // Sync Monte Carlo expected return with Roth IRA return when it changes
-  const handleAccountsChange = (newAccounts: typeof accounts) => {
+  const handleAccountsChange = useCallback((newAccounts: typeof accounts) => {
     setAccounts(newAccounts);
     if (newAccounts.rothReturn !== accounts.rothReturn) {
       setMonteCarloSettings(prev => ({
@@ -133,7 +133,7 @@ const Index = () => {
         returnMean: newAccounts.rothReturn / 100,
       }));
     }
-  };
+  }, [accounts.rothReturn]);
 
 
   // Monte Carlo simulation results (reads committed snapshots only)
@@ -234,12 +234,6 @@ const Index = () => {
     let totalPayrollTax = 0, totalACASubsidy = 0, totalACAPremium = 0;
     let totalEmploymentIncome = 0, total401kContributions = 0, totalWithdrawals = 0;
 
-    // Depletion tracking (single pass, avoids duplicate logic in detailedMetrics)
-    let tradDepletionAge: number | null = null;
-    let taxableDepletionAge: number | null = null;
-    let rothDepletionAge: number | null = null;
-    const DEPLETION_THRESHOLD = 1000;
-
     for (let i = 0; i < projections.length; i++) {
       const p = projections[i];
       totalFederalTax += p.federalTax;
@@ -256,21 +250,10 @@ const Index = () => {
       totalEmploymentIncome += (p.employmentIncome || 0);
       total401kContributions += (p.contributions401k || 0);
       totalWithdrawals += p.withdrawals;
-
-      // Depletion detection (transition from above to below threshold)
-      if (i > 0) {
-        const prev = projections[i - 1];
-        if (tradDepletionAge === null && prev.traditionalBalance >= DEPLETION_THRESHOLD && p.traditionalBalance < DEPLETION_THRESHOLD) {
-          tradDepletionAge = p.age;
-        }
-        if (taxableDepletionAge === null && prev.taxableBalance >= DEPLETION_THRESHOLD && p.taxableBalance < DEPLETION_THRESHOLD) {
-          taxableDepletionAge = p.age;
-        }
-        if (rothDepletionAge === null && prev.rothBalance >= DEPLETION_THRESHOLD && p.rothBalance < DEPLETION_THRESHOLD) {
-          rothDepletionAge = p.age;
-        }
-      }
     }
+
+    // Depletion ages via shared utility
+    const { tradDepletionAge, taxableDepletionAge, rothDepletionAge } = findDepletionAges(projections);
 
     const totalMedicareCosts = totalIRMAA + totalMedicarePremiums;
     const lifetimeTotalTaxes = totalFederalTax + totalFederalCGTax + totalStateTax + totalStateCGTax + totalMedicareCosts + totalNIIT + totalAMT + totalPayrollTax;
