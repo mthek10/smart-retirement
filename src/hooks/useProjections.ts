@@ -127,6 +127,37 @@ export interface ProjectionRow {
 }
 
 /**
+ * Shared utility: find depletion ages for each account type.
+ * Used by both Index.tsx summary and calculateMetrics.
+ */
+export function findDepletionAges(projections: ProjectionRow[]): {
+  tradDepletionAge: number | null;
+  taxableDepletionAge: number | null;
+  rothDepletionAge: number | null;
+} {
+  const DEPLETION_THRESHOLD = 1000;
+  let tradDepletionAge: number | null = null;
+  let taxableDepletionAge: number | null = null;
+  let rothDepletionAge: number | null = null;
+
+  for (let i = 1; i < projections.length; i++) {
+    const prev = projections[i - 1];
+    const curr = projections[i];
+    if (tradDepletionAge === null && prev.traditionalBalance >= DEPLETION_THRESHOLD && curr.traditionalBalance < DEPLETION_THRESHOLD) {
+      tradDepletionAge = curr.age;
+    }
+    if (taxableDepletionAge === null && prev.taxableBalance >= DEPLETION_THRESHOLD && curr.taxableBalance < DEPLETION_THRESHOLD) {
+      taxableDepletionAge = curr.age;
+    }
+    if (rothDepletionAge === null && prev.rothBalance >= DEPLETION_THRESHOLD && curr.rothBalance < DEPLETION_THRESHOLD) {
+      rothDepletionAge = curr.age;
+    }
+  }
+
+  return { tradDepletionAge, taxableDepletionAge, rothDepletionAge };
+}
+
+/**
  * Iterative binary search solver to find withdrawal amount achieving target take-home.
  * Extracted from calculateProjections for readability.
  */
@@ -904,29 +935,11 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
     : { min: 0, max: 0 };
   const survivorYearsTaxes = survivorYears.reduce((sum, p) => sum + p.totalTaxes, 0);
   
-  // Calculate depletion ages (first year balance drops below $1,000 after being above)
-  const DEPLETION_THRESHOLD = 1000;
-  
-  let tradDepletionAge: number | null = null;
-  let taxableDepletionAge: number | null = null;
-  let rothDepletionAge: number | null = null;
-  
-  for (let i = 1; i < projections.length; i++) {
-    const prev = projections[i - 1];
-    const curr = projections[i];
-    
-    if (tradDepletionAge === null && prev.traditionalBalance >= DEPLETION_THRESHOLD && curr.traditionalBalance < DEPLETION_THRESHOLD) {
-      tradDepletionAge = curr.age;
-    }
-    if (taxableDepletionAge === null && prev.taxableBalance >= DEPLETION_THRESHOLD && curr.taxableBalance < DEPLETION_THRESHOLD) {
-      taxableDepletionAge = curr.age;
-    }
-    if (rothDepletionAge === null && prev.rothBalance >= DEPLETION_THRESHOLD && curr.rothBalance < DEPLETION_THRESHOLD) {
-      rothDepletionAge = curr.age;
-    }
-  }
+  // Depletion ages via shared utility
+  const { tradDepletionAge, taxableDepletionAge, rothDepletionAge } = findDepletionAges(projections);
   
   // All funds depletion: when ALL accounts are below threshold
+  const DEPLETION_THRESHOLD = 1000;
   let allFundsDepletionAge: number | null = null;
   for (let i = 1; i < projections.length; i++) {
     const prev = projections[i - 1];
