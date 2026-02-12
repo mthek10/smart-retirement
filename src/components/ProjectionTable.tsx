@@ -153,11 +153,11 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
 
         <div className="rounded-md border">
           {/* Top scrollbar synced with table */}
-          <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden border-b" style={{ height: 12 }} onScroll={() => syncScroll('top')}>
+          <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden border-b" style={{ height: 14 }} onScroll={() => syncScroll('top')}>
             <div ref={topScrollInnerRef} style={{ height: 1 }} />
           </div>
-          <div ref={tableScrollRef} className="max-h-[600px] overflow-y-auto overflow-x-auto" onScroll={() => syncScroll('table')}>
-            <table className="w-full caption-bottom text-sm">
+          <div ref={tableScrollRef} className="max-h-[600px] overflow-y-auto overflow-x-auto scrollbar-hide" onScroll={() => syncScroll('table')}>
+            <table className="caption-bottom text-sm min-w-max">
               <thead>
                 <tr className="border-b transition-colors hover:bg-muted/50">
                   <th className="h-12 px-4 text-left align-middle font-semibold sticky top-0 left-0 z-40 bg-background border-b">Year</th>
