@@ -3,6 +3,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { AlertTriangle } from "lucide-react";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -43,6 +46,36 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
       return;
     }
     onChange({ ...taxSettings, [field]: value });
+  };
+
+  const handleSurvivorChange = (field: string, value: boolean | number | null) => {
+    const currentSurvivor = (taxSettings as any).survivorSettings || {
+      enabled: false,
+      spouse1DeathAge: null,
+      spouse2DeathAge: null,
+      survivorSpendingPercent: 75,
+    };
+    
+    if (field === 'enabled' && value === true) {
+      onChange({
+        ...taxSettings,
+        survivorSettings: { ...currentSurvivor, [field]: value },
+        rothConversionStrategy: 'survivor_smooth',
+      });
+      return;
+    }
+    
+    onChange({
+      ...taxSettings,
+      survivorSettings: { ...currentSurvivor, [field]: value },
+    });
+  };
+
+  const survivorSettings = (taxSettings as any).survivorSettings || {
+    enabled: false,
+    spouse1DeathAge: null,
+    spouse2DeathAge: null,
+    survivorSpendingPercent: 75,
   };
 
   return (
@@ -379,6 +412,96 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
             </span>
           </div>
         </div>
+
+        {taxSettings.filingStatus === 'married' && (
+          <>
+            <Separator />
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="survivorEnabled" className="text-base font-medium">
+                      Model Survivor Scenario
+                    </Label>
+                    <InfoTooltip text="Simulates the financial impact when one spouse passes away. Filing status switches to Single, one Social Security benefit is lost, and spending needs typically decrease to 70-80%." />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Simulate the financial impact when one spouse passes away
+                  </p>
+                </div>
+                <Switch
+                  id="survivorEnabled"
+                  checked={survivorSettings.enabled}
+                  onCheckedChange={(checked) => handleSurvivorChange('enabled', checked)}
+                />
+              </div>
+
+              {survivorSettings.enabled && (
+                <div className="space-y-4 pl-4 border-l-2 border-muted">
+                  <div className="flex items-center gap-2 text-sm text-warning">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Survivor scenario affects filing status, Social Security, and spending needs</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="spouse1DeathAge">Spouse 1 Death Age (optional)</Label>
+                      <DebouncedInput
+                        id="spouse1DeathAge"
+                        type="number"
+                        min={taxSettings.spouse1Age + 1}
+                        max="100"
+                        placeholder="Leave blank = lives to 100"
+                        value={survivorSettings.spouse1DeathAge || ''}
+                        onChange={(value) => {
+                          const val = value ? parseInt(value) : null;
+                          handleSurvivorChange('spouse1DeathAge', val);
+                        }}
+                        debounceMs={400}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="spouse2DeathAge">Spouse 2 Death Age (optional)</Label>
+                      <DebouncedInput
+                        id="spouse2DeathAge"
+                        type="number"
+                        min={taxSettings.spouse2Age + 1}
+                        max="100"
+                        placeholder="Leave blank = lives to 100"
+                        value={survivorSettings.spouse2DeathAge || ''}
+                        onChange={(value) => {
+                          const val = value ? parseInt(value) : null;
+                          handleSurvivorChange('spouse2DeathAge', val);
+                        }}
+                        debounceMs={400}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="survivorSpending">Survivor Spending Adjustment (%)</Label>
+                      <InfoTooltip text="After a spouse passes, living expenses typically drop. 75% means the survivor needs 75% of the couple's original spending." />
+                    </div>
+                    <DebouncedInput
+                      id="survivorSpending"
+                      type="number"
+                      min="50"
+                      max="100"
+                      value={survivorSettings.survivorSpendingPercent}
+                      onChange={(value) => handleSurvivorChange('survivorSpendingPercent', parseFloat(value) || 75)}
+                      debounceMs={400}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Typical survivor needs 70-80% of couple's spending (default: 75%)
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
