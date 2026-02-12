@@ -156,7 +156,7 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
           <div ref={topScrollRef} className="overflow-x-auto overflow-y-hidden border-b" style={{ height: 12 }} onScroll={() => syncScroll('top')}>
             <div ref={topScrollInnerRef} style={{ height: 1 }} />
           </div>
-          <div ref={tableScrollRef} className="max-h-[600px] overflow-y-auto overflow-x-hidden" onScroll={() => syncScroll('table')}>
+          <div ref={tableScrollRef} className="max-h-[600px] overflow-y-auto overflow-x-auto" onScroll={() => syncScroll('table')}>
             <table className="w-full caption-bottom text-sm">
               <thead>
                 <tr className="border-b transition-colors hover:bg-muted/50">
