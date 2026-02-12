@@ -71,8 +71,12 @@ interface CardData {
 
 function SummaryCard({ card }: { card: CardData }) {
   const Icon = card.icon;
+  const borderColor = card.color.includes("destructive") ? "border-l-destructive" 
+    : card.color.includes("green") ? "border-l-success" 
+    : card.color.includes("warning") ? "border-l-warning"
+    : "border-l-primary";
   return (
-    <Card>
+    <Card className={cn("card-hover border-l-4", borderColor)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
         <Icon className={cn("h-4 w-4", card.color)} />
@@ -129,7 +133,7 @@ function CollapsibleSection({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border bg-card px-4 py-3 text-left hover:bg-accent/50 transition-colors cursor-pointer">
+      <CollapsibleTrigger className={cn("flex w-full items-center justify-between rounded-lg border bg-card px-4 py-3 text-left hover:bg-accent/50 transition-all duration-200 cursor-pointer", open && "border-l-4 border-l-primary")}>
         <div className="flex items-center gap-2">
           <Icon className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium text-sm">{title}</span>
@@ -412,7 +416,7 @@ export function SummaryCards({
           <EditLink onClick={() => onNavigateToSetup(1)} label="Accounts" />
         )}
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3 animate-fade-in-up">
         {accountCards.map((card) => (
           <SummaryCard key={card.title} card={card} />
         ))}

@@ -120,7 +120,7 @@ export function SetupWizard({
           </span>
           <span>{Math.round(progressPercent)}% complete</span>
         </div>
-        <Progress value={progressPercent} className="h-2" />
+        <Progress value={progressPercent} className="h-2 progress-gradient" />
 
         {/* Step indicator pills */}
         <div className="flex flex-wrap gap-2 pt-1">
@@ -169,7 +169,7 @@ export function SetupWizard({
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={onCalculate} className="gap-1 px-8">
+          <Button onClick={onCalculate} className="gap-1 px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md">
             <Calculator className="h-4 w-4" />
             Calculate & Go to Dashboard
           </Button>
