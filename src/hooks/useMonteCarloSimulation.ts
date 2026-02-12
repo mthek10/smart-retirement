@@ -202,7 +202,7 @@ export function useMonteCarloSimulation(
     
     const optimized = runStrategySimulation(
       accounts, ssData, taxSettings,
-      'fill_22', 'Fill to 22%',
+      'fill_24', 'Fill to 24%',
       settings
     );
     
