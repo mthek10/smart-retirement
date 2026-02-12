@@ -130,11 +130,17 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  /* Hide only horizontal scrollbar while keeping vertical */
+  .hide-horizontal-scrollbar {
+    overflow-x: auto;
   }
-  .scrollbar-hide::-webkit-scrollbar {
+  .hide-horizontal-scrollbar::-webkit-scrollbar:horizontal {
     display: none;
+    height: 0;
+  }
+  @supports (scrollbar-width: auto) {
+    .hide-horizontal-scrollbar {
+      scrollbar-width: thin;
+    }
   }
 }
