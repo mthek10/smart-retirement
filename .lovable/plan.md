@@ -1,75 +1,85 @@
 
 
-# Visual Theme Refresh -- "Retirement Drawdown Planner"
+# Code Optimization & Cleanup Plan
 
 ## Overview
-A light visual polish pass across the entire app to make it feel more polished and professional without changing any functionality. The goal is subtle refinement: better header presence, improved card depth, smoother transitions, and a more cohesive color story.
+After a thorough analysis of the entire codebase, here are the optimization opportunities organized by impact.
 
-## Changes
+---
 
-### 1. Header Upgrade
-- Add a subtle gradient background to the header (from primary/5% to transparent)
-- Make the title slightly smaller (text-2xl) with a primary-colored accent bar or icon (e.g., a small TrendingUp icon)
-- Add a bottom shadow instead of just a border for more depth
+## 1. Cache Intl.NumberFormat (Quick Win - All Currency Formatting)
 
-### 2. Tab Bar Polish
-- Add rounded-lg background container with slight shadow
-- Active tab gets a subtle bottom border accent in primary color
-- Smooth transition on tab switches
+`formatCurrency()` in `src/lib/utils.ts` creates a **new `Intl.NumberFormat` object on every call**. Since this formatter is used hundreds of times per render (every cell in ProjectionTable, every SummaryCard, Monte Carlo results), caching it at module level is a free performance win.
 
-### 3. Card Enhancements
-- Add a subtle hover effect to all summary cards (slight scale + shadow lift)
-- Add a thin left-border accent color to cards based on their type (green for positive, red for depleted, blue for neutral)
-- Slightly increase card border-radius for a softer feel
+**Change**: Create the formatter once at module scope and reuse it.
 
-### 4. Progress Bar (Setup Wizard)
-- Use a gradient fill on the progress bar (primary to secondary) instead of flat color
-- Add a slight glow/shadow effect to the filled portion
+---
 
-### 5. Button Polish
-- Primary buttons get a subtle shadow and hover lift effect
-- "Calculate & Go to Dashboard" button gets a gradient background (primary to a slightly darker shade)
+## 2. Memoize `handleAccountsChange` with `useCallback` (Index.tsx)
 
-### 6. Collapsible Section Headers
-- Add a subtle left accent border when expanded
-- Smoother open/close animation
+Currently defined as a plain function, so it's recreated every render and causes `SetupWizard` to re-render unnecessarily.
 
-### 7. Global Refinements in CSS
-- Add smooth transitions to interactive elements (buttons, cards, tabs)
-- Slightly warm up the background color for a less clinical feel
-- Add subtle animation keyframes for card entry (fade-in-up)
+**Change**: Wrap in `useCallback` with `[accounts.rothReturn]` dependency.
 
-## Technical Details
+---
 
-### Files to modify:
+## 3. Fix Monte Carlo Debounce Effect Dependencies (MonteCarloResults.tsx)
 
-**`src/index.css`**
-- Add new utility classes for card hover effects, gradient backgrounds
-- Add keyframes for fade-in-up animation
-- Tweak `--background` slightly (add a touch of warmth)
-- Add `.card-hover` utility with transform + shadow transition
+The two debounce `useEffect` hooks reference `settings` in their body but don't list it in the dependency array. This can cause stale closure bugs where changing `numSimulations` and then a slider produces wrong settings.
 
-**`tailwind.config.ts`**
-- Add `fade-in-up` keyframe and animation
-- Add `card-hover` animation
+**Change**: Add `settings` to the dependency arrays or use a ref for the latest settings value.
 
-**`src/pages/Index.tsx`**
-- Update header markup: add gradient bg, shadow, icon next to title
-- Add transition classes to tab triggers
+---
 
-**`src/components/SetupWizard.tsx`**
-- Add gradient to Progress bar via className
-- Add animation to step pills
+## 4. Replace `JSON.parse(JSON.stringify())` with `structuredClone` (useScenarios.ts)
 
-**`src/components/SummaryCards.tsx`**
-- Add hover effect classes to SummaryCard
-- Add left-border accent based on card color
-- Add fade-in-up animation to card grid
+The deep clone in `addScenario` uses the JSON round-trip hack. Modern browsers support `structuredClone` which is cleaner and handles edge cases better (e.g., `Date` objects, which are actually used in `createdAt`).
 
-**`src/components/ui/card.tsx`**
-- Add default transition classes for hover state
+**Change**: `structuredClone(ssData)` and `structuredClone(taxSettings)`.
 
-**`src/components/ui/button.tsx`**
-- Add subtle shadow and hover lift transition to default variant
+---
 
-No new dependencies required. All changes are CSS/Tailwind only.
+## 5. Single-Pass Histogram in Monte Carlo (MonteCarloResults.tsx)
+
+The histogram computation runs 3 `.filter()` calls per bin (30 total filter passes over outcome arrays). This can be done in a single pass by bucketing each outcome as it's visited.
+
+**Change**: Replace the nested loop+filter with a single iteration over each strategy's outcomes, assigning each to its bin by index calculation.
+
+---
+
+## 6. Deduplicate `calculateMetrics` Depletion Logic (useProjections.ts)
+
+`calculateMetrics` (lines 881-965) duplicates the same depletion-detection loop that already exists in the `summary` useMemo in `Index.tsx` (lines 237-273). The Index.tsx version is only used for the dashboard, while `calculateMetrics` is used for strategy comparison -- so they serve different consumers, but the logic is identical.
+
+**Change**: Extract a shared `findDepletionAges(projections)` utility function used by both, reducing ~40 lines of duplication.
+
+---
+
+## 7. Remove Unused `src/App.css`
+
+`src/App.css` contains leftover Vite boilerplate styles (logo spin animation, `.read-the-docs`, etc.) that are not used anywhere in the application. It can be safely deleted.
+
+**Change**: Delete `src/App.css`. Verify no imports reference it.
+
+---
+
+## 8. Consolidate Repeated `inflationMultiplier` Calculations (taxCalculations.ts)
+
+`Math.pow(1 + inflationRate, yearIndex)` is computed independently in every tax function called per projection year (`calculateFederalTax`, `calculateIRMAA`, `calculateCapitalGainsTax`, `calculateNIIT`, `calculateAMT`, `getMarginalTaxBracket`, etc.). For a 40-year projection, this means ~240+ redundant `Math.pow` calls.
+
+**Change**: Pre-compute `inflationMultiplier` once per year in `calculateProjections` and pass it to tax functions as a parameter (or create an internal helper that accepts the pre-computed value). This is a moderate refactor but eliminates the most frequently repeated computation.
+
+---
+
+## Summary of Changes
+
+| File | Change | Impact |
+|------|--------|--------|
+| `src/lib/utils.ts` | Cache `Intl.NumberFormat` | Reduces GC pressure on every render |
+| `src/pages/Index.tsx` | `useCallback` for `handleAccountsChange` | Prevents unnecessary SetupWizard re-renders |
+| `src/components/MonteCarloResults.tsx` | Fix stale closure in debounce effects; single-pass histogram | Correctness fix + minor perf |
+| `src/hooks/useScenarios.ts` | `structuredClone` instead of JSON hack | Cleaner, handles Date objects |
+| `src/hooks/useProjections.ts` | Extract shared depletion utility | ~40 lines deduplication |
+| `src/App.css` | Delete unused file | Cleanup |
+| `src/lib/taxCalculations.ts` | Pre-compute inflation multiplier | Eliminates ~240 redundant `Math.pow` calls per calculation |
+
