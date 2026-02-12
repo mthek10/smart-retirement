@@ -334,13 +334,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-gradient-to-r from-primary/5 via-card to-card shadow-sm">
-        <div className="container mx-auto px-4 py-5">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-1 rounded-full bg-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Retirement Drawdown Planner</h1>
-          </div>
-          <p className="text-muted-foreground mt-1.5 ml-5">
+      <header className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 shadow-lg">
+        <div className="container mx-auto px-4 py-6">
+          <h1 className="text-2xl font-bold text-primary-foreground tracking-tight">Retirement Drawdown Planner</h1>
+          <p className="text-primary-foreground/70 mt-1 text-sm">
             Model tax-efficient retirement withdrawal strategies with Social Security optimization
           </p>
         </div>
@@ -348,12 +345,12 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 rounded-lg bg-muted/70 shadow-sm p-1">
-            <TabsTrigger value="setup" className="transition-all duration-200 data-[state=active]:shadow-sm">Setup</TabsTrigger>
-            <TabsTrigger value="dashboard" onClick={commitInputs} className="transition-all duration-200 data-[state=active]:shadow-sm">Dashboard</TabsTrigger>
-            <TabsTrigger value="projections" onClick={commitInputs} className="transition-all duration-200 data-[state=active]:shadow-sm">Projections</TabsTrigger>
-            <TabsTrigger value="analysis" onClick={commitInputs} className="transition-all duration-200 data-[state=active]:shadow-sm">Analysis</TabsTrigger>
-            <TabsTrigger value="charts" onClick={commitInputs} className="transition-all duration-200 data-[state=active]:shadow-sm">Charts</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 rounded-xl bg-card shadow-md border p-1.5">
+            <TabsTrigger value="setup" className="rounded-lg transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium">Setup</TabsTrigger>
+            <TabsTrigger value="dashboard" onClick={commitInputs} className="rounded-lg transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium">Dashboard</TabsTrigger>
+            <TabsTrigger value="projections" onClick={commitInputs} className="rounded-lg transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium">Projections</TabsTrigger>
+            <TabsTrigger value="analysis" onClick={commitInputs} className="rounded-lg transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium">Analysis</TabsTrigger>
+            <TabsTrigger value="charts" onClick={commitInputs} className="rounded-lg transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium">Charts</TabsTrigger>
           </TabsList>
 
           <TabsContent value="setup">
