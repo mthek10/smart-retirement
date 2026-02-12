@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Activity, Shield, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Activity, Shield, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { MonteCarloResult, MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { formatCurrency, formatCurrencyCompact, formatPercent, getSuccessColor } from "@/lib/utils";
@@ -19,33 +19,36 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
   // Local state for sliders to give instant feedback without triggering recalculations
   const [localReturnMean, setLocalReturnMean] = useState(settings.returnMean * 100);
   const [localReturnStdDev, setLocalReturnStdDev] = useState(settings.returnStdDev * 100);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   // Sync local state when external settings change
   useEffect(() => {
     setLocalReturnMean(settings.returnMean * 100);
+    setIsCalculating(false);
   }, [settings.returnMean]);
 
   useEffect(() => {
     setLocalReturnStdDev(settings.returnStdDev * 100);
+    setIsCalculating(false);
   }, [settings.returnStdDev]);
 
   // Debounce: propagate slider changes after 400ms of inactivity
   useEffect(() => {
+    const newMean = localReturnMean / 100;
+    if (newMean === settings.returnMean) return;
+    setIsCalculating(true);
     const timer = setTimeout(() => {
-      const newMean = localReturnMean / 100;
-      if (newMean !== settings.returnMean) {
-        onSettingsChange({ ...settings, returnMean: newMean });
-      }
+      onSettingsChange({ ...settings, returnMean: newMean });
     }, 400);
     return () => clearTimeout(timer);
   }, [localReturnMean]);
 
   useEffect(() => {
+    const newStdDev = localReturnStdDev / 100;
+    if (newStdDev === settings.returnStdDev) return;
+    setIsCalculating(true);
     const timer = setTimeout(() => {
-      const newStdDev = localReturnStdDev / 100;
-      if (newStdDev !== settings.returnStdDev) {
-        onSettingsChange({ ...settings, returnStdDev: newStdDev });
-      }
+      onSettingsChange({ ...settings, returnStdDev: newStdDev });
     }, 400);
     return () => clearTimeout(timer);
   }, [localReturnStdDev]);
@@ -158,6 +161,14 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
             />
           </div>
         </div>
+
+        {/* Calculating indicator */}
+        {isCalculating && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Recalculating simulations…
+          </div>
+        )}
 
         {/* Strategy Comparison Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
