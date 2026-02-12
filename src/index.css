@@ -130,17 +130,48 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
-  /* Hide only horizontal scrollbar while keeping vertical */
+  /* Hide only horizontal scrollbar while keeping vertical always visible */
   .hide-horizontal-scrollbar {
     overflow-x: auto;
+    overflow-y: auto;
   }
   .hide-horizontal-scrollbar::-webkit-scrollbar:horizontal {
     display: none;
     height: 0;
   }
+  .hide-horizontal-scrollbar::-webkit-scrollbar:vertical {
+    width: 8px;
+  }
+  .hide-horizontal-scrollbar::-webkit-scrollbar-thumb:vertical {
+    background-color: hsl(var(--border));
+    border-radius: 4px;
+  }
+  .hide-horizontal-scrollbar::-webkit-scrollbar-track:vertical {
+    background-color: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
+  /* Always-visible scrollbar for top scroll container */
+  .always-show-scrollbar {
+    overflow-x: auto;
+  }
+  .always-show-scrollbar::-webkit-scrollbar {
+    height: 8px;
+  }
+  .always-show-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 4px;
+  }
+  .always-show-scrollbar::-webkit-scrollbar-track {
+    background-color: hsl(var(--muted));
+    border-radius: 4px;
+  }
+
   @supports (scrollbar-width: auto) {
-    .hide-horizontal-scrollbar {
+    .hide-horizontal-scrollbar,
+    .always-show-scrollbar {
       scrollbar-width: thin;
+      scrollbar-color: hsl(var(--border)) hsl(var(--muted));
     }
   }
 }
