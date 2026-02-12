@@ -135,7 +135,7 @@ export function CustomScrollbar({ scrollRef, orientation, className = "" }: Cust
       ref={trackRef}
       onClick={handleTrackClick}
       className={`custom-scrollbar-track ${
-        isVertical ? "w-2 h-full" : "h-2 w-full"
+        isVertical ? "w-3 h-full" : "h-3 w-full"
       } ${className}`}
       style={{ position: "relative", flexShrink: 0 }}
     >
