@@ -208,13 +208,13 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                   </span>
                   <span className="font-medium">{formatCurrency(s.data.medianFinalBalance)}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                     10th-90th %ile
                     <InfoTooltip text="The range covering 80% of outcomes. The 10th percentile is a poor-market result; the 90th is a strong-market result." side="right" />
                   </span>
-                  <span className="text-xs">
-                    {formatCurrency(s.data.percentile10FinalBalance)} - {formatCurrency(s.data.percentile90FinalBalance)}
+                  <span className="text-xs whitespace-nowrap">
+                    {formatCurrencyCompact(s.data.percentile10FinalBalance)} – {formatCurrencyCompact(s.data.percentile90FinalBalance)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
