@@ -311,6 +311,22 @@ export function ActionItems({
     });
   }
 
+  // Always show zero-tax-state comparison when in a taxable state (even with relocation planned)
+  if (isInTaxableState && lifetimeStateTax > 5000 && !movingToZeroTax) {
+    const stateName = stateCode === 'other' ? 'your current state' : stateCode;
+    const avgAnnualStateTax = Math.round(lifetimeStateTax / projections.length);
+
+    actionItems.push({
+      id: 'zero-tax-state-comparison',
+      priority: 'low',
+      category: 'state-tax',
+      title: 'Zero Income-Tax State Comparison',
+      description: `If you moved to a zero income-tax state (FL, TX, NV, WY, etc.) instead, you could eliminate up to ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
+      impact: `Potential savings of ~${formatCurrency(avgAnnualStateTax)}/year in state income and capital gains taxes`,
+      icon: <MapPin className="h-5 w-5 text-primary" />,
+    });
+  }
+
   const priorityOrder = { high: 0, medium: 1, low: 2 };
   actionItems.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
