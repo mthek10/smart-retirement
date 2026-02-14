@@ -8,6 +8,7 @@ import { Activity, Shield, AlertTriangle, CheckCircle2, Loader2 } from "lucide-r
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { MonteCarloResult, MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { formatCurrency, formatCurrencyCompact, formatPercent, getSuccessColor } from "@/lib/utils";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface MonteCarloResultsProps {
   results: MonteCarloResult;
@@ -192,23 +193,35 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Success Rate</span>
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    Success Rate
+                    <InfoTooltip text="Percentage of simulations where your funds lasted until age 100. Higher is better." side="right" />
+                  </span>
                   <span className={`font-bold ${getSuccessColor(s.data.successRate)}`}>
                     {formatPercent(s.data.successRate)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Median Final</span>
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    Median Final
+                    <InfoTooltip text="The middle outcome for your ending balance across all simulations. Half of scenarios end higher, half lower." side="right" />
+                  </span>
                   <span className="font-medium">{formatCurrency(s.data.medianFinalBalance)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">10th-90th %ile</span>
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    10th-90th %ile
+                    <InfoTooltip text="The range covering 80% of outcomes. The 10th percentile is a poor-market result; the 90th is a strong-market result." side="right" />
+                  </span>
                   <span className="text-xs">
                     {formatCurrency(s.data.percentile10FinalBalance)} - {formatCurrency(s.data.percentile90FinalBalance)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Avg Lifetime Tax</span>
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    Avg Lifetime Tax
+                    <InfoTooltip text="The average total taxes paid over your lifetime across all simulated market scenarios." side="right" />
+                  </span>
                   <span className="font-medium">{formatCurrency(s.data.avgLifetimeTax)}</span>
                 </div>
                 {s.data.medianDepletionAge && (
@@ -216,6 +229,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                     <span className="text-sm flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3" />
                       Median Depletion
+                      <InfoTooltip text="The median age at which funds run out across simulations where depletion occurred." side="right" />
                     </span>
                     <span className="font-medium">Age {s.data.medianDepletionAge}</span>
                   </div>
@@ -225,6 +239,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                     <span className="text-sm flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3" />
                       Funds Persist
+                      <InfoTooltip text="In the majority of simulations, your funds lasted past age 100 — no depletion detected." side="right" />
                     </span>
                     <span className="font-medium">Past 100</span>
                   </div>
