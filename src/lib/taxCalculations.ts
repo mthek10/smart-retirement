@@ -74,8 +74,8 @@ export function getRothConversionLimit(
 }
 
 export const standardDeductions2024: Record<string, number> = {
-  single: 14600,
-  married: 29200,
+  single: 15000,
+  married: 30000,
   hoh: 21900,
 };
 
