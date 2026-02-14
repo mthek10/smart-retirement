@@ -247,7 +247,7 @@ export function StrategyComparison({
               <div>Metric</div>
               <div className="text-center">Baseline</div>
               {showCurrentColumn && <div className="text-center">{currentStrategyName}</div>}
-              <div className="text-center">Optimized</div>
+              <div className="text-center">Optimized - Fill to 22%</div>
               <div className="text-center">Savings</div>
             </div>
 
