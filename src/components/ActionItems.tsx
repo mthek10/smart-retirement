@@ -270,8 +270,8 @@ export function ActionItems({
 
   if (stateRelocation?.enabled && stateRelocation.targetState) {
     const targetIsHighTax = highTaxStates[stateRelocation.targetState];
-    const currentIsLowerTax = !stateCode || stateCode === 'none' || zeroTaxStates.includes(stateCode) ||
-      (stateCode !== 'other' && !highTaxStates[stateCode]);
+    const currentIsLowerTax = !stateCode || stateCode === 'none' || stateCode === 'other' || 
+      zeroTaxStates.includes(stateCode) || !highTaxStates[stateCode];
     
     if (targetIsHighTax && currentIsLowerTax) {
       const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
