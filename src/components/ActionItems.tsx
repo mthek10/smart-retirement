@@ -90,60 +90,117 @@ export function ActionItems({
   const currentYear = projections[0];
   const actionItems: ActionItem[] = [];
 
-  // 1. Roth Conversion Opportunity
-  const bracketInfo = getBracketRoom(currentYear.totalIncome, filingStatus, 0, inflationRate);
-  if (bracketInfo.roomInBracket > 5000 && rothConversionStrategy === 'none') {
-    const conversionTax = bracketInfo.roomInBracket * (bracketInfo.currentBracket / 100);
+  // 1. Roth Conversion Opportunity — year-by-year schedule
+  const rothSchedule: { age: number; year: number; room: number; tax: number; bracket: number }[] = [];
+  const rmdStartAge = 73;
+  const maxRothYears = 10; // Show up to 10 years
+  let totalRothConvertible = 0;
+  let totalRothTaxCost = 0;
+
+  for (let i = 0; i < Math.min(maxRothYears, projections.length); i++) {
+    const p = projections[i];
+    if (p.age >= rmdStartAge) break; // Stop at RMD age
+    if (p.traditionalBalance < 1000) break; // Nothing to convert
+    const info = getBracketRoom(p.totalIncome, filingStatus, i, inflationRate);
+    if (info.roomInBracket > 1000) {
+      const convertible = Math.min(info.roomInBracket, p.traditionalBalance);
+      const taxCost = convertible * (info.currentBracket / 100);
+      rothSchedule.push({ age: p.age, year: p.year, room: convertible, tax: taxCost, bracket: info.currentBracket });
+      totalRothConvertible += convertible;
+      totalRothTaxCost += taxCost;
+    }
+  }
+
+  if (rothSchedule.length > 0 && rothConversionStrategy === 'none') {
+    const scheduleLines = rothSchedule.slice(0, 5).map(
+      s => `Age ${s.age} (${s.year}): Convert ${formatCurrency(s.room)} at ${s.bracket}% — tax cost ${formatCurrency(s.tax)}`
+    );
+    if (rothSchedule.length > 5) {
+      scheduleLines.push(`...and ${rothSchedule.length - 5} more years`);
+    }
+
     actionItems.push({
       id: 'roth-conversion',
       priority: 'high',
       category: 'roth',
-      title: 'Roth Conversion Opportunity',
-      description: `You have ${formatCurrency(bracketInfo.roomInBracket)} of room in your ${bracketInfo.currentBracket}% tax bracket. Consider converting Traditional IRA funds to Roth.`,
-      impact: `Tax cost: ${formatCurrency(conversionTax)} now to avoid higher taxes later`,
+      title: 'Roth Conversion Schedule',
+      description: `You can convert up to ${formatCurrency(totalRothConvertible)} over the next ${rothSchedule.length} years by filling your current tax bracket each year. Total estimated tax cost: ${formatCurrency(totalRothTaxCost)}.`,
+      impact: `${scheduleLines.join('\n')}`,
       icon: <TrendingUp className="h-5 w-5 text-success" />,
     });
-  } else if (bracketInfo.roomInBracket > 5000 && rothConversionStrategy !== 'none') {
+  } else if (rothSchedule.length > 0 && rothConversionStrategy !== 'none') {
+    const scheduleLines = rothSchedule.slice(0, 5).map(
+      s => `Age ${s.age} (${s.year}): Up to ${formatCurrency(s.room)} room in ${s.bracket}% bracket`
+    );
+    if (rothSchedule.length > 5) {
+      scheduleLines.push(`...and ${rothSchedule.length - 5} more years`);
+    }
+
     actionItems.push({
       id: 'roth-strategy-active',
       priority: 'low',
       category: 'roth',
-      title: 'Roth Strategy Active',
-      description: `Your current strategy is filling to the ${bracketInfo.currentBracket}% bracket. You're optimizing your tax situation.`,
+      title: 'Roth Strategy Active — Year-by-Year Capacity',
+      description: `Your current strategy is filling the ${rothSchedule[0].bracket}% bracket. Here's the remaining room each year:`,
+      impact: `${scheduleLines.join('\n')}`,
       icon: <CheckCircle2 className="h-5 w-5 text-success" />,
     });
   }
 
-  // 1b. Capital Gains Harvesting Opportunity (0% LTCG bracket)
+  // 1b. Capital Gains Harvesting — year-by-year schedule
   const standardDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
-  const taxableIncomeForCG = Math.max(0, currentYear.ordinaryIncome - standardDeduction);
-  const cgHarvesting = calculateCapitalGainsHarvestingRoom(
-    taxableIncomeForCG,
-    filingStatus,
-    0,
-    inflationRate / 100
-  );
-  
-  if (cgHarvesting.harvestingAvailable && taxableUnrealizedGains && taxableUnrealizedGains > 1000) {
-    const harvestableAmount = Math.min(cgHarvesting.roomInZeroBracket, taxableUnrealizedGains);
+  const cgSchedule: { age: number; year: number; room: number; harvestable: number }[] = [];
+  let totalCGHarvestable = 0;
+  let remainingGains = taxableUnrealizedGains || 0;
+
+  for (let i = 0; i < Math.min(maxRothYears, projections.length); i++) {
+    const p = projections[i];
+    if (remainingGains < 1000) break;
+    if (p.taxableBalance < 1000) break;
+    const taxableIncomeForCG = Math.max(0, p.ordinaryIncome - standardDeduction * Math.pow(1 + inflationRate / 100, i));
+    const cgRoom = calculateCapitalGainsHarvestingRoom(
+      taxableIncomeForCG,
+      filingStatus,
+      i,
+      inflationRate / 100
+    );
+    if (cgRoom.harvestingAvailable) {
+      const harvestable = Math.min(cgRoom.roomInZeroBracket, remainingGains);
+      cgSchedule.push({ age: p.age, year: p.year, room: cgRoom.roomInZeroBracket, harvestable });
+      totalCGHarvestable += harvestable;
+      remainingGains -= harvestable;
+    }
+  }
+
+  if (cgSchedule.length > 0 && taxableUnrealizedGains && taxableUnrealizedGains > 1000) {
+    const scheduleLines = cgSchedule.slice(0, 5).map(
+      s => `Age ${s.age} (${s.year}): Realize ${formatCurrency(s.harvestable)} in gains at 0% federal tax (${formatCurrency(s.room)} bracket room)`
+    );
+    if (cgSchedule.length > 5) {
+      scheduleLines.push(`...and ${cgSchedule.length - 5} more years`);
+    }
+
     actionItems.push({
       id: 'cg-harvesting',
       priority: 'high',
       category: 'cg-harvest',
-      title: 'Capital Gains Harvesting Opportunity',
-      description: `You have ${formatCurrency(cgHarvesting.roomInZeroBracket)} of room in the 0% LTCG bracket. Consider selling appreciated assets to realize gains tax-free.`,
-      impact: `Harvest up to ${formatCurrency(harvestableAmount)} in gains at 0% federal tax`,
+      title: 'Capital Gains Harvesting Schedule',
+      description: `You can harvest ${formatCurrency(totalCGHarvestable)} of your ${formatCurrency(taxableUnrealizedGains)} in unrealized gains at 0% federal tax over ${cgSchedule.length} years:`,
+      impact: `${scheduleLines.join('\n')}`,
       icon: <Coins className="h-5 w-5 text-success" />,
     });
-  } else if (cgHarvesting.harvestingAvailable && currentYear.taxableBalance > 10000) {
-    // Show opportunity even without knowing exact unrealized gains
+  } else if (cgSchedule.length > 0 && currentYear.taxableBalance > 10000) {
+    const scheduleLines = cgSchedule.slice(0, 5).map(
+      s => `Age ${s.age} (${s.year}): ${formatCurrency(s.room)} room in 0% LTCG bracket`
+    );
+
     actionItems.push({
       id: 'cg-harvesting-opportunity',
       priority: 'medium',
       category: 'cg-harvest',
-      title: '0% Capital Gains Rate Available',
-      description: `Your income leaves ${formatCurrency(cgHarvesting.roomInZeroBracket)} room in the 0% LTCG bracket. Review your taxable account for gains you could realize tax-free.`,
-      impact: `Potential to reset cost basis on appreciated shares at no federal tax cost`,
+      title: '0% Capital Gains Bracket — Year-by-Year Room',
+      description: `Your income leaves room in the 0% LTCG bracket. Review your taxable account for gains you could realize tax-free:`,
+      impact: `${scheduleLines.join('\n')}`,
       icon: <Coins className="h-5 w-5 text-primary" />,
     });
   }
@@ -194,9 +251,10 @@ export function ActionItems({
   }
 
   // 3b. Pre-RMD Optimization Window
+  const currentBracketInfo = getBracketRoom(currentYear.totalIncome, filingStatus, 0, inflationRate);
   if (yearsToRMD > 0 && yearsToRMD <= 15 && currentYear.traditionalBalance > 100000) {
     const tradBalance = currentYear.traditionalBalance;
-    const annualConversionRoom = bracketInfo.roomInBracket;
+    const annualConversionRoom = currentBracketInfo.roomInBracket;
     const totalConvertible = annualConversionRoom * yearsToRMD;
     const percentReducible = Math.min(100, Math.round((totalConvertible / tradBalance) * 100));
 
@@ -207,7 +265,7 @@ export function ActionItems({
       title: `Pre-RMD Optimization Window: ${yearsToRMD} Years`,
       description: `You have a ${yearsToRMD}-year window before RMDs begin to reduce your Traditional IRA balance of ${formatCurrency(tradBalance)} through strategic Roth conversions. Converting at today's lower tax rates can avoid forced distributions at potentially higher rates.`,
       impact: annualConversionRoom > 5000
-        ? `Up to ${formatCurrency(annualConversionRoom)}/year in conversions within your ${bracketInfo.currentBracket}% bracket could reduce your Traditional balance by ~${percentReducible}%`
+        ? `Up to ${formatCurrency(annualConversionRoom)}/year in conversions within your ${currentBracketInfo.currentBracket}% bracket could reduce your Traditional balance by ~${percentReducible}%`
         : `Review your tax bracket for Roth conversion opportunities before RMDs begin`,
       icon: <PiggyBank className="h-5 w-5 text-primary" />,
     });
