@@ -377,6 +377,7 @@ const Index = () => {
                 taxableUnrealizedGains={accounts.taxable * ((100 - accounts.taxableCostBasisPercent) / 100)}
                 stateCode={taxSettings.state}
                 stateRelocation={taxSettings.stateRelocation}
+                onNavigateToSetup={navigateToSetupStep}
               />
 
               {/* Key Takeaways */}
