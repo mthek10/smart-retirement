@@ -33,6 +33,7 @@ interface ActionItemsProps {
     targetState: string;
     relocationAge: number;
   };
+  onNavigateToSetup?: (stepIndex: number) => void;
 }
 
 interface ActionItem {
@@ -43,6 +44,8 @@ interface ActionItem {
   description: string;
   impact?: string;
   icon: React.ReactNode;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 
@@ -80,6 +83,7 @@ export function ActionItems({
   taxableUnrealizedGains,
   stateCode,
   stateRelocation,
+  onNavigateToSetup,
 }: ActionItemsProps) {
   if (projections.length === 0) return null;
 
@@ -324,6 +328,8 @@ export function ActionItems({
       description: `If you moved to a zero income-tax state (FL, TX, NV, WY, etc.) instead, you could eliminate up to ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
       impact: `Potential savings of ~${formatCurrency(avgAnnualStateTax)}/year in state income and capital gains taxes`,
       icon: <MapPin className="h-5 w-5 text-primary" />,
+      actionLabel: 'Set Up State Relocation',
+      onAction: onNavigateToSetup ? () => onNavigateToSetup(4) : undefined,
     });
   }
 
@@ -376,6 +382,14 @@ export function ActionItems({
                   <div className="text-sm font-medium text-primary mt-2 whitespace-pre-line">
                     💡 {item.impact}
                   </div>
+                )}
+                {item.actionLabel && item.onAction && (
+                  <button
+                    onClick={item.onAction}
+                    className="mt-2 text-sm font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
+                  >
+                    {item.actionLabel} →
+                  </button>
                 )}
               </div>
             </div>
