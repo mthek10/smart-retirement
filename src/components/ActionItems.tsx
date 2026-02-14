@@ -240,57 +240,75 @@ export function ActionItems({
     }
   }
 
-  // 6. State Tax Relocation Savings
+  // 6. State Tax & Relocation Planning (combined)
   const zeroTaxStates = ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'];
-  const isInTaxableState = stateCode && stateCode !== 'none' && !zeroTaxStates.includes(stateCode);
-  
-  if (isInTaxableState) {
-    const lifetimeStateTax = projections.reduce((sum, p) => sum + p.stateTax + p.stateCapitalGainsTax, 0);
-    
-    if (lifetimeStateTax > 5000) {
-      const stateName = stateCode === 'other' ? 'your current state' : stateCode;
-      actionItems.push({
-        id: 'state-tax-relocation',
-        priority: lifetimeStateTax > 100000 ? 'high' : lifetimeStateTax > 25000 ? 'medium' : 'low',
-        category: 'state-tax',
-        title: 'State Tax Relocation Savings',
-        description: `Moving to a zero income-tax state (e.g., FL, TX, NV, WY, NH) could eliminate ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
-        impact: `Average savings of ${formatCurrency(Math.round(lifetimeStateTax / projections.length))}/year in state income and capital gains taxes`,
-        icon: <MapPin className="h-5 w-5 text-primary" />,
-      });
-    }
-  }
-
-  // 7. Pre-Move Advice: Moving to a Higher Tax State
   const highTaxStates: Record<string, string> = {
     CA: 'California (up to 13.3%)', NY: 'New York (up to 10.9%)', NJ: 'New Jersey (up to 10.75%)',
     OR: 'Oregon (up to 9.9%)', MN: 'Minnesota (up to 9.85%)', DC: 'D.C. (up to 10.75%)',
     HI: 'Hawaii (up to 11%)', CT: 'Connecticut (up to 6.99%)', VT: 'Vermont (up to 8.75%)',
   };
+  const isInTaxableState = stateCode && stateCode !== 'none' && !zeroTaxStates.includes(stateCode);
+  const lifetimeStateTax = isInTaxableState
+    ? projections.reduce((sum, p) => sum + p.stateTax + p.stateCapitalGainsTax, 0)
+    : 0;
 
-  if (stateRelocation?.enabled && stateRelocation.targetState) {
-    const targetIsHighTax = highTaxStates[stateRelocation.targetState];
-    const currentIsLowerTax = !stateCode || stateCode === 'none' || stateCode === 'other' || 
-      zeroTaxStates.includes(stateCode) || !highTaxStates[stateCode];
-    
-    if (targetIsHighTax && currentIsLowerTax) {
-      const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
-      const tips: string[] = [];
-      tips.push('Realize capital gains before moving to avoid higher state CG taxes');
-      tips.push('Accelerate Roth conversions now while in a lower-tax state');
-      tips.push('Consider selling appreciated real estate or investments pre-move');
-      tips.push('Exercise stock options or RSUs before establishing residency');
+  const hasRelocation = stateRelocation?.enabled && stateRelocation.targetState;
+  const targetIsHighTax = hasRelocation ? highTaxStates[stateRelocation.targetState] : null;
+  const currentIsLowerTax = !stateCode || stateCode === 'none' || stateCode === 'other' ||
+    zeroTaxStates.includes(stateCode) || !highTaxStates[stateCode];
+  const movingToHighTax = hasRelocation && targetIsHighTax && currentIsLowerTax;
+  const movingToZeroTax = hasRelocation && zeroTaxStates.includes(stateRelocation.targetState);
 
-      actionItems.push({
-        id: 'high-tax-state-move',
-        priority: yearsUntilMove <= 3 ? 'high' : 'medium',
-        category: 'state-tax',
-        title: `Prepare for Move to ${stateRelocation.targetState} (Higher Tax State)`,
-        description: `You're planning to move to ${targetIsHighTax} in ${yearsUntilMove} ${yearsUntilMove === 1 ? 'year' : 'years'}. Take these steps before relocating to minimize your tax impact:`,
-        impact: `• ${tips.join('\n• ')}`,
-        icon: <MapPin className="h-5 w-5 text-warning" />,
-      });
-    }
+  if (movingToHighTax) {
+    // Combined: warn about higher taxes + pre-move tips
+    const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
+    const tips = [
+      'Realize capital gains before moving to avoid higher state CG taxes',
+      'Accelerate Roth conversions now while in a lower-tax state',
+      'Consider selling appreciated real estate or investments pre-move',
+      'Exercise stock options or RSUs before establishing residency',
+    ];
+    const stateName = stateCode === 'other' ? 'your current state' : (stateCode || 'your current state');
+
+    actionItems.push({
+      id: 'state-relocation-combined',
+      priority: yearsUntilMove <= 3 ? 'high' : 'medium',
+      category: 'state-tax',
+      title: `State Relocation: Moving to ${stateRelocation.targetState} in ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'}`,
+      description: `You're planning to move from ${stateName} to ${targetIsHighTax}. This will increase your state tax burden.${lifetimeStateTax > 5000 ? ` Your projected lifetime state taxes are ${formatCurrency(lifetimeStateTax)}.` : ''} Take these steps before relocating:`,
+      impact: `• ${tips.join('\n• ')}`,
+      icon: <MapPin className="h-5 w-5 text-warning" />,
+    });
+  } else if (movingToZeroTax && isInTaxableState && lifetimeStateTax > 5000) {
+    // Combined: relocation to zero-tax state with savings estimate
+    const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
+    const stateName = stateCode === 'other' ? 'your current state' : stateCode;
+    const preMoveTax = projections
+      .filter(p => p.age < stateRelocation.relocationAge)
+      .reduce((sum, p) => sum + p.stateTax + p.stateCapitalGainsTax, 0);
+    const postMoveSavings = lifetimeStateTax - preMoveTax;
+
+    actionItems.push({
+      id: 'state-relocation-combined',
+      priority: postMoveSavings > 100000 ? 'high' : postMoveSavings > 25000 ? 'medium' : 'low',
+      category: 'state-tax',
+      title: `State Relocation: Moving to ${stateRelocation.targetState} in ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'}`,
+      description: `Moving from ${stateName} to ${stateRelocation.targetState} (zero income tax) at age ${stateRelocation.relocationAge} will save an estimated ${formatCurrency(postMoveSavings)} in state taxes over your retirement.`,
+      impact: `Total projected lifetime state taxes: ${formatCurrency(lifetimeStateTax)} (${formatCurrency(preMoveTax)} before move, ${formatCurrency(postMoveSavings)} saved after)`,
+      icon: <MapPin className="h-5 w-5 text-success" />,
+    });
+  } else if (isInTaxableState && lifetimeStateTax > 5000 && !hasRelocation) {
+    // No relocation planned — suggest considering it
+    const stateName = stateCode === 'other' ? 'your current state' : stateCode;
+    actionItems.push({
+      id: 'state-tax-relocation',
+      priority: lifetimeStateTax > 100000 ? 'high' : lifetimeStateTax > 25000 ? 'medium' : 'low',
+      category: 'state-tax',
+      title: 'State Tax Relocation Savings',
+      description: `Moving to a zero income-tax state (e.g., FL, TX, NV, WY, NH) could eliminate ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
+      impact: `Average savings of ${formatCurrency(Math.round(lifetimeStateTax / projections.length))}/year in state income and capital gains taxes`,
+      icon: <MapPin className="h-5 w-5 text-primary" />,
+    });
   }
 
   const priorityOrder = { high: 0, medium: 1, low: 2 };
