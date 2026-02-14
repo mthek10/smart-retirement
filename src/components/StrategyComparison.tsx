@@ -177,54 +177,65 @@ export function StrategyComparison({
       <CardContent>
         <div className="space-y-6">
           {/* Unified Strategy Metrics Table */}
-          <div>
-            <div className={`grid ${showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm font-medium text-muted-foreground pb-2 border-b`}>
-              <div>Metric</div>
-              <div className="text-center">Baseline - No Conversion</div>
-              {showCurrentColumn && <div className="text-center">{currentStrategyName}</div>}
-              <div className="text-center">Optimized - Fill to 22%</div>
-            </div>
-
-            {allMetrics.map((metric, idx) => {
-              // Insert group separator before longevity metrics
-              const prevGroup = idx > 0 ? allMetrics[idx - 1].group : null;
-              const showSeparator = prevGroup && prevGroup !== metric.group;
-              return (
-                <div key={metric.label}>
-                  {showSeparator && (
-                    <div className={`grid ${showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3'} gap-4 pt-3 pb-1`}>
-                      <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 border-t pt-2">
-                        <Clock className="h-3 w-3" /> Longevity
-                      </div>
-                    </div>
-                  )}
-                  {idx === 0 && (
-                    <div className={`grid ${showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3'} gap-4 pt-1 pb-1`}>
-                      <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                        <DollarSign className="h-3 w-3" /> Tax Efficiency
-                      </div>
-                    </div>
-                  )}
-                  <div className={`grid ${showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3'} gap-4 items-center text-sm py-2 border-b border-muted/50`}>
-                    <div className="font-medium">{metric.label}</div>
-                    <div className="text-center text-muted-foreground flex items-center justify-center">
-                      {metric.baseline}
-                      {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
-                    </div>
-                    {showCurrentColumn && (
-                      <div className={`text-center flex items-center justify-center ${metric.group === 'tax' && currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
-                        {metric.current}
-                        {metric.winner && getWinnerBadge(metric.winner, 'current')}
-                      </div>
-                    )}
-                    <div className={`text-center flex items-center justify-center ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
-                      {metric.optimized}
-                      {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left font-medium text-muted-foreground px-3 py-2 border-r">Metric</th>
+                  <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Baseline - No Conversion</th>
+                  {showCurrentColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">{currentStrategyName}</th>}
+                  <th className="text-center font-medium text-muted-foreground px-3 py-2">Optimized - Fill to 22%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allMetrics.map((metric, idx) => {
+                  const prevGroup = idx > 0 ? allMetrics[idx - 1].group : null;
+                  const showSeparator = prevGroup && prevGroup !== metric.group;
+                  const colSpan = showCurrentColumn ? 4 : 3;
+                  return (
+                    <>
+                      {idx === 0 && (
+                        <tr key="tax-header" className="bg-muted/20">
+                          <td colSpan={colSpan} className="px-3 py-1.5 text-xs font-semibold text-muted-foreground border-b">
+                            <span className="flex items-center gap-1.5"><DollarSign className="h-3 w-3" /> Tax Efficiency</span>
+                          </td>
+                        </tr>
+                      )}
+                      {showSeparator && (
+                        <tr key="longevity-header" className="bg-muted/20">
+                          <td colSpan={colSpan} className="px-3 py-1.5 text-xs font-semibold text-muted-foreground border-b border-t">
+                            <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> Longevity</span>
+                          </td>
+                        </tr>
+                      )}
+                      <tr key={metric.label} className="border-b last:border-b-0 hover:bg-muted/10">
+                        <td className="px-3 py-2 font-medium border-r">{metric.label}</td>
+                        <td className="px-3 py-2 text-center text-muted-foreground border-r">
+                          <span className="inline-flex items-center justify-center gap-1">
+                            {metric.baseline}
+                            {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
+                          </span>
+                        </td>
+                        {showCurrentColumn && (
+                          <td className={`px-3 py-2 text-center border-r ${metric.group === 'tax' && currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
+                            <span className="inline-flex items-center justify-center gap-1">
+                              {metric.current}
+                              {metric.winner && getWinnerBadge(metric.winner, 'current')}
+                            </span>
+                          </td>
+                        )}
+                        <td className={`px-3 py-2 text-center ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
+                          <span className="inline-flex items-center justify-center gap-1">
+                            {metric.optimized}
+                            {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
+                          </span>
+                        </td>
+                      </tr>
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           {/* Survivor Impact Section */}
