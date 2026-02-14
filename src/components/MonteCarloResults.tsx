@@ -160,7 +160,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
         {isCalculating && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Recalculating simulations…
+            <strong>Recalculating simulations…</strong>
           </div>
         )}
 
