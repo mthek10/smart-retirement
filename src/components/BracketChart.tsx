@@ -47,6 +47,10 @@ export function BracketChart({ data }: BracketChartProps) {
   // Determine which brackets appear in the data for the legend
   const uniqueRates = [...new Set(chartData.map(d => d.rate).filter(r => r > 0))].sort();
 
+  // Auto-scale Y axis: next bracket step above the highest seen
+  const maxBracket = Math.max(...chartData.map(d => d.bracket));
+  const yMax = Math.ceil(maxBracket / 5) * 5 + 5;
+
   return (
     <Card>
       <CardHeader>
@@ -71,7 +75,7 @@ export function BracketChart({ data }: BracketChartProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              domain={[0, 40]}
+              domain={[0, yMax]}
               tickFormatter={(v) => `${v}%`}
               tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
             />
