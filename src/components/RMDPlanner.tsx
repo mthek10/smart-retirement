@@ -296,52 +296,6 @@ export function RMDPlanner({
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            
-            {/* Tax Bracket Over Time */}
-            <div className="mt-6">
-              <h4 className="font-medium mb-3">Marginal Tax Bracket Impact</h4>
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis 
-                      dataKey="age" 
-                      tick={{ fontSize: 12 }} 
-                      className="fill-muted-foreground"
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12 }} 
-                      tickFormatter={(v) => `${v}%`}
-                      domain={[0, 40]}
-                      className="fill-muted-foreground"
-                    />
-                    <Tooltip 
-                      formatter={(value: number) => [`${value}%`, 'Marginal Bracket']}
-                      labelFormatter={(age) => `Age ${age}`}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Area
-                      type="stepAfter"
-                      dataKey="bracket"
-                      name="Marginal Tax Bracket"
-                      fill="hsl(var(--destructive) / 0.3)"
-                      stroke="hsl(var(--destructive))"
-                      strokeWidth={2}
-                    />
-                    <ReferenceLine 
-                      y={22} 
-                      stroke="hsl(var(--success))" 
-                      strokeDasharray="5 5"
-                      label={{ value: '22% Target', position: 'right', fill: 'hsl(var(--success))' }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
           </TabsContent>
           
           <TabsContent value="table" className="mt-4">
