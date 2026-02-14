@@ -92,6 +92,19 @@ export function ActionItems({
   const currentYear = projections[0];
   const actionItems: ActionItem[] = [];
 
+  // Pre-compute relocation flags (needed to suppress redundant Roth cards)
+  const zeroTaxStates = ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'];
+  const highTaxStates: Record<string, string> = {
+    CA: 'California (up to 13.3%)', NY: 'New York (up to 10.9%)', NJ: 'New Jersey (up to 10.75%)',
+    OR: 'Oregon (up to 9.9%)', MN: 'Minnesota (up to 9.85%)', DC: 'D.C. (up to 10.75%)',
+    HI: 'Hawaii (up to 11%)', CT: 'Connecticut (up to 6.99%)', VT: 'Vermont (up to 8.75%)',
+  };
+  const hasRelocation = stateRelocation?.enabled && stateRelocation.targetState;
+  const targetIsHighTax = hasRelocation ? highTaxStates[stateRelocation.targetState] : null;
+  const currentIsLowerTax = !stateCode || stateCode === 'none' || stateCode === 'other' ||
+    zeroTaxStates.includes(stateCode) || !highTaxStates[stateCode];
+  const movingToHighTax = hasRelocation && targetIsHighTax && currentIsLowerTax;
+
   // 1. Roth Conversion Opportunity — year-by-year schedule
   const rothSchedule: { age: number; year: number; room: number; tax: number; bracket: number }[] = [];
   const rmdStartAge = 73;
@@ -113,7 +126,10 @@ export function ActionItems({
     }
   }
 
-  if (rothSchedule.length > 0 && rothConversionStrategy === 'none') {
+  // Skip standalone Roth cards when pre-relocation combined strategy will include Roth
+  const willShowCombinedRelocation = movingToHighTax;
+
+  if (rothSchedule.length > 0 && rothConversionStrategy === 'none' && !willShowCombinedRelocation) {
     const scheduleLines = rothSchedule.slice(0, 5).map(
       s => `Age ${s.age} (${s.year}): Convert ${formatCurrency(s.room)} at ${s.bracket}% — tax cost ${formatCurrency(s.tax)}`
     );
@@ -130,7 +146,7 @@ export function ActionItems({
       impact: `${scheduleLines.join('\n')}`,
       icon: <TrendingUp className="h-5 w-5 text-success" />,
     });
-  } else if (rothSchedule.length > 0 && rothConversionStrategy !== 'none') {
+  } else if (rothSchedule.length > 0 && rothConversionStrategy !== 'none' && !willShowCombinedRelocation) {
     const scheduleLines = rothSchedule.slice(0, 5).map(
       s => `Age ${s.age} (${s.year}): Up to ${formatCurrency(s.room)} room in ${s.bracket}% bracket`
     );
@@ -397,23 +413,12 @@ export function ActionItems({
   }
 
   // 6. State Tax & Relocation Planning (combined)
-  const zeroTaxStates = ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'];
-  const highTaxStates: Record<string, string> = {
-    CA: 'California (up to 13.3%)', NY: 'New York (up to 10.9%)', NJ: 'New Jersey (up to 10.75%)',
-    OR: 'Oregon (up to 9.9%)', MN: 'Minnesota (up to 9.85%)', DC: 'D.C. (up to 10.75%)',
-    HI: 'Hawaii (up to 11%)', CT: 'Connecticut (up to 6.99%)', VT: 'Vermont (up to 8.75%)',
-  };
   const isInTaxableState = stateCode && stateCode !== 'none' && !zeroTaxStates.includes(stateCode);
   const lifetimeStateTax = isInTaxableState
     ? projections.reduce((sum, p) => sum + p.stateTax + p.stateCapitalGainsTax, 0)
     : 0;
-
-  const hasRelocation = stateRelocation?.enabled && stateRelocation.targetState;
-  const targetIsHighTax = hasRelocation ? highTaxStates[stateRelocation.targetState] : null;
-  const currentIsLowerTax = !stateCode || stateCode === 'none' || stateCode === 'other' ||
-    zeroTaxStates.includes(stateCode) || !highTaxStates[stateCode];
-  const movingToHighTax = hasRelocation && targetIsHighTax && currentIsLowerTax;
   const movingToZeroTax = hasRelocation && zeroTaxStates.includes(stateRelocation.targetState);
+
 
   if (movingToHighTax) {
     const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
