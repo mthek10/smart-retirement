@@ -44,6 +44,7 @@ interface ActionItem {
   title: string;
   description: string;
   impact?: string;
+  customContent?: React.ReactNode;
   icon: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
@@ -523,68 +524,128 @@ export function ActionItems({
       }
     }
 
-    // Build display
-    const scheduleLines: string[] = [];
+    // Build table display
     const hasRoth = totalRothInPlan > 1000;
     const hasCG = totalGainsInPlan > 1000;
     const hasSchedule = combinedSchedule.length > 0 && (hasRoth || (hasCG && rateDifference > 0.002));
 
+    let tableContent: React.ReactNode = null;
     if (hasSchedule) {
-      scheduleLines.push(
-        `📊 State Rate Comparison: ${stateName} ${(currentStateRate * 100).toFixed(1)}% vs ${targetSt} ${(targetStateRate * 100).toFixed(1)}% (+${(rateDifference * 100).toFixed(1)}% higher)`
+      const totalRothTax = combinedSchedule.reduce((s, y) => s + y.rothTaxCost, 0);
+      tableContent = (
+        <div className="space-y-3">
+          {/* Summary badges */}
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="px-2 py-1 rounded bg-muted border border-border">
+              📊 {stateName} {(currentStateRate * 100).toFixed(1)}% → {targetSt} {(targetStateRate * 100).toFixed(1)}% (+{(rateDifference * 100).toFixed(1)}%)
+            </span>
+            <span className="px-2 py-1 rounded bg-muted border border-border">
+              💰 Brokerage {formatCurrency(brokerageBalance)} — {formatCurrency(totalCostBasis)} basis — {formatCurrency(totalUnrealizedGains)} gains
+            </span>
+            {hasRoth && (
+              <span className="px-2 py-1 rounded bg-muted border border-border">
+                🔄 Traditional {formatCurrency(projections[0]?.traditionalBalance || 0)}
+              </span>
+            )}
+          </div>
+
+          {/* Year-by-year table */}
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-muted/60">
+                  <th className="text-left px-2 py-1.5 font-semibold border-b border-border">Year</th>
+                  <th className="text-left px-2 py-1.5 font-semibold border-b border-border">Income</th>
+                  {hasRoth && <th className="text-right px-2 py-1.5 font-semibold border-b border-border">Roth Conv.</th>}
+                  {hasRoth && <th className="text-right px-2 py-1.5 font-semibold border-b border-border">Tax Cost</th>}
+                  {hasCG && <th className="text-right px-2 py-1.5 font-semibold border-b border-border">CG Realized</th>}
+                  {hasCG && <th className="text-right px-2 py-1.5 font-semibold border-b border-border">{stateName} Tax</th>}
+                  {hasCG && <th className="text-right px-2 py-1.5 font-semibold border-b border-border">{targetSt} Tax</th>}
+                  {hasCG && <th className="text-right px-2 py-1.5 font-semibold border-b border-border text-success">Savings</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {combinedSchedule.map((s, i) => {
+                  const incomeNotes: string[] = [];
+                  if (s.employmentIncome > 0) incomeNotes.push(`W ${formatCurrency(s.employmentIncome)}`);
+                  if (s.ssIncome > 0) incomeNotes.push(`SS ${formatCurrency(s.ssIncome)}`);
+                  const curPct = s.gainsRealized > 0 ? ((s.cgCurrentStateTax / s.gainsRealized) * 100).toFixed(1) : '0.0';
+                  const tgtPct = s.gainsRealized > 0 ? ((s.cgTargetStateTax / s.gainsRealized) * 100).toFixed(1) : '0.0';
+
+                  return (
+                    <tr key={i} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                      <td className="px-2 py-1.5 font-medium whitespace-nowrap">Age {s.age} ({s.year})</td>
+                      <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap">
+                        {incomeNotes.length > 0 ? incomeNotes.join(' + ') : '—'}
+                      </td>
+                      {hasRoth && (
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                          {s.rothConversion > 500 ? formatCurrency(s.rothConversion) : '—'}
+                          {s.rothConversion > 500 && <span className="text-muted-foreground ml-1">@{s.rothBracket}%</span>}
+                        </td>
+                      )}
+                      {hasRoth && (
+                        <td className="px-2 py-1.5 text-right text-muted-foreground whitespace-nowrap">
+                          {s.rothTaxCost > 0 ? formatCurrency(s.rothTaxCost) : '—'}
+                        </td>
+                      )}
+                      {hasCG && (
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                          {s.gainsRealized > 500 ? (
+                            <>
+                              {formatCurrency(s.gainsRealized)}
+                              <span className="text-muted-foreground ml-1">({s.federalCGRate})</span>
+                            </>
+                          ) : '—'}
+                        </td>
+                      )}
+                      {hasCG && (
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                          {s.gainsRealized > 500 ? <>{formatCurrency(s.cgCurrentStateTax)} <span className="text-muted-foreground">({curPct}%)</span></> : '—'}
+                        </td>
+                      )}
+                      {hasCG && (
+                        <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                          {s.gainsRealized > 500 ? <>{formatCurrency(s.cgTargetStateTax)} <span className="text-muted-foreground">({tgtPct}%)</span></> : '—'}
+                        </td>
+                      )}
+                      {hasCG && (
+                        <td className="px-2 py-1.5 text-right font-medium text-success whitespace-nowrap">
+                          {s.cgSavings > 0 ? formatCurrency(s.cgSavings) : '—'}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+                {/* Totals row */}
+                <tr className="bg-muted/40 font-semibold">
+                  <td className="px-2 py-1.5" colSpan={2}>Totals</td>
+                  {hasRoth && <td className="px-2 py-1.5 text-right">{formatCurrency(totalRothInPlan)}</td>}
+                  {hasRoth && <td className="px-2 py-1.5 text-right text-muted-foreground">{formatCurrency(totalRothTax)}</td>}
+                  {hasCG && <td className="px-2 py-1.5 text-right">{formatCurrency(totalGainsInPlan)}</td>}
+                  {hasCG && <td className="px-2 py-1.5 text-right" colSpan={2}></td>}
+                  {hasCG && <td className="px-2 py-1.5 text-right text-success">{formatCurrency(totalPreMoveSavings)}</td>}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Remaining balances warnings */}
+          <div className="flex flex-col gap-1 text-xs">
+            {gainsLeft > 1000 && (
+              <span className="text-warning">⚠️ Remaining unrealized gains at relocation: {formatCurrency(gainsLeft)} (taxed at {targetSt} rates)</span>
+            )}
+            {tradBalanceLeft > 1000 && (
+              <span className="text-warning">⚠️ Remaining Traditional balance: {formatCurrency(tradBalanceLeft)} (future RMDs taxed at {targetSt} rates)</span>
+            )}
+          </div>
+        </div>
       );
-      scheduleLines.push(
-        `💰 Brokerage: ${formatCurrency(brokerageBalance)} — ${formatCurrency(totalCostBasis)} basis (${Math.round(costBasisPct * 100)}%) — ${formatCurrency(totalUnrealizedGains)} unrealized gains`
-      );
-      if (hasRoth) {
-        scheduleLines.push(
-          `🔄 Traditional IRA: ${formatCurrency(projections[0]?.traditionalBalance || 0)} — convert before moving to higher-tax state`
-        );
-      }
-      scheduleLines.push('');
-
-      for (const s of combinedSchedule.slice(0, 8)) {
-        const parts: string[] = [`Age ${s.age} (${s.year}):`];
-        // Show income context that limits bracket room
-        const incomeNotes: string[] = [];
-        if (s.employmentIncome > 0) incomeNotes.push(`wages ${formatCurrency(s.employmentIncome)}`);
-        if (s.ssIncome > 0) incomeNotes.push(`SS ${formatCurrency(s.ssIncome)}`);
-        if (incomeNotes.length > 0) parts.push(`[${incomeNotes.join(' + ')}]`);
-
-        if (s.rothConversion > 500) {
-          parts.push(`Roth ${formatCurrency(s.rothConversion)} at ${s.rothBracket}% (${formatCurrency(s.rothTaxCost)} tax)`);
-        }
-        if (s.gainsRealized > 500) {
-          const curPct = s.gainsRealized > 0 ? ((s.cgCurrentStateTax / s.gainsRealized) * 100).toFixed(1) : '0.0';
-          const tgtPct = s.gainsRealized > 0 ? ((s.cgTargetStateTax / s.gainsRealized) * 100).toFixed(1) : '0.0';
-          parts.push(`Sell ${formatCurrency(s.saleAmount)} → ${formatCurrency(s.gainsRealized)} gain at ${s.federalCGRate} fed + ${curPct}% state (vs ${tgtPct}% in ${targetSt}, save ${formatCurrency(s.cgSavings)})`);
-        }
-        scheduleLines.push(parts.join(' | '));
-      }
-      if (combinedSchedule.length > 8) {
-        scheduleLines.push(`...and ${combinedSchedule.length - 8} more years`);
-      }
-
-      scheduleLines.push('');
-      if (hasRoth) {
-        const totalRothTax = combinedSchedule.reduce((s, y) => s + y.rothTaxCost, 0);
-        scheduleLines.push(`🔄 Total Roth conversions: ${formatCurrency(totalRothInPlan)} (tax cost: ${formatCurrency(totalRothTax)}) — converts at lower ${stateName} rates`);
-      }
-      if (hasCG) {
-        scheduleLines.push(`✅ Total gains realized before move: ${formatCurrency(totalGainsInPlan)} of ${formatCurrency(totalUnrealizedGains)}`);
-        scheduleLines.push(`✅ Total state tax savings on CG: ${formatCurrency(totalPreMoveSavings)}`);
-      }
-      if (gainsLeft > 1000) {
-        scheduleLines.push(`⚠️ Remaining unrealized gains at relocation: ${formatCurrency(gainsLeft)} (taxed at ${targetSt} rates)`);
-      }
-      if (tradBalanceLeft > 1000) {
-        scheduleLines.push(`⚠️ Remaining Traditional balance at relocation: ${formatCurrency(tradBalanceLeft)} (future conversions/RMDs taxed at ${targetSt} rates)`);
-      }
     }
 
-    const impactText = hasSchedule
-      ? scheduleLines.join('\n')
-      : `• Realize capital gains & accelerate Roth conversions before moving\n• State CG rate increases from ${(currentStateRate * 100).toFixed(1)}% to ${(targetStateRate * 100).toFixed(1)}% after relocation\n• Exercise stock options or RSUs before establishing residency`;
+    const fallbackImpact = !hasSchedule
+      ? `• Realize capital gains & accelerate Roth conversions before moving\n• State CG rate increases from ${(currentStateRate * 100).toFixed(1)}% to ${(targetStateRate * 100).toFixed(1)}% after relocation\n• Exercise stock options or RSUs before establishing residency`
+      : undefined;
 
     const totalSavingsDesc = hasSchedule
       ? `Combined pre-move strategy: ${hasRoth ? `convert ${formatCurrency(totalRothInPlan)} Roth` : ''}${hasRoth && hasCG ? ' + ' : ''}${hasCG ? `realize ${formatCurrency(totalGainsInPlan)} in gains (save ${formatCurrency(totalPreMoveSavings)} in state CG tax)` : ''} before relocating.`
@@ -596,7 +657,8 @@ export function ActionItems({
       category: 'state-tax',
       title: `Pre-Relocation Tax Strategy — ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'} to Move`,
       description: totalSavingsDesc,
-      impact: impactText,
+      impact: fallbackImpact,
+      customContent: tableContent,
       icon: <MapPin className="h-5 w-5 text-warning" />,
     });
   } else if (movingToZeroTax && isInTaxableState && lifetimeStateTax > 5000) {
@@ -694,7 +756,12 @@ export function ActionItems({
                 <p className="text-sm text-muted-foreground mt-1">
                   {item.description}
                 </p>
-                {item.impact && (
+                {item.customContent && (
+                  <div className="mt-3">
+                    {item.customContent}
+                  </div>
+                )}
+                {item.impact && !item.customContent && (
                   <div className="text-sm font-medium text-primary mt-2 whitespace-pre-line">
                     💡 {item.impact}
                   </div>
