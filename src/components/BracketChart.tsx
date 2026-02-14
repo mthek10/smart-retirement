@@ -62,7 +62,7 @@ export function BracketChart({ data }: BracketChartProps) {
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--foreground))" strokeOpacity={0.2} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--foreground))" strokeOpacity={0.1} />
             <XAxis
               dataKey="age"
               tickLine={false}
