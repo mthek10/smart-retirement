@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 interface BracketChartProps {
   data: Array<{
@@ -11,13 +11,13 @@ interface BracketChartProps {
 }
 
 const bracketColors: Record<number, { color: string; label: string }> = {
-  0.10: { color: "hsl(142, 76%, 36%)", label: "10%" },
-  0.12: { color: "hsl(152, 68%, 40%)", label: "12%" },
-  0.22: { color: "hsl(45, 93%, 47%)", label: "22%" },
-  0.24: { color: "hsl(32, 95%, 44%)", label: "24%" },
-  0.32: { color: "hsl(15, 90%, 50%)", label: "32%" },
-  0.35: { color: "hsl(0, 84%, 55%)", label: "35%" },
-  0.37: { color: "hsl(0, 84%, 42%)", label: "37%" },
+  0.10: { color: "hsl(210, 70%, 55%)", label: "10%" },
+  0.12: { color: "hsl(190, 65%, 48%)", label: "12%" },
+  0.22: { color: "hsl(160, 55%, 45%)", label: "22%" },
+  0.24: { color: "hsl(45, 80%, 50%)", label: "24%" },
+  0.32: { color: "hsl(25, 85%, 52%)", label: "32%" },
+  0.35: { color: "hsl(5, 75%, 50%)", label: "35%" },
+  0.37: { color: "hsl(340, 65%, 45%)", label: "37%" },
 };
 
 function getBracketColor(rate: number): string {
@@ -57,7 +57,7 @@ export function BracketChart({ data }: BracketChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+          <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
             <XAxis
               dataKey="age"
@@ -92,7 +92,16 @@ export function BracketChart({ data }: BracketChartProps) {
                 <Cell key={index} fill={getBracketColor(entry.rate)} />
               ))}
             </Bar>
-          </BarChart>
+            <Line
+              type="monotone"
+              dataKey="bracket"
+              stroke="hsl(var(--foreground))"
+              strokeWidth={2}
+              dot={false}
+              strokeOpacity={0.5}
+              strokeDasharray="6 3"
+            />
+          </ComposedChart>
         </ResponsiveContainer>
 
         {/* Legend */}
