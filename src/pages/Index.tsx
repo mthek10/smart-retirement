@@ -460,7 +460,7 @@ const Index = () => {
             />
 
             <div className="flex justify-end pt-2">
-              <Button onClick={() => setActiveTab("charts")} className="px-8">
+              <Button onClick={() => { setActiveTab("charts"); window.scrollTo({ top: 0 }); }} className="px-8">
                 View Charts →
               </Button>
             </div>
