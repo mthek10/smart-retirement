@@ -416,25 +416,94 @@ export function ActionItems({
   const movingToZeroTax = hasRelocation && zeroTaxStates.includes(stateRelocation.targetState);
 
   if (movingToHighTax) {
-    // Combined: warn about higher taxes + pre-move tips
+    // Combined: warn about higher taxes + year-by-year CG realization schedule
     const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
+    const stateName = stateCode === 'other' ? 'your current state' : (stateCode || 'your current state');
+
+    // Build year-by-year pre-relocation CG realization schedule
+    const preMoveGainsSchedule: { age: number; year: number; gains: number; currentStateTax: number; targetStateTax: number; savings: number }[] = [];
+    let gainsLeft = taxableUnrealizedGains || 0;
+    const preMoveYears = projections.filter(p => p.age < stateRelocation.relocationAge);
+    let totalPreMoveSavings = 0;
+
+    for (const p of preMoveYears) {
+      if (gainsLeft < 1000 || p.taxableBalance < 1000) break;
+
+      const currentSt = currentStateCode && currentStateCode !== 'other' ? currentStateCode : null;
+      const targetSt = stateRelocation.targetState;
+
+      const maxGainsFromBalance = p.taxableBalance * gainPct;
+      const inflMult = Math.pow(1 + inflationRate / 100, preMoveGainsSchedule.length);
+      const taxableIncForCG = Math.max(0, p.ordinaryIncome - standardDeduction * inflMult);
+      const cgRoom = calculateCapitalGainsHarvestingRoom(taxableIncForCG, filingStatus, preMoveGainsSchedule.length, inflationRate / 100);
+
+      const federalFreeRoom = cgRoom.harvestingAvailable ? cgRoom.roomInZeroBracket : 0;
+      const additionalRecommended = Math.min(gainsLeft - federalFreeRoom, maxGainsFromBalance - federalFreeRoom, 100000);
+      const recommendedGains = Math.min(gainsLeft, Math.max(federalFreeRoom, federalFreeRoom + Math.max(0, additionalRecommended)));
+
+      if (recommendedGains < 1000) continue;
+
+      const currentTax = currentSt ? calculateStateCapitalGainsTax(recommendedGains, p.ordinaryIncome, currentSt, filingStatus) : 0;
+      const targetTax = calculateStateCapitalGainsTax(recommendedGains, p.ordinaryIncome, targetSt, filingStatus);
+      const yearSavings = targetTax - currentTax;
+
+      preMoveGainsSchedule.push({
+        age: p.age, year: p.year, gains: recommendedGains,
+        currentStateTax: currentTax, targetStateTax: targetTax, savings: yearSavings,
+      });
+      totalPreMoveSavings += yearSavings;
+      gainsLeft -= recommendedGains;
+    }
+
+    const scheduleLines: string[] = [];
+    if (preMoveGainsSchedule.length > 0 && totalPreMoveSavings > 500) {
+      for (const s of preMoveGainsSchedule.slice(0, 6)) {
+        const currentRatePct = s.gains > 0 ? ((s.currentStateTax / s.gains) * 100).toFixed(1) : '0.0';
+        const targetRatePct = s.gains > 0 ? ((s.targetStateTax / s.gains) * 100).toFixed(1) : '0.0';
+        scheduleLines.push(
+          `Age ${s.age} (${s.year}): Realize ${formatCurrency(s.gains)} — ${stateName} tax ${formatCurrency(s.currentStateTax)} (${currentRatePct}%) vs ${stateRelocation.targetState} ${formatCurrency(s.targetStateTax)} (${targetRatePct}%) → save ${formatCurrency(s.savings)}`
+        );
+      }
+      if (preMoveGainsSchedule.length > 6) {
+        scheduleLines.push(`...and ${preMoveGainsSchedule.length - 6} more years`);
+      }
+      scheduleLines.push(`\nTotal estimated state tax savings by realizing gains before move: ${formatCurrency(totalPreMoveSavings)}`);
+    }
+
     const tips = [
-      'Realize capital gains before moving to avoid higher state CG taxes',
       'Accelerate Roth conversions now while in a lower-tax state',
       'Consider selling appreciated real estate or investments pre-move',
       'Exercise stock options or RSUs before establishing residency',
     ];
-    const stateName = stateCode === 'other' ? 'your current state' : (stateCode || 'your current state');
+
+    const hasSchedule = scheduleLines.length > 0;
+    const impactText = hasSchedule
+      ? scheduleLines.join('\n')
+      : `• Realize capital gains before moving to avoid higher state CG taxes\n• ${tips.join('\n• ')}`;
 
     actionItems.push({
       id: 'state-relocation-combined',
       priority: yearsUntilMove <= 3 ? 'high' : 'medium',
       category: 'state-tax',
-      title: `State Relocation: Moving to ${stateRelocation.targetState} in ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'}`,
-      description: `You're planning to move from ${stateName} to ${targetIsHighTax}. This will increase your state tax burden.${lifetimeStateTax > 5000 ? ` Your projected lifetime state taxes are ${formatCurrency(lifetimeStateTax)}.` : ''} Take these steps before relocating:`,
-      impact: `• ${tips.join('\n• ')}`,
+      title: `Pre-Relocation Capital Gains Strategy — ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'} to Move`,
+      description: hasSchedule
+        ? `You're moving from ${stateName} to ${targetIsHighTax}. Realize ${formatCurrency((taxableUnrealizedGains || 0) - gainsLeft)} in capital gains before relocating to save on state taxes. Cost basis: ${Math.round(costBasisPct * 100)}% (${Math.round(gainPct * 100)}% of each sale is taxable gain).`
+        : `You're planning to move from ${stateName} to ${targetIsHighTax}. This will increase your state tax burden.${lifetimeStateTax > 5000 ? ` Projected lifetime state taxes: ${formatCurrency(lifetimeStateTax)}.` : ''} Take these steps before relocating:`,
+      impact: impactText,
       icon: <MapPin className="h-5 w-5 text-warning" />,
     });
+
+    if (hasSchedule) {
+      actionItems.push({
+        id: 'state-relocation-tips',
+        priority: 'low',
+        category: 'state-tax',
+        title: 'Additional Pre-Move Tax Tips',
+        description: `Beyond capital gains, consider these strategies before establishing residency in ${stateRelocation.targetState}:`,
+        impact: `• ${tips.join('\n• ')}`,
+        icon: <MapPin className="h-5 w-5 text-primary" />,
+      });
+    }
   } else if (movingToZeroTax && isInTaxableState && lifetimeStateTax > 5000) {
     // Combined: relocation to zero-tax state with savings estimate
     const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
