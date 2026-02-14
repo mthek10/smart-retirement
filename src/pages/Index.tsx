@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { SetupWizard } from "@/components/SetupWizard";
 import { ProjectionTable } from "@/components/ProjectionTable";
-import { ProjectionChart } from "@/components/ProjectionChart";
+
 import { ProjectionSummary } from "@/components/ProjectionSummary";
 import { TaxChart } from "@/components/TaxChart";
 import { BracketChart } from "@/components/BracketChart";
@@ -469,7 +469,6 @@ const Index = () => {
           <TabsContent value="charts" className="mt-6 space-y-6">
             <BalanceByAgeChart projections={projections} />
             <BracketChart data={projections} />
-            <ProjectionChart data={chartData} />
             <TaxChart data={taxChartData} />
           </TabsContent>
         </Tabs>
