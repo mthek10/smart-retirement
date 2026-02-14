@@ -280,7 +280,7 @@ export function StrategyComparison({
               <div>Metric</div>
               <div className="text-center">Baseline</div>
               <div className="text-center">{currentStrategyName}</div>
-              <div className="text-center">Optimized</div>
+              <div className="text-center">Optimized - fill to 22%</div>
             </div>
 
             {longevityMetrics.map((metric) => (
