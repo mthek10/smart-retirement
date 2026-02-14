@@ -404,11 +404,11 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           </div>
 
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">2024 Standard Deduction</span>
+            <span className="text-muted-foreground">2025 Standard Deduction</span>
             <span className="font-medium">
-              {taxSettings.filingStatus === 'married' && '$29,200'}
-              {taxSettings.filingStatus === 'single' && '$14,600'}
-              {taxSettings.filingStatus === 'hoh' && '$21,900'}
+              {taxSettings.filingStatus === 'married' && '$30,000'}
+              {taxSettings.filingStatus === 'single' && '$15,000'}
+              {taxSettings.filingStatus === 'hoh' && '$22,500'}
             </span>
           </div>
         </div>
