@@ -454,6 +454,7 @@ export function ActionItems({
       gainsRealized: number; saleAmount: number;
       cgCurrentStateTax: number; cgTargetStateTax: number; cgSavings: number;
       federalCGRate: string;
+      employmentIncome: number; ssIncome: number;
     }
     const combinedSchedule: CombinedYearPlan[] = [];
 
@@ -517,6 +518,7 @@ export function ActionItems({
           gainsRealized, saleAmount,
           cgCurrentStateTax: cgCurrentTax, cgTargetStateTax: cgTargetTax, cgSavings,
           federalCGRate,
+          employmentIncome: p.employmentIncome || 0, ssIncome: p.ssIncome || 0,
         });
       }
     }
@@ -543,6 +545,12 @@ export function ActionItems({
 
       for (const s of combinedSchedule.slice(0, 8)) {
         const parts: string[] = [`Age ${s.age} (${s.year}):`];
+        // Show income context that limits bracket room
+        const incomeNotes: string[] = [];
+        if (s.employmentIncome > 0) incomeNotes.push(`wages ${formatCurrency(s.employmentIncome)}`);
+        if (s.ssIncome > 0) incomeNotes.push(`SS ${formatCurrency(s.ssIncome)}`);
+        if (incomeNotes.length > 0) parts.push(`[${incomeNotes.join(' + ')}]`);
+
         if (s.rothConversion > 500) {
           parts.push(`Roth ${formatCurrency(s.rothConversion)} at ${s.rothBracket}% (${formatCurrency(s.rothTaxCost)} tax)`);
         }
