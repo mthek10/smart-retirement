@@ -23,9 +23,9 @@ export function TaxChart({ data }: TaxChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tax & IRMAA Projection</CardTitle>
+        <CardTitle>Taxes</CardTitle>
         <CardDescription>
-          Visualize your tax obligations and IRMAA premiums over time
+          Federal and state tax projections over time
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -43,7 +43,7 @@ export function TaxChart({ data }: TaxChartProps) {
               tick={{ fill: 'hsl(var(--foreground))' }}
               tickFormatter={(value) => formatCurrency(value)}
               label={{ 
-                value: 'Other Taxes & IRMAA', 
+                value: 'State & CG Taxes', 
                 angle: -90, 
                 position: 'insideLeft',
                 style: { fill: 'hsl(var(--foreground))' }
@@ -101,41 +101,6 @@ export function TaxChart({ data }: TaxChartProps) {
               stroke="hsl(var(--chart-4))" 
               strokeWidth={2}
               dot={false}
-              yAxisId="left"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="IRMAA" 
-              stroke="hsl(var(--chart-5))" 
-              strokeWidth={2}
-              dot={false}
-              yAxisId="left"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="NIIT" 
-              stroke="hsl(var(--chart-1))" 
-              strokeWidth={2}
-              dot={false}
-              strokeDasharray="5 5"
-              yAxisId="left"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="AMT" 
-              stroke="hsl(var(--chart-2))" 
-              strokeWidth={2}
-              dot={false}
-              strokeDasharray="3 3"
-              yAxisId="left"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="Payroll Tax" 
-              stroke="hsl(var(--chart-3))" 
-              strokeWidth={2}
-              dot={false}
-              strokeDasharray="2 2"
               yAxisId="left"
             />
           </LineChart>
