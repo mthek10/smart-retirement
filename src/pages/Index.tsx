@@ -5,6 +5,7 @@ import { ProjectionChart } from "@/components/ProjectionChart";
 import { ProjectionSummary } from "@/components/ProjectionSummary";
 import { TaxChart } from "@/components/TaxChart";
 import { BracketChart } from "@/components/BracketChart";
+import { BalanceByAgeChart } from "@/components/BalanceByAgeChart";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
@@ -466,21 +467,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="charts" className="mt-6 space-y-6">
-            {/* RMD Charts */}
-            <RMDPlanner
-              spouse1TradBalance={committedAccounts.spouse1Traditional}
-              spouse2TradBalance={committedAccounts.spouse2Traditional}
-              rothBalance={committedAccounts.roth}
-              spouse1Age={committedTaxSettings.spouse1Age}
-              spouse2Age={committedTaxSettings.spouse2Age}
-              filingStatus={committedTaxSettings.filingStatus}
-              rothConversionStrategy={committedTaxSettings.rothConversionStrategy}
-              growthRate={committedAccounts.traditionalReturn}
-              inflationRate={committedTaxSettings.inflationRate}
-              otherIncome={committedSSData.spouse1.estimatedBenefit * 12 + (committedTaxSettings.filingStatus === 'married' ? committedSSData.spouse2.estimatedBenefit * 12 : 0)}
-              visibleTabs={['chart']}
-              showSummary={false}
-            />
+            <BalanceByAgeChart projections={projections} />
             <BracketChart data={projections} />
             <ProjectionChart data={chartData} />
             <TaxChart data={taxChartData} />
