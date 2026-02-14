@@ -26,6 +26,12 @@ export function StrategyComparison({
   survivorEnabled = false,
 }: StrategyComparisonProps) {
 
+  // Hide the "current" column when it duplicates baseline or optimized
+  const currentName = currentStrategyName.toLowerCase().trim();
+  const showCurrentColumn = currentName !== 'no conversions' && currentName !== 'fill to 22%';
+  const colCount = showCurrentColumn ? 4 : 3;
+  const gridCols = showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3';
+
   // Calculate savings comparing baseline (no conversions) to optimized (fill-22)
   const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
   const hasImprovement = taxSavings > 1000;
@@ -237,25 +243,27 @@ export function StrategyComparison({
               <DollarSign className="h-4 w-4" />
               Tax Efficiency Metrics
             </h4>
-            <div className="grid grid-cols-5 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
+            <div className={`grid ${showCurrentColumn ? 'grid-cols-5' : 'grid-cols-4'} gap-4 text-sm font-medium text-muted-foreground pb-2 border-b`}>
               <div>Metric</div>
               <div className="text-center">Baseline</div>
-              <div className="text-center">{currentStrategyName}</div>
+              {showCurrentColumn && <div className="text-center">{currentStrategyName}</div>}
               <div className="text-center">Optimized</div>
               <div className="text-center">Savings</div>
             </div>
 
             {taxMetrics.map((metric) => (
-              <div key={metric.label} className="grid grid-cols-5 gap-4 items-center text-sm py-2 border-b border-muted/50">
+              <div key={metric.label} className={`grid ${showCurrentColumn ? 'grid-cols-5' : 'grid-cols-4'} gap-4 items-center text-sm py-2 border-b border-muted/50`}>
                 <div className="font-medium">{metric.label}</div>
                 <div className="text-center text-muted-foreground flex items-center justify-center">
                   {metric.baseline}
                   {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
                 </div>
-                <div className={`text-center flex items-center justify-center ${currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
-                  {metric.current}
-                  {metric.winner && getWinnerBadge(metric.winner, 'current')}
-                </div>
+                {showCurrentColumn && (
+                  <div className={`text-center flex items-center justify-center ${currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
+                    {metric.current}
+                    {metric.winner && getWinnerBadge(metric.winner, 'current')}
+                  </div>
+                )}
                 <div className="text-center font-semibold text-green-600 flex items-center justify-center">
                   {metric.optimized}
                   {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
@@ -276,24 +284,26 @@ export function StrategyComparison({
               <Clock className="h-4 w-4" />
               Longevity Metrics
             </h4>
-            <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
+            <div className={`grid ${gridCols} gap-4 text-sm font-medium text-muted-foreground pb-2 border-b`}>
               <div>Metric</div>
               <div className="text-center">Baseline - No Roth Conversion</div>
-              <div className="text-center">{currentStrategyName}</div>
+              {showCurrentColumn && <div className="text-center">{currentStrategyName}</div>}
               <div className="text-center">Optimized - Fill to 22%</div>
             </div>
 
             {longevityMetrics.map((metric) => (
-              <div key={metric.label} className="grid grid-cols-4 gap-4 items-center text-sm py-2 border-b border-muted/50">
+              <div key={metric.label} className={`grid ${gridCols} gap-4 items-center text-sm py-2 border-b border-muted/50`}>
                 <div className="font-medium">{metric.label}</div>
                 <div className="text-center text-muted-foreground flex items-center justify-center">
                   {metric.baseline}
                   {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
                 </div>
-                <div className="text-center flex items-center justify-center">
-                  {metric.current}
-                  {metric.winner && getWinnerBadge(metric.winner, 'current')}
-                </div>
+                {showCurrentColumn && (
+                  <div className="text-center flex items-center justify-center">
+                    {metric.current}
+                    {metric.winner && getWinnerBadge(metric.winner, 'current')}
+                  </div>
+                )}
                 <div className="text-center flex items-center justify-center">
                   {metric.optimized}
                   {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
