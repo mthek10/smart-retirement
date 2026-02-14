@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatCurrency } from "@/lib/utils";
 
 interface ChartDataPoint {
@@ -15,7 +15,6 @@ interface ProjectionChartProps {
 }
 
 export function ProjectionChart({ data }: ProjectionChartProps) {
-
   return (
     <Card>
       <CardHeader>
@@ -26,7 +25,7 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={data} margin={{ top: 5, right: 80, left: 20, bottom: 5 }}>
+          <AreaChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis 
               dataKey="year" 
@@ -34,29 +33,9 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               tick={{ fill: 'hsl(var(--foreground))' }}
             />
             <YAxis 
-              yAxisId="left"
               className="text-xs"
               tick={{ fill: 'hsl(var(--foreground))' }}
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-              label={{ 
-                value: 'Account Balances', 
-                angle: -90, 
-                position: 'insideLeft',
-                style: { fill: 'hsl(var(--foreground))' }
-              }}
-            />
-            <YAxis 
-              yAxisId="right"
-              orientation="right"
-              className="text-xs"
-              tick={{ fill: 'hsl(var(--foreground))' }}
-              tickFormatter={(value) => formatCurrency(value)}
-              label={{ 
-                value: 'Annual Social Security', 
-                angle: 90, 
-                position: 'insideRight',
-                style: { fill: 'hsl(var(--foreground))' }
-              }}
             />
             <Tooltip 
               formatter={(value: number) => formatCurrency(value)}
@@ -67,39 +46,39 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
               }}
             />
             <Legend />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="Traditional" 
+              stackId="1"
               stroke="hsl(var(--chart-1))" 
-              strokeWidth={2}
-              dot={false}
-              yAxisId="left"
+              fill="hsl(var(--chart-1))"
+              fillOpacity={0.6}
             />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="Roth" 
+              stackId="1"
               stroke="hsl(var(--chart-2))" 
-              strokeWidth={2}
-              dot={false}
-              yAxisId="left"
+              fill="hsl(var(--chart-2))"
+              fillOpacity={0.6}
             />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="Taxable" 
+              stackId="1"
               stroke="hsl(var(--chart-3))" 
-              strokeWidth={2}
-              dot={false}
-              yAxisId="left"
+              fill="hsl(var(--chart-3))"
+              fillOpacity={0.6}
             />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="Social Security" 
+              stackId="1"
               stroke="hsl(var(--chart-4))" 
-              strokeWidth={2}
-              dot={false}
-              yAxisId="right"
+              fill="hsl(var(--chart-4))"
+              fillOpacity={0.6}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
