@@ -69,7 +69,7 @@ export function BracketChart({ data }: BracketChartProps) {
               axisLine={false}
               tickMargin={8}
               tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-              label={{ value: 'Age', position: 'insideBottom', offset: -4, style: { fill: 'hsl(var(--muted-foreground))', fontSize: 12 } }}
+              label={{ value: 'Age', position: 'insideBottom', offset: -4, style: { fill: 'hsl(var(--foreground))', fontSize: 12 } }}
             />
             <YAxis
               tickLine={false}
@@ -104,7 +104,7 @@ export function BracketChart({ data }: BracketChartProps) {
           {uniqueRates.map((rate) => (
             <div key={rate} className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getBracketColor(rate) }} />
-              <span className="text-xs text-muted-foreground">{bracketColors[rate]?.label ?? `${rate * 100}%`} Bracket</span>
+              <span className="text-xs" style={{ color: 'hsl(var(--foreground))' }}>{bracketColors[rate]?.label ?? `${rate * 100}%`} Bracket</span>
             </div>
           ))}
         </div>
