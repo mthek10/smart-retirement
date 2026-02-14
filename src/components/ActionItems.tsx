@@ -416,58 +416,93 @@ export function ActionItems({
   const movingToZeroTax = hasRelocation && zeroTaxStates.includes(stateRelocation.targetState);
 
   if (movingToHighTax) {
-    // Combined: warn about higher taxes + year-by-year CG realization schedule
     const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
     const stateName = stateCode === 'other' ? 'your current state' : (stateCode || 'your current state');
+    const targetSt = stateRelocation.targetState;
+    const currentSt = currentStateCode && currentStateCode !== 'other' ? currentStateCode : null;
 
-    // Build year-by-year pre-relocation CG realization schedule
-    const preMoveGainsSchedule: { age: number; year: number; gains: number; currentStateTax: number; targetStateTax: number; savings: number }[] = [];
-    let gainsLeft = taxableUnrealizedGains || 0;
+    // Step 1: Calculate total unrealized gains from brokerage balance & cost basis
+    const brokerageBalance = projections[0]?.taxableBalance || 0;
+    const totalUnrealizedGains = brokerageBalance * gainPct; // e.g. $3M × 67% = $2.01M
+    const totalCostBasis = brokerageBalance * costBasisPct;
+
+    // Step 2: Calculate effective state CG tax rate difference
+    const sampleGain = 50000; // sample gain for rate comparison
+    const sampleOrdinaryIncome = projections[0]?.ordinaryIncome || 0;
+    const currentStateRate = currentSt
+      ? calculateStateCapitalGainsTax(sampleGain, sampleOrdinaryIncome, currentSt, filingStatus) / sampleGain
+      : 0;
+    const targetStateRate = calculateStateCapitalGainsTax(sampleGain, sampleOrdinaryIncome, targetSt, filingStatus) / sampleGain;
+    const rateDifference = targetStateRate - currentStateRate;
+
+    // Step 3: Build year-by-year pre-relocation schedule
+    const preMoveGainsSchedule: {
+      age: number; year: number; gains: number; saleAmount: number;
+      currentStateTax: number; targetStateTax: number; savings: number;
+    }[] = [];
+    let gainsLeft = totalUnrealizedGains;
     const preMoveYears = projections.filter(p => p.age < stateRelocation.relocationAge);
     let totalPreMoveSavings = 0;
 
     for (const p of preMoveYears) {
       if (gainsLeft < 1000 || p.taxableBalance < 1000) break;
 
-      const currentSt = currentStateCode && currentStateCode !== 'other' ? currentStateCode : null;
-      const targetSt = stateRelocation.targetState;
-
-      const maxGainsFromBalance = p.taxableBalance * gainPct;
-      const inflMult = Math.pow(1 + inflationRate / 100, preMoveGainsSchedule.length);
+      const idx = preMoveGainsSchedule.length;
+      const inflMult = Math.pow(1 + inflationRate / 100, idx);
       const taxableIncForCG = Math.max(0, p.ordinaryIncome - standardDeduction * inflMult);
-      const cgRoom = calculateCapitalGainsHarvestingRoom(taxableIncForCG, filingStatus, preMoveGainsSchedule.length, inflationRate / 100);
+      const cgRoom = calculateCapitalGainsHarvestingRoom(taxableIncForCG, filingStatus, idx, inflationRate / 100);
 
+      // Start with 0% federal bracket room, then add more up to a yearly cap
       const federalFreeRoom = cgRoom.harvestingAvailable ? cgRoom.roomInZeroBracket : 0;
-      const additionalRecommended = Math.min(gainsLeft - federalFreeRoom, maxGainsFromBalance - federalFreeRoom, 100000);
-      const recommendedGains = Math.min(gainsLeft, Math.max(federalFreeRoom, federalFreeRoom + Math.max(0, additionalRecommended)));
+      // Recommend gains beyond 0% bracket since state tax savings justify it
+      const maxGainsFromBalance = p.taxableBalance * gainPct;
+      const yearlyGainsCap = Math.max(federalFreeRoom, 100000); // at least $100k/yr or federal free room
+      const recommendedGains = Math.min(gainsLeft, maxGainsFromBalance, yearlyGainsCap);
 
       if (recommendedGains < 1000) continue;
 
+      const saleAmount = gainPct > 0 ? recommendedGains / gainPct : recommendedGains; // gross sale needed
       const currentTax = currentSt ? calculateStateCapitalGainsTax(recommendedGains, p.ordinaryIncome, currentSt, filingStatus) : 0;
       const targetTax = calculateStateCapitalGainsTax(recommendedGains, p.ordinaryIncome, targetSt, filingStatus);
       const yearSavings = targetTax - currentTax;
 
       preMoveGainsSchedule.push({
-        age: p.age, year: p.year, gains: recommendedGains,
+        age: p.age, year: p.year, gains: recommendedGains, saleAmount,
         currentStateTax: currentTax, targetStateTax: targetTax, savings: yearSavings,
       });
       totalPreMoveSavings += yearSavings;
       gainsLeft -= recommendedGains;
     }
 
+    // Build display
     const scheduleLines: string[] = [];
-    if (preMoveGainsSchedule.length > 0 && totalPreMoveSavings > 500) {
-      for (const s of preMoveGainsSchedule.slice(0, 6)) {
+    const totalGainsRealized = totalUnrealizedGains - gainsLeft;
+
+    if (preMoveGainsSchedule.length > 0 && rateDifference > 0.002) {
+      // Header: rate comparison
+      scheduleLines.push(
+        `📊 State Rate Comparison: ${stateName} ${(currentStateRate * 100).toFixed(1)}% vs ${targetSt} ${(targetStateRate * 100).toFixed(1)}% (+${(rateDifference * 100).toFixed(1)}% higher)`
+      );
+      scheduleLines.push(
+        `💰 Brokerage: ${formatCurrency(brokerageBalance)} balance — ${formatCurrency(totalCostBasis)} cost basis (${Math.round(costBasisPct * 100)}%) — ${formatCurrency(totalUnrealizedGains)} unrealized gains (${Math.round(gainPct * 100)}%)`
+      );
+      scheduleLines.push('');
+
+      for (const s of preMoveGainsSchedule.slice(0, 8)) {
         const currentRatePct = s.gains > 0 ? ((s.currentStateTax / s.gains) * 100).toFixed(1) : '0.0';
         const targetRatePct = s.gains > 0 ? ((s.targetStateTax / s.gains) * 100).toFixed(1) : '0.0';
         scheduleLines.push(
-          `Age ${s.age} (${s.year}): Realize ${formatCurrency(s.gains)} — ${stateName} tax ${formatCurrency(s.currentStateTax)} (${currentRatePct}%) vs ${stateRelocation.targetState} ${formatCurrency(s.targetStateTax)} (${targetRatePct}%) → save ${formatCurrency(s.savings)}`
+          `Age ${s.age} (${s.year}): Sell ${formatCurrency(s.saleAmount)} → ${formatCurrency(s.gains)} gain — ${stateName} tax ${formatCurrency(s.currentStateTax)} (${currentRatePct}%) vs ${targetSt} ${formatCurrency(s.targetStateTax)} (${targetRatePct}%) → save ${formatCurrency(s.savings)}`
         );
       }
-      if (preMoveGainsSchedule.length > 6) {
-        scheduleLines.push(`...and ${preMoveGainsSchedule.length - 6} more years`);
+      if (preMoveGainsSchedule.length > 8) {
+        scheduleLines.push(`...and ${preMoveGainsSchedule.length - 8} more years`);
       }
-      scheduleLines.push(`\nTotal estimated state tax savings by realizing gains before move: ${formatCurrency(totalPreMoveSavings)}`);
+      scheduleLines.push(`\n✅ Total gains realized before move: ${formatCurrency(totalGainsRealized)} of ${formatCurrency(totalUnrealizedGains)}`);
+      scheduleLines.push(`✅ Total estimated state tax savings: ${formatCurrency(totalPreMoveSavings)}`);
+      if (gainsLeft > 1000) {
+        scheduleLines.push(`⚠️ Remaining unrealized gains at relocation: ${formatCurrency(gainsLeft)} (will be taxed at ${targetSt} rates)`);
+      }
     }
 
     const tips = [
@@ -487,7 +522,7 @@ export function ActionItems({
       category: 'state-tax',
       title: `Pre-Relocation Capital Gains Strategy — ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'} to Move`,
       description: hasSchedule
-        ? `You're moving from ${stateName} to ${targetIsHighTax}. Realize ${formatCurrency((taxableUnrealizedGains || 0) - gainsLeft)} in capital gains before relocating to save on state taxes. Cost basis: ${Math.round(costBasisPct * 100)}% (${Math.round(gainPct * 100)}% of each sale is taxable gain).`
+        ? `You're moving from ${stateName} to ${targetIsHighTax}. Realize gains before relocating to save ${formatCurrency(totalPreMoveSavings)} in state taxes by selling at ${(currentStateRate * 100).toFixed(1)}% instead of ${(targetStateRate * 100).toFixed(1)}%.`
         : `You're planning to move from ${stateName} to ${targetIsHighTax}. This will increase your state tax burden.${lifetimeStateTax > 5000 ? ` Projected lifetime state taxes: ${formatCurrency(lifetimeStateTax)}.` : ''} Take these steps before relocating:`,
       impact: impactText,
       icon: <MapPin className="h-5 w-5 text-warning" />,
