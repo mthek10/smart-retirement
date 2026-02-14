@@ -278,7 +278,7 @@ export function StrategyComparison({
             </h4>
             <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
               <div>Metric</div>
-              <div className="text-center">Baseline</div>
+              <div className="text-center">Baseline - No Roth Conversion</div>
               <div className="text-center">{currentStrategyName}</div>
               <div className="text-center">Optimized - fill to 22%</div>
             </div>
