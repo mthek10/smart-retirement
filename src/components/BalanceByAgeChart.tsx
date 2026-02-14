@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatCurrency } from "@/lib/utils";
 
 interface BalanceByAgeChartProps {
@@ -19,7 +19,6 @@ export function BalanceByAgeChart({ projections }: BalanceByAgeChartProps) {
       "Traditional 401(k)": p.traditionalBalance,
       "Roth IRA": p.rothBalance,
       "Brokerage": p.taxableBalance,
-      Total: p.traditionalBalance + p.rothBalance + p.taxableBalance,
     }));
   }, [projections]);
 
@@ -35,7 +34,7 @@ export function BalanceByAgeChart({ projections }: BalanceByAgeChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
-          <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
+          <BarChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis
               dataKey="age"
@@ -62,31 +61,23 @@ export function BalanceByAgeChart({ projections }: BalanceByAgeChartProps) {
               }}
             />
             <Legend />
-            <Area
-              type="monotone"
+            <Bar
               dataKey="Traditional 401(k)"
               stackId="1"
-              stroke="hsl(var(--chart-1))"
               fill="hsl(var(--chart-1))"
-              fillOpacity={0.6}
             />
-            <Area
-              type="monotone"
+            <Bar
               dataKey="Roth IRA"
               stackId="1"
-              stroke="hsl(var(--chart-2))"
               fill="hsl(var(--chart-2))"
-              fillOpacity={0.6}
             />
-            <Area
-              type="monotone"
+            <Bar
               dataKey="Brokerage"
               stackId="1"
-              stroke="hsl(var(--chart-3))"
               fill="hsl(var(--chart-3))"
-              fillOpacity={0.6}
+              radius={[4, 4, 0, 0]}
             />
-          </AreaChart>
+          </BarChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
