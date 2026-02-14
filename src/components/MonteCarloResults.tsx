@@ -96,7 +96,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
     return histData;
   }, [results.baseline.outcomes, results.current.outcomes, results.optimized.outcomes]);
 
-  // Strategy cards data – deduplicate when current matches another strategy
+  // Strategy cards data – deduplicate when current strategy matches another by name
   const strategies = useMemo(() => {
     const all = [
       { key: 'baseline', name: 'No Conversions', data: results.baseline, color: 'slate' },
@@ -104,14 +104,12 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
       { key: 'optimized', name: 'Fill to 24%', data: results.optimized, color: 'green' },
     ];
 
-    const isDuplicate = (a: typeof all[0], b: typeof all[0]) =>
-      a.data.successRate === b.data.successRate &&
-      a.data.medianFinalBalance === b.data.medianFinalBalance &&
-      a.data.avgLifetimeTax === b.data.avgLifetimeTax &&
-      a.data.medianDepletionAge === b.data.medianDepletionAge;
+    const currentName = results.current.strategyName.toLowerCase().trim();
+    const baselineName = 'no conversions';
+    const optimizedName = 'fill to 24%';
 
-    // If current duplicates baseline or optimized, remove current (keep the named ones)
-    if (isDuplicate(all[1], all[0]) || isDuplicate(all[1], all[2])) {
+    // If current matches baseline or optimized by name, remove the duplicate current card
+    if (currentName === baselineName || currentName === optimizedName) {
       return all.filter(s => s.key !== 'current');
     }
     return all;
