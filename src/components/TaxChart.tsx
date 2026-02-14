@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatCurrency } from "@/lib/utils";
 
 interface TaxChartDataPoint {
@@ -19,7 +19,6 @@ interface TaxChartProps {
 }
 
 export function TaxChart({ data }: TaxChartProps) {
-
   return (
     <Card>
       <CardHeader>
@@ -30,7 +29,7 @@ export function TaxChart({ data }: TaxChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <AreaChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis 
               dataKey="year" 
@@ -38,29 +37,9 @@ export function TaxChart({ data }: TaxChartProps) {
               tick={{ fill: 'hsl(var(--foreground))' }}
             />
             <YAxis 
-              yAxisId="left"
               className="text-xs"
               tick={{ fill: 'hsl(var(--foreground))' }}
               tickFormatter={(value) => formatCurrency(value)}
-              label={{ 
-                value: 'State & CG Taxes', 
-                angle: -90, 
-                position: 'insideLeft',
-                style: { fill: 'hsl(var(--foreground))' }
-              }}
-            />
-            <YAxis 
-              yAxisId="right"
-              orientation="right"
-              className="text-xs"
-              tick={{ fill: 'hsl(var(--foreground))' }}
-              tickFormatter={(value) => formatCurrency(value)}
-              label={{ 
-                value: 'Federal Tax', 
-                angle: 90, 
-                position: 'insideRight',
-                style: { fill: 'hsl(var(--foreground))' }
-              }}
             />
             <Tooltip 
               formatter={(value: number) => formatCurrency(value)}
@@ -71,39 +50,39 @@ export function TaxChart({ data }: TaxChartProps) {
               }}
             />
             <Legend />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="Federal Tax" 
+              stackId="1"
               stroke="hsl(var(--chart-1))" 
-              strokeWidth={3}
-              dot={false}
-              yAxisId="right"
+              fill="hsl(var(--chart-1))"
+              fillOpacity={0.6}
             />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="State Tax" 
+              stackId="1"
               stroke="hsl(var(--chart-2))" 
-              strokeWidth={2}
-              dot={false}
-              yAxisId="left"
+              fill="hsl(var(--chart-2))"
+              fillOpacity={0.6}
             />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="Federal CG Tax" 
+              stackId="1"
               stroke="hsl(var(--chart-3))" 
-              strokeWidth={2}
-              dot={false}
-              yAxisId="left"
+              fill="hsl(var(--chart-3))"
+              fillOpacity={0.6}
             />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="State CG Tax" 
+              stackId="1"
               stroke="hsl(var(--chart-4))" 
-              strokeWidth={2}
-              dot={false}
-              yAxisId="left"
+              fill="hsl(var(--chart-4))"
+              fillOpacity={0.6}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
