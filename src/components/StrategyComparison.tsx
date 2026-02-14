@@ -94,78 +94,17 @@ export function StrategyComparison({
     return null;
   };
 
-  const taxMetrics = [
-    {
-      label: "Lifetime Total Tax",
-      baseline: formatCurrency(baselineMetrics.lifetimeTotalTax),
-      current: formatCurrency(currentMetrics.lifetimeTotalTax),
-      optimized: formatCurrency(optimizedMetrics.lifetimeTotalTax),
-      icon: getDifferenceIcon(baselineMetrics.lifetimeTotalTax, optimizedMetrics.lifetimeTotalTax),
-      diff: baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax,
-      formatDiff: (d: number) => formatCurrency(Math.abs(d)),
-      winner: taxWinner,
-    },
-    {
-      label: "Lifetime Federal Tax",
-      baseline: formatCurrency(baselineMetrics.lifetimeFederalTax),
-      current: formatCurrency(currentMetrics.lifetimeFederalTax),
-      optimized: formatCurrency(optimizedMetrics.lifetimeFederalTax),
-      icon: getDifferenceIcon(baselineMetrics.lifetimeFederalTax, optimizedMetrics.lifetimeFederalTax),
-      diff: baselineMetrics.lifetimeFederalTax - optimizedMetrics.lifetimeFederalTax,
-      formatDiff: (d: number) => formatCurrency(Math.abs(d)),
-      winner: taxWinner,
-    },
-    {
-      label: "Bracket Consistency Score",
-      baseline: baselineMetrics.bracketScore.toFixed(1),
-      current: currentMetrics.bracketScore.toFixed(1),
-      optimized: optimizedMetrics.bracketScore.toFixed(1),
-      icon: getDifferenceIcon(baselineMetrics.bracketScore, optimizedMetrics.bracketScore),
-      diff: baselineMetrics.bracketScore - optimizedMetrics.bracketScore,
-      formatDiff: (d: number) => Math.abs(d).toFixed(1),
-      winner: null,
-    },
-    {
-      label: "Avg Marginal Bracket",
-      baseline: formatPercent(baselineMetrics.avgBracket),
-      current: formatPercent(currentMetrics.avgBracket),
-      optimized: formatPercent(optimizedMetrics.avgBracket),
-      icon: getDifferenceIcon(baselineMetrics.avgBracket, optimizedMetrics.avgBracket),
-      diff: baselineMetrics.avgBracket - optimizedMetrics.avgBracket,
-      formatDiff: (d: number) => formatPercent(Math.abs(d)),
-      winner: null,
-    },
-  ];
-
-  const longevityMetrics = [
-    {
-      label: "All Funds Depleted",
-      baseline: formatAge(baselineMetrics.allFundsDepletionAge),
-      current: formatAge(currentMetrics.allFundsDepletionAge),
-      optimized: formatAge(optimizedMetrics.allFundsDepletionAge),
-      winner: longevityWinner,
-    },
-    {
-      label: "Traditional Depleted",
-      baseline: formatAge(baselineMetrics.tradDepletionAge),
-      current: formatAge(currentMetrics.tradDepletionAge),
-      optimized: formatAge(optimizedMetrics.tradDepletionAge),
-      winner: null,
-    },
-    {
-      label: "Roth Depleted",
-      baseline: formatAge(baselineMetrics.rothDepletionAge),
-      current: formatAge(currentMetrics.rothDepletionAge),
-      optimized: formatAge(optimizedMetrics.rothDepletionAge),
-      winner: null,
-    },
-    {
-      label: "Final Balance (Age 100)",
-      baseline: formatCurrency(baselineMetrics.finalTotalBalance),
-      current: formatCurrency(currentMetrics.finalTotalBalance),
-      optimized: formatCurrency(optimizedMetrics.finalTotalBalance),
-      winner: balanceWinner,
-    },
+  const allMetrics = [
+    // Tax metrics
+    { label: "Lifetime Total Tax", group: "tax", baseline: formatCurrency(baselineMetrics.lifetimeTotalTax), current: formatCurrency(currentMetrics.lifetimeTotalTax), optimized: formatCurrency(optimizedMetrics.lifetimeTotalTax), icon: getDifferenceIcon(baselineMetrics.lifetimeTotalTax, optimizedMetrics.lifetimeTotalTax), diff: baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax, formatDiff: (d: number) => formatCurrency(Math.abs(d)), winner: taxWinner },
+    { label: "Lifetime Federal Tax", group: "tax", baseline: formatCurrency(baselineMetrics.lifetimeFederalTax), current: formatCurrency(currentMetrics.lifetimeFederalTax), optimized: formatCurrency(optimizedMetrics.lifetimeFederalTax), icon: getDifferenceIcon(baselineMetrics.lifetimeFederalTax, optimizedMetrics.lifetimeFederalTax), diff: baselineMetrics.lifetimeFederalTax - optimizedMetrics.lifetimeFederalTax, formatDiff: (d: number) => formatCurrency(Math.abs(d)), winner: taxWinner },
+    { label: "Bracket Consistency Score", group: "tax", baseline: baselineMetrics.bracketScore.toFixed(1), current: currentMetrics.bracketScore.toFixed(1), optimized: optimizedMetrics.bracketScore.toFixed(1), icon: getDifferenceIcon(baselineMetrics.bracketScore, optimizedMetrics.bracketScore), diff: baselineMetrics.bracketScore - optimizedMetrics.bracketScore, formatDiff: (d: number) => Math.abs(d).toFixed(1), winner: null },
+    { label: "Avg Marginal Bracket", group: "tax", baseline: formatPercent(baselineMetrics.avgBracket), current: formatPercent(currentMetrics.avgBracket), optimized: formatPercent(optimizedMetrics.avgBracket), icon: getDifferenceIcon(baselineMetrics.avgBracket, optimizedMetrics.avgBracket), diff: baselineMetrics.avgBracket - optimizedMetrics.avgBracket, formatDiff: (d: number) => formatPercent(Math.abs(d)), winner: null },
+    // Longevity metrics
+    { label: "All Funds Depleted", group: "longevity", baseline: formatAge(baselineMetrics.allFundsDepletionAge), current: formatAge(currentMetrics.allFundsDepletionAge), optimized: formatAge(optimizedMetrics.allFundsDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: longevityWinner },
+    { label: "Traditional Depleted", group: "longevity", baseline: formatAge(baselineMetrics.tradDepletionAge), current: formatAge(currentMetrics.tradDepletionAge), optimized: formatAge(optimizedMetrics.tradDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: null },
+    { label: "Roth Depleted", group: "longevity", baseline: formatAge(baselineMetrics.rothDepletionAge), current: formatAge(currentMetrics.rothDepletionAge), optimized: formatAge(optimizedMetrics.rothDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: null },
+    { label: "Final Balance (Age 100)", group: "longevity", baseline: formatCurrency(baselineMetrics.finalTotalBalance), current: formatCurrency(currentMetrics.finalTotalBalance), optimized: formatCurrency(optimizedMetrics.finalTotalBalance), icon: null, diff: 0, formatDiff: () => '', winner: balanceWinner },
   ];
 
   // Determine recommendation based on goal
@@ -237,79 +176,55 @@ export function StrategyComparison({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Tax Metrics Section */}
+          {/* Unified Strategy Metrics Table */}
           <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Tax Efficiency Metrics
-            </h4>
-            <div className={`grid ${showCurrentColumn ? 'grid-cols-5' : 'grid-cols-4'} gap-4 text-sm font-medium text-muted-foreground pb-2 border-b`}>
+            <div className={`grid ${showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-sm font-medium text-muted-foreground pb-2 border-b`}>
               <div>Metric</div>
-              <div className="text-center">Baseline</div>
-              {showCurrentColumn && <div className="text-center">{currentStrategyName}</div>}
-              <div className="text-center">Optimized - Fill to 22%</div>
-              <div className="text-center">Savings</div>
-            </div>
-
-            {taxMetrics.map((metric) => (
-              <div key={metric.label} className={`grid ${showCurrentColumn ? 'grid-cols-5' : 'grid-cols-4'} gap-4 items-center text-sm py-2 border-b border-muted/50`}>
-                <div className="font-medium">{metric.label}</div>
-                <div className="text-center text-muted-foreground flex items-center justify-center">
-                  {metric.baseline}
-                  {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
-                </div>
-                {showCurrentColumn && (
-                  <div className={`text-center flex items-center justify-center ${currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
-                    {metric.current}
-                    {metric.winner && getWinnerBadge(metric.winner, 'current')}
-                  </div>
-                )}
-                <div className="text-center font-semibold text-green-600 flex items-center justify-center">
-                  {metric.optimized}
-                  {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
-                </div>
-                <div className="flex items-center justify-center gap-1">
-                  {metric.icon}
-                  <span className={metric.diff > 0 ? "text-green-600" : metric.diff < 0 ? "text-destructive" : "text-muted-foreground"}>
-                    {metric.formatDiff(metric.diff)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Longevity Metrics Section */}
-          <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Longevity Metrics
-            </h4>
-            <div className={`grid ${gridCols} gap-4 text-sm font-medium text-muted-foreground pb-2 border-b`}>
-              <div>Metric</div>
-              <div className="text-center">Baseline - No Roth Conversion</div>
+              <div className="text-center">Baseline - No Conversion</div>
               {showCurrentColumn && <div className="text-center">{currentStrategyName}</div>}
               <div className="text-center">Optimized - Fill to 22%</div>
             </div>
 
-            {longevityMetrics.map((metric) => (
-              <div key={metric.label} className={`grid ${gridCols} gap-4 items-center text-sm py-2 border-b border-muted/50`}>
-                <div className="font-medium">{metric.label}</div>
-                <div className="text-center text-muted-foreground flex items-center justify-center">
-                  {metric.baseline}
-                  {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
-                </div>
-                {showCurrentColumn && (
-                  <div className="text-center flex items-center justify-center">
-                    {metric.current}
-                    {metric.winner && getWinnerBadge(metric.winner, 'current')}
+            {allMetrics.map((metric, idx) => {
+              // Insert group separator before longevity metrics
+              const prevGroup = idx > 0 ? allMetrics[idx - 1].group : null;
+              const showSeparator = prevGroup && prevGroup !== metric.group;
+              return (
+                <div key={metric.label}>
+                  {showSeparator && (
+                    <div className={`grid ${showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3'} gap-4 pt-3 pb-1`}>
+                      <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 border-t pt-2">
+                        <Clock className="h-3 w-3" /> Longevity
+                      </div>
+                    </div>
+                  )}
+                  {idx === 0 && (
+                    <div className={`grid ${showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3'} gap-4 pt-1 pb-1`}>
+                      <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                        <DollarSign className="h-3 w-3" /> Tax Efficiency
+                      </div>
+                    </div>
+                  )}
+                  <div className={`grid ${showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3'} gap-4 items-center text-sm py-2 border-b border-muted/50`}>
+                    <div className="font-medium">{metric.label}</div>
+                    <div className="text-center text-muted-foreground flex items-center justify-center">
+                      {metric.baseline}
+                      {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
+                    </div>
+                    {showCurrentColumn && (
+                      <div className={`text-center flex items-center justify-center ${metric.group === 'tax' && currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
+                        {metric.current}
+                        {metric.winner && getWinnerBadge(metric.winner, 'current')}
+                      </div>
+                    )}
+                    <div className={`text-center flex items-center justify-center ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
+                      {metric.optimized}
+                      {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
+                    </div>
                   </div>
-                )}
-                <div className="text-center flex items-center justify-center">
-                  {metric.optimized}
-                  {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Survivor Impact Section */}
