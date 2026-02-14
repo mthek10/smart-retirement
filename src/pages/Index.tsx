@@ -445,16 +445,16 @@ const Index = () => {
             />
             {/* RMD Year-by-Year & Tax Strategies */}
             <RMDPlanner
-              spouse1TradBalance={accounts.spouse1Traditional}
-              spouse2TradBalance={accounts.spouse2Traditional}
-              rothBalance={accounts.roth}
-              spouse1Age={taxSettings.spouse1Age}
-              spouse2Age={taxSettings.spouse2Age}
-              filingStatus={taxSettings.filingStatus}
-              rothConversionStrategy={taxSettings.rothConversionStrategy}
-              growthRate={accounts.traditionalReturn}
-              inflationRate={taxSettings.inflationRate}
-              otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
+              spouse1TradBalance={committedAccounts.spouse1Traditional}
+              spouse2TradBalance={committedAccounts.spouse2Traditional}
+              rothBalance={committedAccounts.roth}
+              spouse1Age={committedTaxSettings.spouse1Age}
+              spouse2Age={committedTaxSettings.spouse2Age}
+              filingStatus={committedTaxSettings.filingStatus}
+              rothConversionStrategy={committedTaxSettings.rothConversionStrategy}
+              growthRate={committedAccounts.traditionalReturn}
+              inflationRate={committedTaxSettings.inflationRate}
+              otherIncome={committedSSData.spouse1.estimatedBenefit * 12 + (committedTaxSettings.filingStatus === 'married' ? committedSSData.spouse2.estimatedBenefit * 12 : 0)}
               visibleTabs={['strategies']}
             />
 
@@ -468,16 +468,16 @@ const Index = () => {
           <TabsContent value="charts" className="mt-6 space-y-6">
             {/* RMD Charts */}
             <RMDPlanner
-              spouse1TradBalance={accounts.spouse1Traditional}
-              spouse2TradBalance={accounts.spouse2Traditional}
-              rothBalance={accounts.roth}
-              spouse1Age={taxSettings.spouse1Age}
-              spouse2Age={taxSettings.spouse2Age}
-              filingStatus={taxSettings.filingStatus}
-              rothConversionStrategy={taxSettings.rothConversionStrategy}
-              growthRate={accounts.traditionalReturn}
-              inflationRate={taxSettings.inflationRate}
-              otherIncome={ssData.spouse1.estimatedBenefit * 12 + (taxSettings.filingStatus === 'married' ? ssData.spouse2.estimatedBenefit * 12 : 0)}
+              spouse1TradBalance={committedAccounts.spouse1Traditional}
+              spouse2TradBalance={committedAccounts.spouse2Traditional}
+              rothBalance={committedAccounts.roth}
+              spouse1Age={committedTaxSettings.spouse1Age}
+              spouse2Age={committedTaxSettings.spouse2Age}
+              filingStatus={committedTaxSettings.filingStatus}
+              rothConversionStrategy={committedTaxSettings.rothConversionStrategy}
+              growthRate={committedAccounts.traditionalReturn}
+              inflationRate={committedTaxSettings.inflationRate}
+              otherIncome={committedSSData.spouse1.estimatedBenefit * 12 + (committedTaxSettings.filingStatus === 'married' ? committedSSData.spouse2.estimatedBenefit * 12 : 0)}
               visibleTabs={['chart']}
               showSummary={false}
             />
