@@ -481,10 +481,7 @@ const Index = () => {
               visibleTabs={['chart']}
               showSummary={false}
             />
-            <div className="grid gap-6 lg:grid-cols-2">
-              <BracketAnalysisCard analysis={summary.bracketConsistency} projections={projections} />
-              <BracketChart data={projections} />
-            </div>
+            <BracketChart data={projections} />
             <ProjectionChart data={chartData} />
             <TaxChart data={taxChartData} />
           </TabsContent>
