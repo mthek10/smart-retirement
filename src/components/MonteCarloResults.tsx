@@ -96,12 +96,26 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
     return histData;
   }, [results.baseline.outcomes, results.current.outcomes, results.optimized.outcomes]);
 
-  // Strategy cards data
-  const strategies = [
-    { key: 'baseline', name: 'No Conversions', data: results.baseline, color: 'slate' },
-    { key: 'current', name: results.current.strategyName, data: results.current, color: 'blue' },
-    { key: 'optimized', name: 'Fill to 24%', data: results.optimized, color: 'green' },
-  ];
+  // Strategy cards data – deduplicate when current matches another strategy
+  const strategies = useMemo(() => {
+    const all = [
+      { key: 'baseline', name: 'No Conversions', data: results.baseline, color: 'slate' },
+      { key: 'current', name: results.current.strategyName, data: results.current, color: 'blue' },
+      { key: 'optimized', name: 'Fill to 24%', data: results.optimized, color: 'green' },
+    ];
+
+    const isDuplicate = (a: typeof all[0], b: typeof all[0]) =>
+      a.data.successRate === b.data.successRate &&
+      a.data.medianFinalBalance === b.data.medianFinalBalance &&
+      a.data.avgLifetimeTax === b.data.avgLifetimeTax &&
+      a.data.medianDepletionAge === b.data.medianDepletionAge;
+
+    // If current duplicates baseline or optimized, remove current (keep the named ones)
+    if (isDuplicate(all[1], all[0]) || isDuplicate(all[1], all[2])) {
+      return all.filter(s => s.key !== 'current');
+    }
+    return all;
+  }, [results]);
 
   return (
     <Card>
@@ -165,7 +179,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
         )}
 
         {/* Strategy Comparison Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 ${strategies.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
           {strategies.map((s) => (
             <Card key={s.key} className={`border-2 ${
               s.key === 'optimized' ? 'border-green-500/50' :
