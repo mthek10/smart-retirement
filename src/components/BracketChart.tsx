@@ -1,11 +1,6 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 
 interface BracketChartProps {
   data: Array<{
@@ -15,117 +10,97 @@ interface BracketChartProps {
   }>;
 }
 
-const chartConfig = {
-  marginalBracket: {
-    label: "Marginal Bracket",
-    color: "hsl(var(--primary))",
-  },
-} satisfies ChartConfig;
+const bracketColors: Record<number, { color: string; label: string }> = {
+  0.10: { color: "hsl(142, 76%, 36%)", label: "10%" },
+  0.12: { color: "hsl(152, 68%, 40%)", label: "12%" },
+  0.22: { color: "hsl(45, 93%, 47%)", label: "22%" },
+  0.24: { color: "hsl(32, 95%, 44%)", label: "24%" },
+  0.32: { color: "hsl(15, 90%, 50%)", label: "32%" },
+  0.35: { color: "hsl(0, 84%, 55%)", label: "35%" },
+  0.37: { color: "hsl(0, 84%, 42%)", label: "37%" },
+};
 
-const bracketThresholds = [
-  { rate: 0.10, label: "10%", color: "hsl(142, 76%, 36%)" },
-  { rate: 0.12, label: "12%", color: "hsl(142, 76%, 46%)" },
-  { rate: 0.22, label: "22%", color: "hsl(45, 93%, 47%)" },
-  { rate: 0.24, label: "24%", color: "hsl(32, 95%, 44%)" },
-  { rate: 0.32, label: "32%", color: "hsl(0, 84%, 60%)" },
-];
+function getBracketColor(rate: number): string {
+  return bracketColors[rate]?.color ?? "hsl(var(--muted))";
+}
 
 export function BracketChart({ data }: BracketChartProps) {
-  if (!data || data.length === 0) {
-    return null;
-  }
+  const chartData = useMemo(() => {
+    if (!data || data.length === 0) return [];
 
-  const chartData = data.map(d => ({
-    year: d.year,
-    age: d.age,
-    bracket: d.marginalBracket * 100,
-  }));
+    const mapped = data.map(d => ({
+      age: d.age,
+      bracket: d.marginalBracket * 100,
+      rate: d.marginalBracket,
+    }));
 
-  // Find the range of years with non-zero brackets
-  let lastNonZeroIndex = chartData.length - 1;
-  for (let i = chartData.length - 1; i >= 0; i--) {
-    if (chartData[i].bracket > 0) {
-      lastNonZeroIndex = i;
-      break;
+    // Trim trailing zero-bracket years
+    let lastNonZero = mapped.length - 1;
+    for (let i = mapped.length - 1; i >= 0; i--) {
+      if (mapped[i].bracket > 0) { lastNonZero = i; break; }
     }
-  }
-  
-  const displayData = chartData.slice(0, Math.min(lastNonZeroIndex + 3, chartData.length));
+    return mapped.slice(0, Math.min(lastNonZero + 3, mapped.length));
+  }, [data]);
+
+  if (chartData.length === 0) return null;
+
+  // Determine which brackets appear in the data for the legend
+  const uniqueRates = [...new Set(chartData.map(d => d.rate).filter(r => r > 0))].sort();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Marginal Tax Bracket Over Time</CardTitle>
         <CardDescription>
-          Your federal marginal tax bracket by year. Consistent brackets indicate optimized tax strategy.
+          Each bar is colored by its federal marginal bracket. Consistent colors indicate a smooth tax strategy.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[300px] w-full">
-          <AreaChart data={displayData} margin={{ left: 12, right: 12, top: 12, bottom: 12 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis 
-              dataKey="year" 
-              tickLine={false} 
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+            <XAxis
+              dataKey="age"
+              tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value) => value.toString()}
+              tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+              label={{ value: 'Age', position: 'insideBottom', offset: -4, style: { fill: 'hsl(var(--muted-foreground))', fontSize: 12 } }}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={8}
               domain={[0, 40]}
-              tickFormatter={(value) => `${value}%`}
+              tickFormatter={(v) => `${v}%`}
+              tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
             />
-            
-            {/* Bracket threshold reference lines */}
-            {bracketThresholds.map((threshold) => (
-              <ReferenceLine
-                key={threshold.label}
-                y={threshold.rate * 100}
-                stroke={threshold.color}
-                strokeDasharray="5 5"
-                strokeOpacity={0.5}
-              />
-            ))}
-            
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value, name, props) => {
-                    const age = props.payload?.age;
-                    return (
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">{value}% Bracket</span>
-                        {age && <span className="text-xs text-muted-foreground">Age {age}</span>}
-                      </div>
-                    );
-                  }}
-                />
-              }
+            <Tooltip
+              cursor={{ fill: 'hsl(var(--muted) / 0.3)' }}
+              contentStyle={{
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '0.5rem',
+              }}
+              formatter={(value: number, _name: string, props: any) => {
+                const age = props.payload?.age;
+                return [`${value}%`, `Bracket (Age ${age})`];
+              }}
             />
-            
-            <Area
-              type="stepAfter"
-              dataKey="bracket"
-              stroke="hsl(var(--primary))"
-              fill="hsl(var(--primary))"
-              fillOpacity={0.3}
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ChartContainer>
-        
-        {/* Legend for bracket thresholds */}
+            <Bar dataKey="bracket" radius={[4, 4, 0, 0]} maxBarSize={24}>
+              {chartData.map((entry, index) => (
+                <Cell key={index} fill={getBracketColor(entry.rate)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+
+        {/* Legend */}
         <div className="flex flex-wrap gap-4 mt-4 justify-center">
-          {bracketThresholds.map((threshold) => (
-            <div key={threshold.label} className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: threshold.color }}
-              />
-              <span className="text-xs text-muted-foreground">{threshold.label} Bracket</span>
+          {uniqueRates.map((rate) => (
+            <div key={rate} className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getBracketColor(rate) }} />
+              <span className="text-xs text-muted-foreground">{bracketColors[rate]?.label ?? `${rate * 100}%`} Bracket</span>
             </div>
           ))}
         </div>
