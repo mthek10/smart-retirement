@@ -12,7 +12,7 @@ import {
   MapPin
 } from "lucide-react";
 import { getBracketRoom } from "@/lib/incomeAlerts";
-import { calculateCapitalGainsHarvestingRoom, standardDeductions2024 } from "@/lib/taxCalculations";
+import { calculateCapitalGainsHarvestingRoom, calculateStateCapitalGainsTax, standardDeductions2024 } from "@/lib/taxCalculations";
 import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
 import type { ProjectionRow } from "@/hooks/useProjections";
@@ -27,6 +27,7 @@ interface ActionItemsProps {
   spouse2SSClaimAge: number;
   acaEnabled: boolean;
   taxableUnrealizedGains?: number;
+  taxableCostBasisPercent?: number;
   stateCode?: string;
   stateRelocation?: {
     enabled: boolean;
@@ -81,6 +82,7 @@ export function ActionItems({
   spouse2SSClaimAge,
   acaEnabled,
   taxableUnrealizedGains,
+  taxableCostBasisPercent,
   stateCode,
   stateRelocation,
   onNavigateToSetup,
@@ -205,7 +207,99 @@ export function ActionItems({
     });
   }
 
-  // 2. Social Security Timing
+  // 1c. State Tax-Optimized Capital Gains Realization Schedule
+  const costBasisPct = (taxableCostBasisPercent ?? 33) / 100;
+  const gainPct = 1 - costBasisPct; // portion of each dollar sold that is gain
+  const hasRelocationForCG = stateRelocation?.enabled && stateRelocation.targetState;
+  const currentStateCode = stateCode && stateCode !== 'none' ? stateCode : null;
+
+  if (currentStateCode && taxableUnrealizedGains && taxableUnrealizedGains > 5000) {
+    // Determine effective state CG rate per year (accounts for relocation)
+    const stateCGSchedule: { age: number; year: number; stateCode: string; effectiveRate: number; recommendedGains: number; stateTaxSaved: number }[] = [];
+    let gainsRemaining = taxableUnrealizedGains;
+    const testGainAmount = 100000; // Use $100k to estimate marginal rate
+
+    for (let i = 0; i < Math.min(15, projections.length); i++) {
+      if (gainsRemaining < 1000) break;
+      const p = projections[i];
+      if (p.taxableBalance < 1000) break;
+
+      // Determine which state applies this year
+      const yearState = (hasRelocationForCG && p.age >= stateRelocation.relocationAge)
+        ? stateRelocation.targetState
+        : (currentStateCode === 'other' ? null : currentStateCode);
+
+      if (!yearState) continue;
+
+      const stateCGTax = calculateStateCapitalGainsTax(testGainAmount, p.ordinaryIncome, yearState, filingStatus);
+      const effectiveRate = stateCGTax / testGainAmount;
+
+      // Also calculate the 0% federal CG room for this year
+      const inflMult = Math.pow(1 + inflationRate / 100, i);
+      const taxableIncForCG = Math.max(0, p.ordinaryIncome - standardDeduction * inflMult);
+      const cgRoom = calculateCapitalGainsHarvestingRoom(taxableIncForCG, filingStatus, i, inflationRate / 100);
+
+      // Recommend realizing gains up to available balance (gain portion)
+      const maxSaleFromBalance = p.taxableBalance;
+      const maxGainsFromSale = maxSaleFromBalance * gainPct;
+      const recommendedGains = Math.min(
+        gainsRemaining,
+        maxGainsFromSale,
+        cgRoom.harvestingAvailable ? cgRoom.roomInZeroBracket : maxGainsFromSale
+      );
+
+      if (recommendedGains > 1000) {
+        const actualStateTax = calculateStateCapitalGainsTax(recommendedGains, p.ordinaryIncome, yearState, filingStatus);
+        stateCGSchedule.push({
+          age: p.age,
+          year: p.year,
+          stateCode: yearState,
+          effectiveRate,
+          recommendedGains,
+          stateTaxSaved: 0, // will calculate relative savings below
+        });
+        gainsRemaining -= recommendedGains;
+      }
+    }
+
+    // Calculate relative savings: compare each year's rate to the max rate in the schedule
+    if (stateCGSchedule.length > 1) {
+      const maxRate = Math.max(...stateCGSchedule.map(s => s.effectiveRate));
+      const minRate = Math.min(...stateCGSchedule.map(s => s.effectiveRate));
+
+      // Only show if there's meaningful rate variation (relocation or progressive brackets)
+      if (maxRate - minRate > 0.005) {
+        // Sort by rate ascending — prioritize low-rate years
+        const sorted = [...stateCGSchedule].sort((a, b) => a.effectiveRate - b.effectiveRate);
+        const lowRateYears = sorted.filter(s => s.effectiveRate <= minRate + 0.01);
+        const highRateYears = sorted.filter(s => s.effectiveRate > minRate + 0.01);
+
+        const scheduleLines = sorted.slice(0, 6).map(s => {
+          const rateLabel = (s.effectiveRate * 100).toFixed(1);
+          const tag = s.effectiveRate <= minRate + 0.01 ? '✅ Low rate' : '⚠️ Higher rate';
+          return `Age ${s.age} (${s.year}, ${s.stateCode}): Realize ${formatCurrency(s.recommendedGains)} at ~${rateLabel}% state CG rate — ${tag}`;
+        });
+        if (sorted.length > 6) {
+          scheduleLines.push(`...and ${sorted.length - 6} more years`);
+        }
+
+        const totalLowRateGains = lowRateYears.reduce((sum, s) => sum + s.recommendedGains, 0);
+        const totalHighRateGains = highRateYears.reduce((sum, s) => sum + s.recommendedGains, 0);
+        const potentialSavings = totalHighRateGains * (maxRate - minRate);
+
+        actionItems.push({
+          id: 'state-cg-optimization',
+          priority: potentialSavings > 10000 ? 'high' : potentialSavings > 2000 ? 'medium' : 'low',
+          category: 'cg-harvest',
+          title: 'State Tax-Optimized Gains Realization',
+          description: `Your state CG tax rate varies from ${(minRate * 100).toFixed(1)}% to ${(maxRate * 100).toFixed(1)}% across projection years${hasRelocationForCG ? ' (including relocation)' : ''}. Accelerate gains into lower-rate years to save up to ${formatCurrency(potentialSavings)} in state taxes. Cost basis: ${Math.round(costBasisPct * 100)}% (${Math.round(gainPct * 100)}% of each sale is taxable gain).`,
+          impact: `${scheduleLines.join('\n')}`,
+          icon: <Coins className="h-5 w-5 text-warning" />,
+        });
+      }
+    }
+  }
+
   const yearsToSS1 = Math.max(0, spouse1SSClaimAge - spouse1Age);
   const yearsToSS2 = filingStatus === 'married' ? Math.max(0, spouse2SSClaimAge - spouse2Age) : Infinity;
   const yearsToSS = Math.min(yearsToSS1, yearsToSS2);
