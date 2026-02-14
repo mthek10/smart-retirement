@@ -421,13 +421,13 @@ export function ActionItems({
     const targetSt = stateRelocation.targetState;
     const currentSt = currentStateCode && currentStateCode !== 'other' ? currentStateCode : null;
 
-    // Step 1: Calculate total unrealized gains from brokerage balance & cost basis
+    // Derive totals from brokerage balance + cost basis
     const brokerageBalance = projections[0]?.taxableBalance || 0;
-    const totalUnrealizedGains = brokerageBalance * gainPct; // e.g. $3M × 67% = $2.01M
+    const totalUnrealizedGains = brokerageBalance * gainPct;
     const totalCostBasis = brokerageBalance * costBasisPct;
 
-    // Step 2: Calculate effective state CG tax rate difference
-    const sampleGain = 50000; // sample gain for rate comparison
+    // State rate comparison
+    const sampleGain = 50000;
     const sampleOrdinaryIncome = projections[0]?.ordinaryIncome || 0;
     const currentStateRate = currentSt
       ? calculateStateCapitalGainsTax(sampleGain, sampleOrdinaryIncome, currentSt, filingStatus) / sampleGain
@@ -435,110 +435,157 @@ export function ActionItems({
     const targetStateRate = calculateStateCapitalGainsTax(sampleGain, sampleOrdinaryIncome, targetSt, filingStatus) / sampleGain;
     const rateDifference = targetStateRate - currentStateRate;
 
-    // Step 3: Build year-by-year pre-relocation schedule
-    const preMoveGainsSchedule: {
-      age: number; year: number; gains: number; saleAmount: number;
-      currentStateTax: number; targetStateTax: number; savings: number;
-    }[] = [];
-    let gainsLeft = totalUnrealizedGains;
+    // Build combined year-by-year schedule: Roth + CG together
     const preMoveYears = projections.filter(p => p.age < stateRelocation.relocationAge);
+    let gainsLeft = totalUnrealizedGains;
+    let tradBalanceLeft = projections[0]?.traditionalBalance || 0;
     let totalPreMoveSavings = 0;
+    let totalRothInPlan = 0;
+    let totalGainsInPlan = 0;
 
-    for (const p of preMoveYears) {
-      if (gainsLeft < 1000 || p.taxableBalance < 1000) break;
+    interface CombinedYearPlan {
+      age: number; year: number;
+      rothConversion: number; rothTaxCost: number; rothBracket: number;
+      gainsRealized: number; saleAmount: number;
+      cgCurrentStateTax: number; cgTargetStateTax: number; cgSavings: number;
+      federalCGRate: string;
+    }
+    const combinedSchedule: CombinedYearPlan[] = [];
 
-      const idx = preMoveGainsSchedule.length;
+    for (let idx = 0; idx < preMoveYears.length; idx++) {
+      const p = preMoveYears[idx];
+      if (gainsLeft < 500 && tradBalanceLeft < 500) break;
+
       const inflMult = Math.pow(1 + inflationRate / 100, idx);
-      const taxableIncForCG = Math.max(0, p.ordinaryIncome - standardDeduction * inflMult);
-      const cgRoom = calculateCapitalGainsHarvestingRoom(taxableIncForCG, filingStatus, idx, inflationRate / 100);
 
-      // Start with 0% federal bracket room, then add more up to a yearly cap
-      const federalFreeRoom = cgRoom.harvestingAvailable ? cgRoom.roomInZeroBracket : 0;
-      // Recommend gains beyond 0% bracket since state tax savings justify it
-      const maxGainsFromBalance = p.taxableBalance * gainPct;
-      const yearlyGainsCap = Math.max(federalFreeRoom, 100000); // at least $100k/yr or federal free room
-      const recommendedGains = Math.min(gainsLeft, maxGainsFromBalance, yearlyGainsCap);
+      // --- Roth conversion: fill bracket room ---
+      let rothAmount = 0;
+      let rothTax = 0;
+      let rothBracket = 0;
+      if (tradBalanceLeft > 1000 && p.age < rmdStartAge) {
+        const info = getBracketRoom(p.totalIncome, filingStatus, idx, inflationRate);
+        if (info.roomInBracket > 1000) {
+          rothAmount = Math.min(info.roomInBracket, tradBalanceLeft);
+          rothBracket = info.currentBracket;
+          rothTax = rothAmount * (rothBracket / 100);
+          tradBalanceLeft -= rothAmount;
+          totalRothInPlan += rothAmount;
+        }
+      }
 
-      if (recommendedGains < 1000) continue;
+      // --- Capital gains: use 0% federal bracket room + additional for state savings ---
+      let gainsRealized = 0;
+      let saleAmount = 0;
+      let cgCurrentTax = 0;
+      let cgTargetTax = 0;
+      let cgSavings = 0;
+      let federalCGRate = '0%';
 
-      const saleAmount = gainPct > 0 ? recommendedGains / gainPct : recommendedGains; // gross sale needed
-      const currentTax = currentSt ? calculateStateCapitalGainsTax(recommendedGains, p.ordinaryIncome, currentSt, filingStatus) : 0;
-      const targetTax = calculateStateCapitalGainsTax(recommendedGains, p.ordinaryIncome, targetSt, filingStatus);
-      const yearSavings = targetTax - currentTax;
+      if (gainsLeft > 1000 && p.taxableBalance > 1000) {
+        // Ordinary income for CG bracket includes Roth conversion
+        const ordinaryWithRoth = p.ordinaryIncome + rothAmount;
+        const taxableIncForCG = Math.max(0, ordinaryWithRoth - standardDeduction * inflMult);
+        const cgRoom = calculateCapitalGainsHarvestingRoom(taxableIncForCG, filingStatus, idx, inflationRate / 100);
 
-      preMoveGainsSchedule.push({
-        age: p.age, year: p.year, gains: recommendedGains, saleAmount,
-        currentStateTax: currentTax, targetStateTax: targetTax, savings: yearSavings,
-      });
-      totalPreMoveSavings += yearSavings;
-      gainsLeft -= recommendedGains;
+        const federalFreeRoom = cgRoom.harvestingAvailable ? cgRoom.roomInZeroBracket : 0;
+        const maxGainsFromBalance = p.taxableBalance * gainPct;
+        // Beyond 0% bracket, still beneficial to realize gains at current lower state rate
+        const yearlyGainsCap = Math.max(federalFreeRoom, rateDifference > 0.01 ? 150000 : 50000);
+        gainsRealized = Math.min(gainsLeft, maxGainsFromBalance, yearlyGainsCap);
+
+        if (gainsRealized > 500) {
+          saleAmount = gainPct > 0 ? gainsRealized / gainPct : gainsRealized;
+          cgCurrentTax = currentSt ? calculateStateCapitalGainsTax(gainsRealized, ordinaryWithRoth, currentSt, filingStatus) : 0;
+          cgTargetTax = calculateStateCapitalGainsTax(gainsRealized, ordinaryWithRoth, targetSt, filingStatus);
+          cgSavings = cgTargetTax - cgCurrentTax;
+          federalCGRate = gainsRealized <= federalFreeRoom ? '0%' : '15%';
+          gainsLeft -= gainsRealized;
+          totalPreMoveSavings += cgSavings;
+          totalGainsInPlan += gainsRealized;
+        }
+      }
+
+      if (rothAmount > 500 || gainsRealized > 500) {
+        combinedSchedule.push({
+          age: p.age, year: p.year,
+          rothConversion: rothAmount, rothTaxCost: rothTax, rothBracket: rothBracket,
+          gainsRealized, saleAmount,
+          cgCurrentStateTax: cgCurrentTax, cgTargetStateTax: cgTargetTax, cgSavings,
+          federalCGRate,
+        });
+      }
     }
 
     // Build display
     const scheduleLines: string[] = [];
-    const totalGainsRealized = totalUnrealizedGains - gainsLeft;
+    const hasRoth = totalRothInPlan > 1000;
+    const hasCG = totalGainsInPlan > 1000;
+    const hasSchedule = combinedSchedule.length > 0 && (hasRoth || (hasCG && rateDifference > 0.002));
 
-    if (preMoveGainsSchedule.length > 0 && rateDifference > 0.002) {
-      // Header: rate comparison
+    if (hasSchedule) {
       scheduleLines.push(
         `📊 State Rate Comparison: ${stateName} ${(currentStateRate * 100).toFixed(1)}% vs ${targetSt} ${(targetStateRate * 100).toFixed(1)}% (+${(rateDifference * 100).toFixed(1)}% higher)`
       );
       scheduleLines.push(
-        `💰 Brokerage: ${formatCurrency(brokerageBalance)} balance — ${formatCurrency(totalCostBasis)} cost basis (${Math.round(costBasisPct * 100)}%) — ${formatCurrency(totalUnrealizedGains)} unrealized gains (${Math.round(gainPct * 100)}%)`
+        `💰 Brokerage: ${formatCurrency(brokerageBalance)} — ${formatCurrency(totalCostBasis)} basis (${Math.round(costBasisPct * 100)}%) — ${formatCurrency(totalUnrealizedGains)} unrealized gains`
       );
-      scheduleLines.push('');
-
-      for (const s of preMoveGainsSchedule.slice(0, 8)) {
-        const currentRatePct = s.gains > 0 ? ((s.currentStateTax / s.gains) * 100).toFixed(1) : '0.0';
-        const targetRatePct = s.gains > 0 ? ((s.targetStateTax / s.gains) * 100).toFixed(1) : '0.0';
+      if (hasRoth) {
         scheduleLines.push(
-          `Age ${s.age} (${s.year}): Sell ${formatCurrency(s.saleAmount)} → ${formatCurrency(s.gains)} gain — ${stateName} tax ${formatCurrency(s.currentStateTax)} (${currentRatePct}%) vs ${targetSt} ${formatCurrency(s.targetStateTax)} (${targetRatePct}%) → save ${formatCurrency(s.savings)}`
+          `🔄 Traditional IRA: ${formatCurrency(projections[0]?.traditionalBalance || 0)} — convert before moving to higher-tax state`
         );
       }
-      if (preMoveGainsSchedule.length > 8) {
-        scheduleLines.push(`...and ${preMoveGainsSchedule.length - 8} more years`);
+      scheduleLines.push('');
+
+      for (const s of combinedSchedule.slice(0, 8)) {
+        const parts: string[] = [`Age ${s.age} (${s.year}):`];
+        if (s.rothConversion > 500) {
+          parts.push(`Roth ${formatCurrency(s.rothConversion)} at ${s.rothBracket}% (${formatCurrency(s.rothTaxCost)} tax)`);
+        }
+        if (s.gainsRealized > 500) {
+          const curPct = s.gainsRealized > 0 ? ((s.cgCurrentStateTax / s.gainsRealized) * 100).toFixed(1) : '0.0';
+          const tgtPct = s.gainsRealized > 0 ? ((s.cgTargetStateTax / s.gainsRealized) * 100).toFixed(1) : '0.0';
+          parts.push(`Sell ${formatCurrency(s.saleAmount)} → ${formatCurrency(s.gainsRealized)} gain at ${s.federalCGRate} fed + ${curPct}% state (vs ${tgtPct}% in ${targetSt}, save ${formatCurrency(s.cgSavings)})`);
+        }
+        scheduleLines.push(parts.join(' | '));
       }
-      scheduleLines.push(`\n✅ Total gains realized before move: ${formatCurrency(totalGainsRealized)} of ${formatCurrency(totalUnrealizedGains)}`);
-      scheduleLines.push(`✅ Total estimated state tax savings: ${formatCurrency(totalPreMoveSavings)}`);
+      if (combinedSchedule.length > 8) {
+        scheduleLines.push(`...and ${combinedSchedule.length - 8} more years`);
+      }
+
+      scheduleLines.push('');
+      if (hasRoth) {
+        const totalRothTax = combinedSchedule.reduce((s, y) => s + y.rothTaxCost, 0);
+        scheduleLines.push(`🔄 Total Roth conversions: ${formatCurrency(totalRothInPlan)} (tax cost: ${formatCurrency(totalRothTax)}) — converts at lower ${stateName} rates`);
+      }
+      if (hasCG) {
+        scheduleLines.push(`✅ Total gains realized before move: ${formatCurrency(totalGainsInPlan)} of ${formatCurrency(totalUnrealizedGains)}`);
+        scheduleLines.push(`✅ Total state tax savings on CG: ${formatCurrency(totalPreMoveSavings)}`);
+      }
       if (gainsLeft > 1000) {
-        scheduleLines.push(`⚠️ Remaining unrealized gains at relocation: ${formatCurrency(gainsLeft)} (will be taxed at ${targetSt} rates)`);
+        scheduleLines.push(`⚠️ Remaining unrealized gains at relocation: ${formatCurrency(gainsLeft)} (taxed at ${targetSt} rates)`);
+      }
+      if (tradBalanceLeft > 1000) {
+        scheduleLines.push(`⚠️ Remaining Traditional balance at relocation: ${formatCurrency(tradBalanceLeft)} (future conversions/RMDs taxed at ${targetSt} rates)`);
       }
     }
 
-    const tips = [
-      'Accelerate Roth conversions now while in a lower-tax state',
-      'Consider selling appreciated real estate or investments pre-move',
-      'Exercise stock options or RSUs before establishing residency',
-    ];
-
-    const hasSchedule = scheduleLines.length > 0;
     const impactText = hasSchedule
       ? scheduleLines.join('\n')
-      : `• Realize capital gains before moving to avoid higher state CG taxes\n• ${tips.join('\n• ')}`;
+      : `• Realize capital gains & accelerate Roth conversions before moving\n• State CG rate increases from ${(currentStateRate * 100).toFixed(1)}% to ${(targetStateRate * 100).toFixed(1)}% after relocation\n• Exercise stock options or RSUs before establishing residency`;
+
+    const totalSavingsDesc = hasSchedule
+      ? `Combined pre-move strategy: ${hasRoth ? `convert ${formatCurrency(totalRothInPlan)} Roth` : ''}${hasRoth && hasCG ? ' + ' : ''}${hasCG ? `realize ${formatCurrency(totalGainsInPlan)} in gains (save ${formatCurrency(totalPreMoveSavings)} in state CG tax)` : ''} before relocating.`
+      : `You're planning to move from ${stateName} to ${targetIsHighTax}. Accelerate both Roth conversions and capital gains realization before the move.`;
 
     actionItems.push({
       id: 'state-relocation-combined',
       priority: yearsUntilMove <= 3 ? 'high' : 'medium',
       category: 'state-tax',
-      title: `Pre-Relocation Capital Gains Strategy — ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'} to Move`,
-      description: hasSchedule
-        ? `You're moving from ${stateName} to ${targetIsHighTax}. Realize gains before relocating to save ${formatCurrency(totalPreMoveSavings)} in state taxes by selling at ${(currentStateRate * 100).toFixed(1)}% instead of ${(targetStateRate * 100).toFixed(1)}%.`
-        : `You're planning to move from ${stateName} to ${targetIsHighTax}. This will increase your state tax burden.${lifetimeStateTax > 5000 ? ` Projected lifetime state taxes: ${formatCurrency(lifetimeStateTax)}.` : ''} Take these steps before relocating:`,
+      title: `Pre-Relocation Tax Strategy — ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'} to Move`,
+      description: totalSavingsDesc,
       impact: impactText,
       icon: <MapPin className="h-5 w-5 text-warning" />,
     });
-
-    if (hasSchedule) {
-      actionItems.push({
-        id: 'state-relocation-tips',
-        priority: 'low',
-        category: 'state-tax',
-        title: 'Additional Pre-Move Tax Tips',
-        description: `Beyond capital gains, consider these strategies before establishing residency in ${stateRelocation.targetState}:`,
-        impact: `• ${tips.join('\n• ')}`,
-        icon: <MapPin className="h-5 w-5 text-primary" />,
-      });
-    }
   } else if (movingToZeroTax && isInTaxableState && lifetimeStateTax > 5000) {
     // Combined: relocation to zero-tax state with savings estimate
     const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
