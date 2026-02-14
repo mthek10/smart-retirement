@@ -58,7 +58,7 @@ export function BracketChart({ data }: BracketChartProps) {
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--foreground))" strokeOpacity={0.2} />
             <XAxis
               dataKey="age"
               tickLine={false}
@@ -92,15 +92,6 @@ export function BracketChart({ data }: BracketChartProps) {
                 <Cell key={index} fill={getBracketColor(entry.rate)} />
               ))}
             </Bar>
-            <Line
-              type="monotone"
-              dataKey="bracket"
-              stroke="hsl(var(--foreground))"
-              strokeWidth={2}
-              dot={false}
-              strokeOpacity={0.5}
-              strokeDasharray="6 3"
-            />
           </ComposedChart>
         </ResponsiveContainer>
 
