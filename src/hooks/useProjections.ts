@@ -902,6 +902,7 @@ export interface StrategyMetrics {
   rothDepletionAge: number | null;
   allFundsDepletionAge: number | null;
   finalTotalBalance: number;
+  maxAnnualWithdrawalToZero: number;
   // Survivor-specific metrics
   peakMarginalBracket: number;
   yearsInHighBracket: number;
@@ -959,6 +960,13 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
     ? lastRow.traditionalBalance + lastRow.rothBalance + lastRow.taxableBalance 
     : 0;
   
+  // Max annual withdrawal to zero: average take-home + remaining balance spread over projection years
+  const totalTakeHome = projections.reduce((sum, p) => sum + p.takeHome, 0);
+  const avgTakeHome = projections.length > 0 ? totalTakeHome / projections.length : 0;
+  const maxAnnualWithdrawalToZero = projections.length > 0
+    ? avgTakeHome + finalTotalBalance / projections.length
+    : 0;
+  
   return {
     lifetimeFederalTax,
     lifetimeTotalTax,
@@ -970,6 +978,7 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
     rothDepletionAge,
     allFundsDepletionAge,
     finalTotalBalance,
+    maxAnnualWithdrawalToZero,
     peakMarginalBracket,
     yearsInHighBracket,
     survivorBracketRange,

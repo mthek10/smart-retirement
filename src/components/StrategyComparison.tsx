@@ -105,6 +105,7 @@ export function StrategyComparison({
     { label: "Traditional Depleted", group: "longevity", baseline: formatAge(baselineMetrics.tradDepletionAge), current: formatAge(currentMetrics.tradDepletionAge), optimized: formatAge(optimizedMetrics.tradDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: null },
     { label: "Roth Depleted", group: "longevity", baseline: formatAge(baselineMetrics.rothDepletionAge), current: formatAge(currentMetrics.rothDepletionAge), optimized: formatAge(optimizedMetrics.rothDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: null },
     { label: "Final Balance (Age 100)", group: "longevity", baseline: formatCurrency(baselineMetrics.finalTotalBalance), current: formatCurrency(currentMetrics.finalTotalBalance), optimized: formatCurrency(optimizedMetrics.finalTotalBalance), icon: null, diff: 0, formatDiff: () => '', winner: balanceWinner },
+    { label: "Max Annual Withdrawal to Zero", group: "longevity", baseline: formatCurrency(baselineMetrics.maxAnnualWithdrawalToZero), current: formatCurrency(currentMetrics.maxAnnualWithdrawalToZero), optimized: formatCurrency(optimizedMetrics.maxAnnualWithdrawalToZero), icon: null, diff: 0, formatDiff: () => '', winner: null },
   ];
 
   // Determine recommendation based on goal
