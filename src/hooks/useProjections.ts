@@ -822,10 +822,10 @@ export function calculateProjections(
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
     const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
     
-    // Compute total excess: from wages exceeding target AND from SS/income exceeding target when no withdrawals needed
+    // Compute total excess: from wages exceeding target AND from income (SS etc.) exceeding target after taxes
     let totalExcess = excessIncome;
-    if (excessIncome === 0 && totalWithdrawals === 0 && calculatedTakeHome > effectiveTargetTakeHome + 1) {
-      // SS (and/or wages) covers the target with surplus — save the after-tax excess to brokerage
+    if (excessIncome === 0 && calculatedTakeHome > effectiveTargetTakeHome + 1) {
+      // After-tax income exceeds the target — save the surplus to brokerage
       totalExcess = calculatedTakeHome - effectiveTargetTakeHome;
     }
     
