@@ -250,27 +250,27 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
                     <SelectItem value="AK">Alaska (No Income Tax)</SelectItem>
+                    <SelectItem value="AZ">Arizona (2.5% Flat)</SelectItem>
+                    <SelectItem value="CA">California (up to 13.3%)</SelectItem>
+                    <SelectItem value="CO">Colorado (4.4% Flat)</SelectItem>
+                    <SelectItem value="CT">Connecticut (up to 6.99%)</SelectItem>
+                    <SelectItem value="DC">D.C. (up to 10.75%)</SelectItem>
                     <SelectItem value="FL">Florida (No Income Tax)</SelectItem>
+                    <SelectItem value="HI">Hawaii (up to 11%)</SelectItem>
+                    <SelectItem value="MN">Minnesota (up to 9.85%)</SelectItem>
                     <SelectItem value="NV">Nevada (No Income Tax)</SelectItem>
                     <SelectItem value="NH">New Hampshire (No Income Tax)</SelectItem>
+                    <SelectItem value="NJ">New Jersey (up to 10.75%)</SelectItem>
+                    <SelectItem value="NY">New York (up to 10.9%)</SelectItem>
+                    <SelectItem value="NC">North Carolina (4.5% Flat)</SelectItem>
+                    <SelectItem value="OR">Oregon (up to 9.9%)</SelectItem>
+                    <SelectItem value="PA">Pennsylvania (3.07% Flat)</SelectItem>
                     <SelectItem value="SD">South Dakota (No Income Tax)</SelectItem>
                     <SelectItem value="TN">Tennessee (No Income Tax)</SelectItem>
                     <SelectItem value="TX">Texas (No Income Tax)</SelectItem>
+                    <SelectItem value="VT">Vermont (up to 8.75%)</SelectItem>
                     <SelectItem value="WA">Washington (No Income Tax)</SelectItem>
                     <SelectItem value="WY">Wyoming (No Income Tax)</SelectItem>
-                    <SelectItem value="AZ">Arizona (2.5% Flat)</SelectItem>
-                    <SelectItem value="CO">Colorado (4.4% Flat)</SelectItem>
-                    <SelectItem value="NC">North Carolina (4.5% Flat)</SelectItem>
-                    <SelectItem value="PA">Pennsylvania (3.07% Flat)</SelectItem>
-                    <SelectItem value="CA">California (up to 13.3%)</SelectItem>
-                    <SelectItem value="NY">New York (up to 10.9%)</SelectItem>
-                    <SelectItem value="NJ">New Jersey (up to 10.75%)</SelectItem>
-                    <SelectItem value="OR">Oregon (up to 9.9%)</SelectItem>
-                    <SelectItem value="MN">Minnesota (up to 9.85%)</SelectItem>
-                    <SelectItem value="HI">Hawaii (up to 11%)</SelectItem>
-                    <SelectItem value="CT">Connecticut (up to 6.99%)</SelectItem>
-                    <SelectItem value="VT">Vermont (up to 8.75%)</SelectItem>
-                    <SelectItem value="DC">D.C. (up to 10.75%)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
