@@ -217,7 +217,7 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
           {taxSettings.stateRelocation?.enabled && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="relocationAge">Relocation Age</Label>
+                <Label htmlFor="relocationAge">Relocation Age Spouse 1</Label>
                 <DebouncedInput
                   id="relocationAge"
                   type="number"
