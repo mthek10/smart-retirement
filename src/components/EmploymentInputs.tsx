@@ -107,6 +107,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
               id="spouse1-401k"
               checked={taxSettings.spouse1Employment.contributes401k}
               onCheckedChange={(checked) => handleSpouse1Change('contributes401k', checked)}
+              disabled={taxSettings.spouse1Employment.retirementAge === spouse1Age}
             />
           </div>
 
@@ -205,6 +206,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                 id="spouse2-401k"
                 checked={taxSettings.spouse2Employment.contributes401k}
                 onCheckedChange={(checked) => handleSpouse2Change('contributes401k', checked)}
+                disabled={taxSettings.spouse2Employment.retirementAge === spouse2Age}
               />
             </div>
 
