@@ -84,9 +84,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                   id="spouse1-use-current-age"
                   checked={taxSettings.spouse1Employment.retirementAge === spouse1Age}
                   onCheckedChange={(checked) => {
-                    if (checked) {
-                      handleSpouse1Change('retirementAge', spouse1Age);
-                    }
+                    handleSpouse1Change('retirementAge', checked ? spouse1Age : 65);
                   }}
                 />
                 <Label htmlFor="spouse1-use-current-age" className="text-sm whitespace-nowrap cursor-pointer">
@@ -177,9 +175,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                     id="spouse2-use-current-age"
                     checked={taxSettings.spouse2Employment.retirementAge === spouse2Age}
                     onCheckedChange={(checked) => {
-                      if (checked) {
-                        handleSpouse2Change('retirementAge', spouse2Age);
-                      }
+                      handleSpouse2Change('retirementAge', checked ? spouse2Age : 65);
                     }}
                   />
                   <Label htmlFor="spouse2-use-current-age" className="text-sm whitespace-nowrap cursor-pointer">
