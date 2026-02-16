@@ -819,8 +819,18 @@ export function calculateProjections(
     const niit = calculateNIIT(capitalGains, magi, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
     const amt = calculateAMT(totalOrdinaryIncome, capitalGains, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
 
-    if (excessIncome > 0) {
-      taxableBalance += excessIncome;
+    const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
+    
+    // Compute total excess: from wages exceeding target AND from SS/income exceeding target when no withdrawals needed
+    let totalExcess = excessIncome;
+    if (excessIncome === 0 && totalWithdrawals === 0 && calculatedTakeHome > effectiveTargetTakeHome + 1) {
+      // SS (and/or wages) covers the target with surplus — save the after-tax excess to brokerage
+      totalExcess = calculatedTakeHome - effectiveTargetTakeHome;
+    }
+    
+    if (totalExcess > 0) {
+      taxableBalance += totalExcess;
     }
 
     spouse1TradBalance *= (1 + accounts.traditionalReturn / 100);
@@ -829,11 +839,8 @@ export function calculateProjections(
     taxableBalance *= (1 + accounts.taxableReturn / 100);
     
     const endingTradBalance = spouse1TradBalance + spouse2TradBalance;
-
-    const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
     
-    const takeHome = excessIncome > 0 ? (taxSettings.targetTakeHome * inflationMultiplier) : calculatedTakeHome;
+    const takeHome = totalExcess > 0 ? effectiveTargetTakeHome : calculatedTakeHome;
     
     const totalTaxes = federalTax + federalTaxCapitalGains + stateTax + stateCapitalGainsTax + irmaa + medicarePremiums + niit + amt;
     
@@ -846,7 +853,7 @@ export function calculateProjections(
       ssIncome: ssAnnual,
       employmentIncome: totalWages,
       netWages,
-      excessSavings: excessIncome,
+      excessSavings: totalExcess,
       payrollTax: totalPayrollTax,
       contributions401k: total401kContributions,
       employerMatch: totalEmployerMatch,
