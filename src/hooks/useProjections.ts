@@ -960,12 +960,8 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
     ? lastRow.traditionalBalance + lastRow.rothBalance + lastRow.taxableBalance 
     : 0;
   
-  // Max annual withdrawal to zero: average take-home + remaining balance spread over projection years
-  const totalTakeHome = projections.reduce((sum, p) => sum + p.takeHome, 0);
-  const avgTakeHome = projections.length > 0 ? totalTakeHome / projections.length : 0;
-  const maxAnnualWithdrawalToZero = projections.length > 0
-    ? avgTakeHome + finalTotalBalance / projections.length
-    : 0;
+  // maxAnnualWithdrawalToZero is computed externally via binary search
+  const maxAnnualWithdrawalToZero = 0;
   
   return {
     lifetimeFederalTax,
@@ -984,6 +980,62 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
     survivorBracketRange,
     survivorYearsTaxes,
   };
+}
+
+/**
+ * Binary search to find the first-year take-home that results in ~zero final balance.
+ */
+function solveMaxWithdrawalToZero(
+  accounts: Accounts,
+  ssData: SSData,
+  taxSettings: TaxSettings,
+  strategyOverride?: string
+): number {
+  const currentTakeHome = taxSettings.targetTakeHome;
+  // Quick check: if current take-home already depletes, it's the max or less
+  const currentProj = calculateProjections(accounts, ssData, taxSettings, strategyOverride);
+  const currentFinal = getProjectionFinalBalance(currentProj);
+  
+  if (currentFinal <= 0) {
+    // Already depleting — search downward
+    let low = 0;
+    let high = currentTakeHome;
+    for (let iter = 0; iter < 20; iter++) {
+      const mid = (low + high) / 2;
+      const modified = { ...taxSettings, targetTakeHome: mid };
+      const proj = calculateProjections(accounts, ssData, modified, strategyOverride);
+      const finalBal = getProjectionFinalBalance(proj);
+      if (Math.abs(finalBal) < 5000) return mid;
+      if (finalBal > 0) low = mid; else high = mid;
+    }
+    return (low + high) / 2;
+  }
+  
+  // Final balance is positive — search upward
+  let low = currentTakeHome;
+  let high = currentTakeHome * 5;
+  // Ensure high actually depletes
+  for (let i = 0; i < 5; i++) {
+    const modified = { ...taxSettings, targetTakeHome: high };
+    const proj = calculateProjections(accounts, ssData, modified, strategyOverride);
+    if (getProjectionFinalBalance(proj) <= 0) break;
+    high *= 2;
+  }
+  
+  for (let iter = 0; iter < 20; iter++) {
+    const mid = (low + high) / 2;
+    const modified = { ...taxSettings, targetTakeHome: mid };
+    const proj = calculateProjections(accounts, ssData, modified, strategyOverride);
+    const finalBal = getProjectionFinalBalance(proj);
+    if (Math.abs(finalBal) < 5000) return mid;
+    if (finalBal > 0) low = mid; else high = mid;
+  }
+  return (low + high) / 2;
+}
+
+function getProjectionFinalBalance(projections: ProjectionRow[]): number {
+  const last = projections[projections.length - 1];
+  return last ? last.traditionalBalance + last.rothBalance + last.taxableBalance : 0;
 }
 
 /**
@@ -1016,6 +1068,11 @@ export function useTwoPassProjections(
     const survivorSmoothedMetrics = survivorSmoothedProjections 
       ? calculateMetrics(survivorSmoothedProjections)
       : null;
+    
+    // Solve max withdrawal to zero for each strategy via binary search
+    currentMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings);
+    baselineMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'none');
+    optimizedMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'fill_22');
     
     // Tax savings = baseline taxes - optimized taxes
     const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
