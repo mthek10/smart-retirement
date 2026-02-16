@@ -7,7 +7,7 @@ import { EmploymentInputs } from "@/components/EmploymentInputs";
 import { HouseholdInputs } from "@/components/HouseholdInputs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Calculator } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calculator, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -53,6 +53,7 @@ export function SetupWizard({
   onStepNavigate,
 }: SetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   // Expose the goToStep function to parent via callback ref
   useEffect(() => {
@@ -169,9 +170,25 @@ export function SetupWizard({
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={onCalculate} className="gap-1 px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md">
-            <Calculator className="h-4 w-4" />
-            Calculate & Go to Dashboard
+          <Button 
+            onClick={() => {
+              setIsCalculating(true);
+              setTimeout(() => onCalculate(), 50);
+            }}
+            disabled={isCalculating}
+            className="gap-1 px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
+          >
+            {isCalculating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Calculating…
+              </>
+            ) : (
+              <>
+                <Calculator className="h-4 w-4" />
+                Calculate & Go to Dashboard
+              </>
+            )}
           </Button>
         )}
       </div>
