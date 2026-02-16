@@ -999,14 +999,15 @@ function solveMaxWithdrawalToZero(
     // Already depleting — search downward for take-home that just barely lasts
     let low = 0;
     let high = currentTakeHome;
-    for (let iter = 0; iter < 25; iter++) {
+    for (let iter = 0; iter < 40; iter++) {
       const mid = (low + high) / 2;
+      if (high - low < 50) return mid; // converged within $50
       const modified = { ...taxSettings, targetTakeHome: mid };
       const proj = calculateProjections(accounts, ssData, modified, strategyOverride);
       const finalBal = getProjectionFinalBalance(proj);
       const depleted = isProjectionDepleted(proj);
-      if (!depleted && finalBal < 5000) return mid;
-      if (depleted) high = mid; else low = mid;
+      if (!depleted && finalBal >= 0 && finalBal < 500) return mid;
+      if (depleted || finalBal < 0) high = mid; else low = mid;
     }
     return (low + high) / 2;
   }
@@ -1022,15 +1023,15 @@ function solveMaxWithdrawalToZero(
     high *= 1.5;
   }
   
-  for (let iter = 0; iter < 25; iter++) {
+  for (let iter = 0; iter < 40; iter++) {
     const mid = (low + high) / 2;
+    if (high - low < 50) return mid; // converged within $50
     const modified = { ...taxSettings, targetTakeHome: mid };
     const proj = calculateProjections(accounts, ssData, modified, strategyOverride);
     const finalBal = getProjectionFinalBalance(proj);
     const depleted = isProjectionDepleted(proj);
-    // Converge: not depleted and final balance close to zero
-    if (!depleted && finalBal < 5000) return mid;
-    if (depleted) high = mid; else low = mid;
+    if (!depleted && finalBal >= 0 && finalBal < 500) return mid;
+    if (depleted || finalBal < 0) high = mid; else low = mid;
   }
   return (low + high) / 2;
 }
