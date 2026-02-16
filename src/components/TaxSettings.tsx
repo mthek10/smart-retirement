@@ -6,6 +6,7 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle } from "lucide-react";
+import { stateTaxData } from "@/lib/stateTaxData";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -168,9 +169,26 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
               <SelectItem value="other">Other 5% Default</SelectItem>
           </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            State income tax, capital gains tax, and Social Security taxation
-          </p>
+          {(() => {
+            const state = taxSettings.state;
+            if (state === 'other') {
+              return <p className="text-xs text-muted-foreground">Custom flat rate applied to all taxable income.</p>;
+            }
+            const data = stateTaxData[state];
+            if (!data) return <p className="text-xs text-muted-foreground">Select a state to see tax rate details.</p>;
+            if (!data.hasIncomeTax) {
+              return <p className="text-xs text-green-600 font-medium">No state income tax — 0% rate.</p>;
+            }
+            if (data.taxType === 'flat') {
+              return <p className="text-xs text-muted-foreground">Flat tax rate: <span className="font-medium">{((data.flatRate || 0) * 100).toFixed(2)}%</span> on all taxable income.</p>;
+            }
+            if (data.taxType === 'progressive' && data.brackets) {
+              const topRate = data.brackets[data.brackets.length - 1].rate;
+              const bottomRate = data.brackets[0].rate;
+              return <p className="text-xs text-muted-foreground">Progressive tax: <span className="font-medium">{(bottomRate * 100).toFixed(1)}% – {(topRate * 100).toFixed(1)}%</span> across {data.brackets.length} brackets.</p>;
+            }
+            return null;
+          })()}
         </div>
 
         {taxSettings.state === 'other' && (
