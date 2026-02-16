@@ -706,8 +706,6 @@ export function ActionItems({
       description: `If you moved to a zero income-tax state (FL, TX, NV, WY, etc.) instead, you could eliminate up to ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
       impact: `Potential savings of ~${formatCurrency(avgAnnualStateTax)}/year in state income and capital gains taxes`,
       icon: <MapPin className="h-5 w-5 text-primary" />,
-      actionLabel: 'Set Up State Relocation',
-      onAction: onNavigateToSetup ? () => onNavigateToSetup(4) : undefined,
     });
   }
 
