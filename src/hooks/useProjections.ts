@@ -992,43 +992,45 @@ function solveMaxWithdrawalToZero(
   strategyOverride?: string
 ): number {
   const currentTakeHome = taxSettings.targetTakeHome;
-  // Quick check: if current take-home already depletes, it's the max or less
   const currentProj = calculateProjections(accounts, ssData, taxSettings, strategyOverride);
   const currentFinal = getProjectionFinalBalance(currentProj);
   
   if (currentFinal <= 0) {
-    // Already depleting — search downward
+    // Already depleting — search downward for take-home that just barely lasts
     let low = 0;
     let high = currentTakeHome;
-    for (let iter = 0; iter < 20; iter++) {
+    for (let iter = 0; iter < 25; iter++) {
       const mid = (low + high) / 2;
       const modified = { ...taxSettings, targetTakeHome: mid };
       const proj = calculateProjections(accounts, ssData, modified, strategyOverride);
       const finalBal = getProjectionFinalBalance(proj);
-      if (Math.abs(finalBal) < 5000) return mid;
-      if (finalBal > 0) low = mid; else high = mid;
+      const depleted = isProjectionDepleted(proj);
+      if (!depleted && finalBal < 5000) return mid;
+      if (depleted) high = mid; else low = mid;
     }
     return (low + high) / 2;
   }
   
-  // Final balance is positive — search upward
+  // Final balance is positive — search upward for the max take-home before depletion
   let low = currentTakeHome;
-  let high = currentTakeHome * 5;
-  // Ensure high actually depletes
-  for (let i = 0; i < 5; i++) {
+  let high = currentTakeHome * 3;
+  // Ensure high actually causes depletion
+  for (let i = 0; i < 8; i++) {
     const modified = { ...taxSettings, targetTakeHome: high };
     const proj = calculateProjections(accounts, ssData, modified, strategyOverride);
-    if (getProjectionFinalBalance(proj) <= 0) break;
-    high *= 2;
+    if (isProjectionDepleted(proj)) break;
+    high *= 1.5;
   }
   
-  for (let iter = 0; iter < 20; iter++) {
+  for (let iter = 0; iter < 25; iter++) {
     const mid = (low + high) / 2;
     const modified = { ...taxSettings, targetTakeHome: mid };
     const proj = calculateProjections(accounts, ssData, modified, strategyOverride);
     const finalBal = getProjectionFinalBalance(proj);
-    if (Math.abs(finalBal) < 5000) return mid;
-    if (finalBal > 0) low = mid; else high = mid;
+    const depleted = isProjectionDepleted(proj);
+    // Converge: not depleted and final balance close to zero
+    if (!depleted && finalBal < 5000) return mid;
+    if (depleted) high = mid; else low = mid;
   }
   return (low + high) / 2;
 }
@@ -1036,6 +1038,22 @@ function solveMaxWithdrawalToZero(
 function getProjectionFinalBalance(projections: ProjectionRow[]): number {
   const last = projections[projections.length - 1];
   return last ? last.traditionalBalance + last.rothBalance + last.taxableBalance : 0;
+}
+
+/** Check if funds deplete before the last projection year */
+function isProjectionDepleted(projections: ProjectionRow[]): boolean {
+  const THRESHOLD = 1000;
+  for (let i = 1; i < projections.length; i++) {
+    const prev = projections[i - 1];
+    const curr = projections[i];
+    const prevTotal = prev.traditionalBalance + prev.rothBalance + prev.taxableBalance;
+    const currTotal = curr.traditionalBalance + curr.rothBalance + curr.taxableBalance;
+    if (prevTotal >= THRESHOLD && currTotal < THRESHOLD) {
+      // Only count as depleted if it happens before the last year
+      return i < projections.length - 1;
+    }
+  }
+  return false;
 }
 
 /**
