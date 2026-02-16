@@ -165,7 +165,7 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
               <SelectItem value="WV">West Virginia</SelectItem>
               <SelectItem value="WI">Wisconsin</SelectItem>
               <SelectItem value="WY">Wyoming</SelectItem>
-              <SelectItem value="other">Other (Custom Rate)</SelectItem>
+              <SelectItem value="other">Other 5% Default</SelectItem>
           </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
