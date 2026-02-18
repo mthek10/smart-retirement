@@ -18,6 +18,7 @@ import {
   calculateMedicareTax,
   calculate401kContribution,
   calculate401kEmployerMatch,
+  get401kLimit,
   getRothConversionLimit,
   calculateACASubsidy,
   calculateSurvivorSSBenefit
@@ -440,45 +441,34 @@ export function calculateProjections(
     
     const totalWages = spouse1Wages + spouse2Wages;
     
-    // Traditional 401(k) contributions
-    const spouse1_401k = spouse1Working && taxSettings.spouse1Employment.contributes401k
-      ? calculate401kContribution(
-          taxSettings.spouse1Employment.contribution401kAmount,
-          spouse1CurrentAge,
-          i,
-          taxSettings.inflationRate / 100
-        )
-      : 0;
+    // Calculate combined 401(k) contributions with shared limit per spouse
+    const inflRate = taxSettings.inflationRate / 100;
     
-    // Roth 401(k) contributions
-    const spouse1_roth401k = spouse1Working && taxSettings.spouse1Employment.contributes401k
-      ? calculate401kContribution(
-          taxSettings.spouse1Employment.roth401kAmount || 0,
-          spouse1CurrentAge,
-          i,
-          taxSettings.inflationRate / 100
-        )
-      : 0;
+    let spouse1_401k = 0;
+    let spouse1_roth401k = 0;
+    if (spouse1Working && taxSettings.spouse1Employment.contributes401k) {
+      const inflationFactor = Math.pow(1 + inflRate, i);
+      const s1Limit = get401kLimit(spouse1CurrentAge) * inflationFactor;
+      const s1Trad = Math.min((taxSettings.spouse1Employment.contribution401kAmount || 0) * inflationFactor, s1Limit);
+      const s1Roth = Math.min((taxSettings.spouse1Employment.roth401kAmount || 0) * inflationFactor, Math.max(0, s1Limit - s1Trad));
+      spouse1_401k = s1Trad;
+      spouse1_roth401k = s1Roth;
+    }
     
-    const spouse2_401k = spouse2Working && taxSettings.spouse2Employment.contributes401k
-      ? calculate401kContribution(
-          taxSettings.spouse2Employment.contribution401kAmount,
-          spouse2CurrentAge,
-          i,
-          taxSettings.inflationRate / 100
-        )
-      : 0;
+    let spouse2_401k = 0;
+    let spouse2_roth401k = 0;
+    if (spouse2Working && taxSettings.spouse2Employment.contributes401k) {
+      const inflationFactor = Math.pow(1 + inflRate, i);
+      const s2Limit = get401kLimit(spouse2CurrentAge) * inflationFactor;
+      const s2Trad = Math.min((taxSettings.spouse2Employment.contribution401kAmount || 0) * inflationFactor, s2Limit);
+      const s2Roth = Math.min((taxSettings.spouse2Employment.roth401kAmount || 0) * inflationFactor, Math.max(0, s2Limit - s2Trad));
+      spouse2_401k = s2Trad;
+      spouse2_roth401k = s2Roth;
+    }
     
-    const spouse2_roth401k = spouse2Working && taxSettings.spouse2Employment.contributes401k
-      ? calculate401kContribution(
-          taxSettings.spouse2Employment.roth401kAmount || 0,
-          spouse2CurrentAge,
-          i,
-          taxSettings.inflationRate / 100
-        )
-      : 0;
-    
-    const total401kContributions = spouse1_401k + spouse1_roth401k + spouse2_401k + spouse2_roth401k;
+    const totalTraditional401k = spouse1_401k + spouse2_401k;
+    const totalRoth401k = spouse1_roth401k + spouse2_roth401k;
+    const total401kContributions = totalTraditional401k + totalRoth401k;
     
     const spouse1Match = spouse1Working && taxSettings.spouse1Employment.contributes401k
       ? calculate401kEmployerMatch(
@@ -502,7 +492,7 @@ export function calculateProjections(
     const medicareTax = calculateMedicareTax(totalWages, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
     const totalPayrollTax = ficaTax + medicareTax;
     
-    // Only traditional 401(k) reduces taxable wages; Roth is after-tax
+    // All 401(k) contributions reduce take-home pay; only traditional reduces taxable income
     const netWages = totalWages - totalPayrollTax - total401kContributions;
     
     if (spouse1DeathYearIndex !== null && i === spouse1DeathYearIndex) {
@@ -533,7 +523,7 @@ export function calculateProjections(
       : 0;
     const rmd = spouse1RMD + spouse2RMD;
     
-    const taxableWages = totalWages - total401kContributions;
+    const taxableWages = totalWages - totalTraditional401k; // Only traditional 401(k) reduces taxable wages
     
     const survivorSpendingPercent = taxSettings.survivorSettings?.survivorSpendingPercent || 75;
     const baseTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
