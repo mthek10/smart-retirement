@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { get401kLimit } from "@/lib/taxCalculations";
 
-function AgeInput({ id, value, onChange, disabled, label, className }: { id: string; value: number; onChange: (val: number) => void; disabled?: boolean; label?: string; className?: string }) {
+function AgeInput({ id, value, onChange, disabled, className, minAge }: { id: string; value: number; onChange: (val: number) => void; disabled?: boolean; label?: string; className?: string; minAge?: number }) {
   const [localValue, setLocalValue] = useState(String(value || ''));
 
   useEffect(() => {
@@ -23,10 +23,14 @@ function AgeInput({ id, value, onChange, disabled, label, className }: { id: str
     }
   };
 
+  const effectiveMin = minAge ?? 50;
+
   const handleBlur = () => {
     const num = parseInt(localValue, 10);
-    if (isNaN(num) || num < 50) {
-      setLocalValue(String(value));
+    if (isNaN(num) || num < effectiveMin) {
+      const clamped = Math.max(value, effectiveMin);
+      setLocalValue(String(clamped));
+      if (value < effectiveMin) onChange(clamped);
     } else if (num > 99) {
       setLocalValue('99');
       onChange(99);
@@ -205,6 +209,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                 onChange={(val) => handleSpouse1Change('retirementAge', val)}
                 disabled={taxSettings.spouse1Employment.retirementAge === spouse1Age}
                 className="flex-1"
+                minAge={spouse1Age + 1}
               />
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -275,6 +280,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                   onChange={(val) => handleSpouse2Change('retirementAge', val)}
                   disabled={taxSettings.spouse2Employment.retirementAge === spouse2Age}
                   className="flex-1"
+                  minAge={spouse2Age + 1}
                 />
                 <div className="flex items-center gap-2">
                   <Checkbox
