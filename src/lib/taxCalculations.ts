@@ -220,9 +220,10 @@ export function calculateSurvivorSSBenefit(
   return Math.max(survivorOwnBenefit, reducedSurvivorBenefit);
 }
 
-// 401(k) contribution limits
+// 401(k) contribution limits (2024 base, inflated forward)
 export const contribution401kLimit2024 = 23000;
 export const contribution401kCatchup2024 = 7500; // Age 50+
+export const contribution401kSuperCatchup2024 = 11250; // SECURE 2.0: Age 60-63
 
 // State tax data is imported from ./stateTaxData
 
@@ -1019,6 +1020,7 @@ export function calculateMedicareTax(
 }
 
 // Calculate 401(k) contribution with limits (dollar amount inflated with wages)
+// Includes SECURE 2.0 super catch-up for ages 60-63
 export function calculate401kContribution(
   contributionAmount: number,
   age: number,
@@ -1029,12 +1031,24 @@ export function calculate401kContribution(
   
   const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
   const baseLimit = contribution401kLimit2024 * inflationFactor;
-  const catchupLimit = age >= 50 ? contribution401kCatchup2024 * inflationFactor : 0;
+  let catchupLimit = 0;
+  if (age >= 60 && age <= 63) {
+    catchupLimit = contribution401kSuperCatchup2024 * inflationFactor;
+  } else if (age >= 50) {
+    catchupLimit = contribution401kCatchup2024 * inflationFactor;
+  }
   const totalLimit = baseLimit + catchupLimit;
   
-  // Inflate the contribution amount with wages
   const inflatedContribution = contributionAmount * inflationFactor;
   return Math.min(inflatedContribution, totalLimit);
+}
+
+// Get the 401(k) elective deferral limit for a given age (2024 base, no inflation)
+export function get401kLimit(age: number): number {
+  const base = contribution401kLimit2024;
+  if (age >= 60 && age <= 63) return base + contribution401kSuperCatchup2024;
+  if (age >= 50) return base + contribution401kCatchup2024;
+  return base;
 }
 
 // Calculate employer 401(k) match (dollar amount inflated with wages)
