@@ -231,6 +231,9 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                 </Label>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Enter an age greater than your current age ({spouse1Age}), or check "Already retired" if you are no longer working.
+            </p>
           </div>
 
           <div className="flex items-center justify-between space-x-2">
@@ -302,6 +305,9 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                   </Label>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Enter an age greater than your current age ({spouse2Age}), or check "Already retired" if you are no longer working.
+              </p>
             </div>
 
             <div className="flex items-center justify-between space-x-2">
