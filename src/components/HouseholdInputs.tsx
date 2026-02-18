@@ -1,7 +1,8 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DebouncedInput } from "@/components/ui/DebouncedInput";
+import { Input } from "@/components/ui/input";
 
 interface HouseholdInputsProps {
   taxSettings: {
@@ -10,6 +11,48 @@ interface HouseholdInputsProps {
     spouse2Age: number;
   };
   onChange: (settings: any) => void;
+}
+
+function AgeInput({ id, value, onChange, label }: { id: string; value: number; onChange: (val: number) => void; label: string }) {
+  const [localValue, setLocalValue] = useState(String(value || ''));
+
+  useEffect(() => {
+    setLocalValue(String(value || ''));
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 2); // digits only, max 2 chars
+    setLocalValue(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= 1 && num <= 99) {
+      onChange(num);
+    }
+  };
+
+  const handleBlur = () => {
+    const num = parseInt(localValue, 10);
+    if (isNaN(num) || num < 50) {
+      setLocalValue(String(value));
+    } else if (num > 99) {
+      setLocalValue('99');
+      onChange(99);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type="text"
+        inputMode="numeric"
+        maxLength={2}
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+      />
+    </div>
+  );
 }
 
 export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps) {
@@ -42,34 +85,20 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
         </div>
 
         <div className={taxSettings.filingStatus === 'married' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
-          <div className="space-y-2">
-            <Label htmlFor="spouse1Age">
-              {taxSettings.filingStatus === 'married' ? 'Spouse 1 Current Age' : 'Current Age'}
-            </Label>
-            <DebouncedInput
-              id="spouse1Age"
-              type="number"
-              min="50"
-              max="99"
-              value={taxSettings.spouse1Age ? Math.min(taxSettings.spouse1Age, 99) : ''}
-              onChange={(value) => handleChange('spouse1Age', Math.min(parseFloat(value) || 65, 99))}
-              debounceMs={400}
-            />
-          </div>
+          <AgeInput
+            id="spouse1Age"
+            value={taxSettings.spouse1Age}
+            onChange={(val) => handleChange('spouse1Age', val)}
+            label={taxSettings.filingStatus === 'married' ? 'Spouse 1 Current Age' : 'Current Age'}
+          />
           
           {taxSettings.filingStatus === 'married' && (
-            <div className="space-y-2">
-              <Label htmlFor="spouse2Age">Spouse 2 Current Age</Label>
-              <DebouncedInput
-                id="spouse2Age"
-                type="number"
-                min="50"
-                max="99"
-                value={taxSettings.spouse2Age ? Math.min(taxSettings.spouse2Age, 99) : ''}
-                onChange={(value) => handleChange('spouse2Age', Math.min(parseFloat(value) || 65, 99))}
-                debounceMs={400}
-              />
-            </div>
+            <AgeInput
+              id="spouse2Age"
+              value={taxSettings.spouse2Age}
+              onChange={(val) => handleChange('spouse2Age', val)}
+              label="Spouse 2 Current Age"
+            />
           )}
         </div>
         
