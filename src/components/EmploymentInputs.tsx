@@ -26,18 +26,27 @@ interface EmploymentInputsProps {
   spouse1Age: number;
   spouse2Age: number;
 }
+const get401kLimit = (age: number) => age >= 50 ? 30500 : 23000;
+
 export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age }: EmploymentInputsProps) {
+  const spouse1Limit = get401kLimit(spouse1Age);
+  const spouse2Limit = get401kLimit(spouse2Age);
+
   const handleSpouse1Change = (field: string, value: number | boolean) => {
+    const finalValue = field === 'contribution401kAmount' && typeof value === 'number'
+      ? Math.min(value, spouse1Limit) : value;
     onChange({
       ...taxSettings,
-      spouse1Employment: { ...taxSettings.spouse1Employment, [field]: value }
+      spouse1Employment: { ...taxSettings.spouse1Employment, [field]: finalValue }
     });
   };
 
   const handleSpouse2Change = (field: string, value: number | boolean) => {
+    const finalValue = field === 'contribution401kAmount' && typeof value === 'number'
+      ? Math.min(value, spouse2Limit) : value;
     onChange({
       ...taxSettings,
-      spouse2Employment: { ...taxSettings.spouse2Employment, [field]: value }
+      spouse2Employment: { ...taxSettings.spouse2Employment, [field]: finalValue }
     });
   };
 
@@ -125,7 +134,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                   onChange={(value) => handleSpouse1Change('contribution401kAmount', parseFloat(value) || 0)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  2024 limit: $23,000 ($30,500 if age 50+). Automatically increases with inflation.
+                  2024 limit: ${spouse1Limit.toLocaleString()} (age {spouse1Age >= 50 ? '50+' : 'under 50'}). Automatically increases with inflation.
                 </p>
               </div>
 
@@ -224,7 +233,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                     onChange={(value) => handleSpouse2Change('contribution401kAmount', parseFloat(value) || 0)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    2024 limit: $23,000 ($30,500 if age 50+). Automatically increases with inflation.
+                    2024 limit: ${spouse2Limit.toLocaleString()} (age {spouse2Age >= 50 ? '50+' : 'under 50'}). Automatically increases with inflation.
                   </p>
                 </div>
 
