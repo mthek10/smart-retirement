@@ -1,9 +1,52 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { get401kLimit } from "@/lib/taxCalculations";
+
+function AgeInput({ id, value, onChange, disabled, label, className }: { id: string; value: number; onChange: (val: number) => void; disabled?: boolean; label?: string; className?: string }) {
+  const [localValue, setLocalValue] = useState(String(value || ''));
+
+  useEffect(() => {
+    setLocalValue(String(value || ''));
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
+    setLocalValue(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= 1 && num <= 99) {
+      onChange(num);
+    }
+  };
+
+  const handleBlur = () => {
+    const num = parseInt(localValue, 10);
+    if (isNaN(num) || num < 50) {
+      setLocalValue(String(value));
+    } else if (num > 99) {
+      setLocalValue('99');
+      onChange(99);
+    }
+  };
+
+  return (
+    <Input
+      id={id}
+      type="text"
+      inputMode="numeric"
+      maxLength={2}
+      value={localValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      disabled={disabled}
+      className={className}
+    />
+  );
+}
 
 interface EmploymentSettings {
   currentIncome: number;
@@ -156,13 +199,10 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
           <div className="space-y-2">
             <Label htmlFor="spouse1RetirementAge">Expected Retirement Age</Label>
             <div className="flex items-center gap-4">
-              <DebouncedInput
+              <AgeInput
                 id="spouse1RetirementAge"
-                type="number"
-                min="50"
-                max="75"
-                value={taxSettings.spouse1Employment.retirementAge || ''}
-                onChange={(value) => handleSpouse1Change('retirementAge', parseFloat(value) || 65)}
+                value={taxSettings.spouse1Employment.retirementAge}
+                onChange={(val) => handleSpouse1Change('retirementAge', val)}
                 disabled={taxSettings.spouse1Employment.retirementAge === spouse1Age}
                 className="flex-1"
               />
@@ -229,13 +269,10 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
             <div className="space-y-2">
               <Label htmlFor="spouse2RetirementAge">Expected Retirement Age</Label>
               <div className="flex items-center gap-4">
-                <DebouncedInput
+                <AgeInput
                   id="spouse2RetirementAge"
-                  type="number"
-                  min="50"
-                  max="75"
-                  value={taxSettings.spouse2Employment.retirementAge || ''}
-                  onChange={(value) => handleSpouse2Change('retirementAge', parseFloat(value) || 65)}
+                  value={taxSettings.spouse2Employment.retirementAge}
+                  onChange={(val) => handleSpouse2Change('retirementAge', val)}
                   disabled={taxSettings.spouse2Employment.retirementAge === spouse2Age}
                   className="flex-1"
                 />
