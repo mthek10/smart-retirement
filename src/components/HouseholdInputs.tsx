@@ -50,9 +50,9 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
               id="spouse1Age"
               type="number"
               min="50"
-              max="100"
+              max="99"
               value={taxSettings.spouse1Age || ''}
-              onChange={(value) => handleChange('spouse1Age', parseFloat(value) || 65)}
+              onChange={(value) => handleChange('spouse1Age', Math.min(parseFloat(value) || 65, 99))}
               debounceMs={400}
             />
           </div>
@@ -64,9 +64,9 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
                 id="spouse2Age"
                 type="number"
                 min="50"
-                max="100"
+                max="99"
                 value={taxSettings.spouse2Age || ''}
-                onChange={(value) => handleChange('spouse2Age', parseFloat(value) || 65)}
+                onChange={(value) => handleChange('spouse2Age', Math.min(parseFloat(value) || 65, 99))}
                 debounceMs={400}
               />
             </div>
