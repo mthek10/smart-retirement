@@ -1,12 +1,15 @@
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
+import { Input } from "@/components/ui/input";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle } from "lucide-react";
 import { stateTaxData } from "@/lib/stateTaxData";
+import { formatCurrency } from "@/lib/utils";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -27,9 +30,63 @@ interface TaxSettingsProps {
     };
   };
   onChange: (settings: any) => void;
+  totalPortfolio?: number;
+}
+// Inline currency-formatted input with $ and commas
+function CurrencyInput({ id, value, onChange, max, placeholder }: {
+  id: string;
+  value: number;
+  onChange: (val: number) => void;
+  max?: number;
+  placeholder?: string;
+}) {
+  const [displayValue, setDisplayValue] = useState(formatCurrency(value));
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+    setDisplayValue(value.toString());
+  }, [value]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    setDisplayValue(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num)) {
+      onChange(Math.min(num, max ?? Infinity));
+    }
+  }, [onChange, max]);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+    let num = parseInt(displayValue.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(num) || num < 1) num = 1;
+    if (max && num > max) num = max;
+    onChange(num);
+    setDisplayValue(formatCurrency(num));
+  }, [displayValue, onChange, max]);
+
+  // Sync display when value changes externally and not focused
+  const formattedExternal = formatCurrency(value);
+  if (!isFocused && displayValue !== formattedExternal) {
+    setDisplayValue(formattedExternal);
+  }
+
+  return (
+    <Input
+      id={id}
+      type="text"
+      inputMode="numeric"
+      value={isFocused ? displayValue : formattedExternal}
+      onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      placeholder={placeholder}
+    />
+  );
 }
 
-export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
+export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettingsProps) {
   const handleChange = (field: string, value: string | number | boolean) => {
     // Auto-enable survivor scenario when survivor_smooth strategy is selected
     if (field === 'rothConversionStrategy' && value === 'survivor_smooth') {
@@ -91,16 +148,16 @@ export function TaxSettings({ taxSettings, onChange }: TaxSettingsProps) {
             <Label htmlFor="targetTakeHome">Annual Take Home (First Year) After All Taxes</Label>
             <InfoTooltip text="Your desired after-tax income per year. The model calculates how much to withdraw from each account to deliver this amount after all taxes." />
           </div>
-          <DebouncedInput
+          <CurrencyInput
             id="targetTakeHome"
-            type="number"
-            step="1000"
-            placeholder="80000"
-            value={taxSettings.targetTakeHome || ''}
-            onChange={(value) => handleChange('targetTakeHome', parseFloat(value) || 80000)}
+            value={taxSettings.targetTakeHome}
+            onChange={(val) => handleChange('targetTakeHome', val)}
+            max={totalPortfolio}
+            placeholder="$200,000"
           />
           <p className="text-xs text-muted-foreground">
             Your desired after-tax income (including Social Security). Model will calculate withdrawals needed to achieve this.
+            {totalPortfolio ? ` Maximum: ${formatCurrency(totalPortfolio)}.` : ''}
           </p>
         </div>
 

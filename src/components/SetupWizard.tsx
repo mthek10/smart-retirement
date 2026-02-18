@@ -97,8 +97,11 @@ export function SetupWizard({
             spouse2Age={taxSettings.spouse2Age}
           />
         );
-      case "tax":
-        return <TaxSettings taxSettings={taxSettings} onChange={onTaxSettingsChange} />;
+      case "tax": {
+        const isMarried = taxSettings.filingStatus === 'married';
+        const totalPortfolio = accounts.spouse1Traditional + (isMarried ? accounts.spouse2Traditional : 0) + accounts.roth + accounts.taxable;
+        return <TaxSettings taxSettings={taxSettings} onChange={onTaxSettingsChange} totalPortfolio={totalPortfolio} />;
+      }
       case "aca":
         return (
           <ACASettings
