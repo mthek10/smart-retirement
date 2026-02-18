@@ -3,50 +3,128 @@ import { Label } from "@/components/ui/label";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { get401kLimit } from "@/lib/taxCalculations";
+
+interface EmploymentSettings {
+  currentIncome: number;
+  retirementAge: number;
+  contributes401k: boolean;
+  contribution401kAmount: number;
+  roth401kAmount: number;
+  employerMatchAmount: number;
+}
 
 interface EmploymentInputsProps {
   taxSettings: {
     filingStatus: string;
-    spouse1Employment: {
-      currentIncome: number;
-      retirementAge: number;
-      contributes401k: boolean;
-      contribution401kAmount: number;
-      employerMatchAmount: number;
-    };
-    spouse2Employment: {
-      currentIncome: number;
-      retirementAge: number;
-      contributes401k: boolean;
-      contribution401kAmount: number;
-      employerMatchAmount: number;
-    };
+    spouse1Employment: EmploymentSettings;
+    spouse2Employment: EmploymentSettings;
   };
   onChange: (settings: any) => void;
   spouse1Age: number;
   spouse2Age: number;
 }
-const get401kLimit = (age: number) => age >= 50 ? 30500 : 23000;
+
+function getLimitLabel(age: number): string {
+  if (age >= 60 && age <= 63) return `age 60-63, SECURE 2.0 super catch-up`;
+  if (age >= 50) return `age 50+`;
+  return `under 50`;
+}
+
+function Spouse401kInputs({
+  prefix,
+  employment,
+  age,
+  limit,
+  onChange,
+}: {
+  prefix: string;
+  employment: EmploymentSettings;
+  age: number;
+  limit: number;
+  onChange: (field: string, value: number | boolean) => void;
+}) {
+  const traditionalAmount = employment.contribution401kAmount || 0;
+  const rothAmount = employment.roth401kAmount || 0;
+  const combined = traditionalAmount + rothAmount;
+  const remaining = Math.max(0, limit - combined);
+
+  return (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}Contribution`}>Traditional 401(k) Contribution ($)</Label>
+        <DebouncedInput
+          id={`${prefix}Contribution`}
+          type="number"
+          step="1000"
+          min="0"
+          placeholder="0"
+          value={employment.contribution401kAmount || ''}
+          onChange={(value) => {
+            const val = parseFloat(value) || 0;
+            const maxAllowed = limit - (employment.roth401kAmount || 0);
+            onChange('contribution401kAmount', Math.min(Math.max(val, 0), Math.max(maxAllowed, 0)));
+          }}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}Roth`}>Roth 401(k) Contribution ($)</Label>
+        <DebouncedInput
+          id={`${prefix}Roth`}
+          type="number"
+          step="1000"
+          min="0"
+          placeholder="0"
+          value={employment.roth401kAmount || ''}
+          onChange={(value) => {
+            const val = parseFloat(value) || 0;
+            const maxAllowed = limit - (employment.contribution401kAmount || 0);
+            onChange('roth401kAmount', Math.min(Math.max(val, 0), Math.max(maxAllowed, 0)));
+          }}
+        />
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Combined limit: <strong>${limit.toLocaleString()}</strong> ({getLimitLabel(age)}).
+        {combined > 0 && ` Used: $${combined.toLocaleString()} · Remaining: $${remaining.toLocaleString()}.`}
+        {' '}Automatically increases with inflation.
+      </p>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}Match`}>Annual Employer Match ($)</Label>
+        <DebouncedInput
+          id={`${prefix}Match`}
+          type="number"
+          step="1000"
+          min="0"
+          placeholder="10000"
+          value={employment.employerMatchAmount || ''}
+          onChange={(value) => onChange('employerMatchAmount', parseFloat(value) || 0)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Enter your employer's total annual match amount. Automatically increases with inflation.
+        </p>
+      </div>
+    </>
+  );
+}
 
 export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age }: EmploymentInputsProps) {
   const spouse1Limit = get401kLimit(spouse1Age);
   const spouse2Limit = get401kLimit(spouse2Age);
 
   const handleSpouse1Change = (field: string, value: number | boolean) => {
-    const finalValue = field === 'contribution401kAmount' && typeof value === 'number'
-      ? Math.min(value, spouse1Limit) : value;
     onChange({
       ...taxSettings,
-      spouse1Employment: { ...taxSettings.spouse1Employment, [field]: finalValue }
+      spouse1Employment: { ...taxSettings.spouse1Employment, [field]: value }
     });
   };
 
   const handleSpouse2Change = (field: string, value: number | boolean) => {
-    const finalValue = field === 'contribution401kAmount' && typeof value === 'number'
-      ? Math.min(value, spouse2Limit) : value;
     onChange({
       ...taxSettings,
-      spouse2Employment: { ...taxSettings.spouse2Employment, [field]: finalValue }
+      spouse2Employment: { ...taxSettings.spouse2Employment, [field]: value }
     });
   };
 
@@ -121,39 +199,13 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
           </div>
 
           {taxSettings.spouse1Employment.contributes401k && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="spouse1Contribution">Annual Employee 401(k) Contribution ($)</Label>
-                <DebouncedInput
-                  id="spouse1Contribution"
-                  type="number"
-                  step="1000"
-                  min="0"
-                  placeholder="23000"
-                  value={taxSettings.spouse1Employment.contribution401kAmount || ''}
-                  onChange={(value) => handleSpouse1Change('contribution401kAmount', parseFloat(value) || 0)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  2024 limit: ${spouse1Limit.toLocaleString()} (age {spouse1Age >= 50 ? '50+' : 'under 50'}). Automatically increases with inflation.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="spouse1Match">Annual Employer Match ($)</Label>
-                <DebouncedInput
-                  id="spouse1Match"
-                  type="number"
-                  step="1000"
-                  min="0"
-                  placeholder="10000"
-                  value={taxSettings.spouse1Employment.employerMatchAmount || ''}
-                  onChange={(value) => handleSpouse1Change('employerMatchAmount', parseFloat(value) || 0)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter your employer's total annual match amount. Automatically increases with inflation.
-                </p>
-              </div>
-            </>
+            <Spouse401kInputs
+              prefix="spouse1"
+              employment={taxSettings.spouse1Employment}
+              age={spouse1Age}
+              limit={spouse1Limit}
+              onChange={handleSpouse1Change}
+            />
           )}
         </div>
 
@@ -220,39 +272,13 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
             </div>
 
             {taxSettings.spouse2Employment.contributes401k && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="spouse2Contribution">Annual Employee 401(k) Contribution ($)</Label>
-                  <DebouncedInput
-                    id="spouse2Contribution"
-                    type="number"
-                    step="1000"
-                    min="0"
-                    placeholder="23000"
-                    value={taxSettings.spouse2Employment.contribution401kAmount || ''}
-                    onChange={(value) => handleSpouse2Change('contribution401kAmount', parseFloat(value) || 0)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    2024 limit: ${spouse2Limit.toLocaleString()} (age {spouse2Age >= 50 ? '50+' : 'under 50'}). Automatically increases with inflation.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="spouse2Match">Annual Employer Match ($)</Label>
-                  <DebouncedInput
-                    id="spouse2Match"
-                    type="number"
-                    step="1000"
-                    min="0"
-                    placeholder="10000"
-                    value={taxSettings.spouse2Employment.employerMatchAmount || ''}
-                    onChange={(value) => handleSpouse2Change('employerMatchAmount', parseFloat(value) || 0)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Enter your employer's total annual match amount. Automatically increases with inflation.
-                  </p>
-                </div>
-              </>
+              <Spouse401kInputs
+                prefix="spouse2"
+                employment={taxSettings.spouse2Employment}
+                age={spouse2Age}
+                limit={spouse2Limit}
+                onChange={handleSpouse2Change}
+              />
             )}
           </div>
         )}

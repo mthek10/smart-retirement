@@ -79,6 +79,7 @@ const Index = () => {
       retirementAge: 65,
       contributes401k: false,
       contribution401kAmount: 0,
+      roth401kAmount: 0,
       employerMatchAmount: 0,
     },
     spouse2Employment: {
@@ -86,6 +87,7 @@ const Index = () => {
       retirementAge: 65,
       contributes401k: false,
       contribution401kAmount: 0,
+      roth401kAmount: 0,
       employerMatchAmount: 0,
     },
     survivorSettings: {

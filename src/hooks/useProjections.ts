@@ -50,6 +50,7 @@ export interface EmploymentSettings {
   retirementAge: number;
   contributes401k: boolean;
   contribution401kAmount: number;
+  roth401kAmount: number;
   employerMatchAmount: number;
 }
 
@@ -439,9 +440,20 @@ export function calculateProjections(
     
     const totalWages = spouse1Wages + spouse2Wages;
     
+    // Traditional 401(k) contributions
     const spouse1_401k = spouse1Working && taxSettings.spouse1Employment.contributes401k
       ? calculate401kContribution(
           taxSettings.spouse1Employment.contribution401kAmount,
+          spouse1CurrentAge,
+          i,
+          taxSettings.inflationRate / 100
+        )
+      : 0;
+    
+    // Roth 401(k) contributions
+    const spouse1_roth401k = spouse1Working && taxSettings.spouse1Employment.contributes401k
+      ? calculate401kContribution(
+          taxSettings.spouse1Employment.roth401kAmount || 0,
           spouse1CurrentAge,
           i,
           taxSettings.inflationRate / 100
@@ -457,7 +469,16 @@ export function calculateProjections(
         )
       : 0;
     
-    const total401kContributions = spouse1_401k + spouse2_401k;
+    const spouse2_roth401k = spouse2Working && taxSettings.spouse2Employment.contributes401k
+      ? calculate401kContribution(
+          taxSettings.spouse2Employment.roth401kAmount || 0,
+          spouse2CurrentAge,
+          i,
+          taxSettings.inflationRate / 100
+        )
+      : 0;
+    
+    const total401kContributions = spouse1_401k + spouse1_roth401k + spouse2_401k + spouse2_roth401k;
     
     const spouse1Match = spouse1Working && taxSettings.spouse1Employment.contributes401k
       ? calculate401kEmployerMatch(
@@ -481,6 +502,7 @@ export function calculateProjections(
     const medicareTax = calculateMedicareTax(totalWages, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
     const totalPayrollTax = ficaTax + medicareTax;
     
+    // Only traditional 401(k) reduces taxable wages; Roth is after-tax
     const netWages = totalWages - totalPayrollTax - total401kContributions;
     
     if (spouse1DeathYearIndex !== null && i === spouse1DeathYearIndex) {
@@ -492,12 +514,16 @@ export function calculateProjections(
       spouse2TradBalance = 0;
     }
     
+    // Traditional 401(k) + employer match goes to traditional balance
     if (spouse1Alive) {
       spouse1TradBalance += spouse1_401k + spouse1Match;
     }
     if (spouse2Alive) {
       spouse2TradBalance += spouse2_401k + spouse2Match;
     }
+    
+    // Roth 401(k) goes to Roth balance
+    rothBalance += spouse1_roth401k + spouse2_roth401k;
     
     const tradBalance = spouse1TradBalance + spouse2TradBalance;
 
