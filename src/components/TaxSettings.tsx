@@ -297,13 +297,17 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                   id="relocationAge"
                   type="number"
                   step="1"
+                  min="1"
+                  max="100"
                   placeholder="65"
                   value={taxSettings.stateRelocation?.relocationAge || 65}
                   onChange={(value) => {
                     const current = taxSettings.stateRelocation || { enabled: true, targetState: 'FL', relocationAge: 65 };
+                    const parsed = parseInt(value) || 65;
+                    const clamped = Math.min(Math.max(parsed, 1), 100);
                     onChange({
                       ...taxSettings,
-                      stateRelocation: { ...current, relocationAge: parseInt(value) || 65 }
+                      stateRelocation: { ...current, relocationAge: clamped }
                     });
                   }}
                 />
