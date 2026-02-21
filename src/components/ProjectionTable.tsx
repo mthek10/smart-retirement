@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Target } from "lucide-react";
+import { AlertTriangle, Target, Download } from "lucide-react";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { CustomScrollbar } from "@/components/ui/CustomScrollbar";
+import { exportProjectionsToCSV } from "@/lib/exportUtils";
+import type { ProjectionRow } from "@/hooks/useProjections";
 
 interface YearProjection {
   year: number;
@@ -86,13 +89,33 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
 
   const hasIRMAAWarning = (irmaa: number) => irmaa > 0;
 
+  const handleExportToCSV = () => {
+    if (projections.length === 0) return;
+    exportProjectionsToCSV(projections as ProjectionRow[]);
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Year-by-Year Projections</CardTitle>
-        <CardDescription>
-          Detailed breakdown of income, taxes, and account balances over time
-        </CardDescription>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>Year-by-Year Projections</CardTitle>
+            <CardDescription>
+              Detailed breakdown of income, taxes, and account balances over time
+            </CardDescription>
+          </div>
+          {projections.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportToCSV}
+              className="gap-1"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {/* Column group toggles */}

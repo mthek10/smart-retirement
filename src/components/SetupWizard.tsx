@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AccountInputs } from "@/components/AccountInputs";
 import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
@@ -7,8 +7,10 @@ import { EmploymentInputs } from "@/components/EmploymentInputs";
 import { HouseholdInputs } from "@/components/HouseholdInputs";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Calculator, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calculator, Loader2, Download, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { exportSetupToCSV, parseSetupCSV, readFileAsText } from "@/lib/exportUtils";
+import { useToast } from "@/hooks/use-toast";
 
 const STEPS = [
   { id: "household", label: "Household", description: "Tell us about your household so we can determine your filing status and model your timeline." },
@@ -54,6 +56,46 @@ export function SetupWizard({
 }: SetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleExportSetup = () => {
+    exportSetupToCSV(accounts, ssData, taxSettings);
+    toast({
+      title: "Setup Exported",
+      description: "Your setup has been saved to a CSV file.",
+    });
+  };
+
+  const handleImportSetup = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const content = await readFileAsText(file);
+      const { accounts: importedAccounts, ssData: importedSSData, taxSettings: importedTaxSettings } = parseSetupCSV(content);
+      
+      onAccountsChange(importedAccounts);
+      onSSDataChange(importedSSData);
+      onTaxSettingsChange(importedTaxSettings);
+      
+      toast({
+        title: "Setup Imported",
+        description: "Your setup has been loaded from the CSV file.",
+      });
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: "Could not parse the CSV file. Please check the format.",
+        variant: "destructive",
+      });
+    }
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   // Expose the goToStep function to parent via callback ref
   useEffect(() => {
@@ -155,17 +197,38 @@ export function SetupWizard({
       {/* Step content */}
       <div className="min-h-[300px]">{renderStepContent()}</div>
 
+      {/* Hidden file input for import */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".csv"
+        onChange={handleImportSetup}
+        className="hidden"
+      />
+
       {/* Navigation buttons */}
       <div className="flex items-center justify-between pt-2">
-        <Button
-          variant="outline"
-          onClick={goBack}
-          disabled={currentStep === 0}
-          className="gap-1"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back
-        </Button>
+        <div className="flex items-center gap-2">
+          {currentStep === 0 ? (
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-1"
+            >
+              <Upload className="h-4 w-4" />
+              Import Setup
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={goBack}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </Button>
+          )}
+        </div>
 
         {currentStep < STEPS.length - 1 ? (
           <Button onClick={goNext} className="gap-1">
@@ -173,26 +236,36 @@ export function SetupWizard({
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button 
-            onClick={() => {
-              setIsCalculating(true);
-              setTimeout(() => onCalculate(), 50);
-            }}
-            disabled={isCalculating}
-            className="gap-1 px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
-          >
-            {isCalculating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Calculating…
-              </>
-            ) : (
-              <>
-                <Calculator className="h-4 w-4" />
-                Calculate & Go to Dashboard
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportSetup}
+              className="gap-1"
+            >
+              <Download className="h-4 w-4" />
+              Export Setup
+            </Button>
+            <Button 
+              onClick={() => {
+                setIsCalculating(true);
+                setTimeout(() => onCalculate(), 50);
+              }}
+              disabled={isCalculating}
+              className="gap-1 px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md"
+            >
+              {isCalculating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Calculating…
+                </>
+              ) : (
+                <>
+                  <Calculator className="h-4 w-4" />
+                  Calculate & Go to Dashboard
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>
     </div>
