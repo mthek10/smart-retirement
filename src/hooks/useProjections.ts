@@ -531,8 +531,7 @@ export function calculateProjections(
       ? baseTargetTakeHome 
       : baseTargetTakeHome * (survivorSpendingPercent / 100);
     
-    const adjustedTargetTakeHome = effectiveTargetTakeHome - netWages;
-    const excessIncome = adjustedTargetTakeHome < 0 ? Math.abs(adjustedTargetTakeHome) : 0;
+    const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages);
     
     let requiredWithdrawal = adjustedTargetTakeHome > 0 ? solveRequiredWithdrawal(
       adjustedTargetTakeHome,
@@ -838,10 +837,9 @@ export function calculateProjections(
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
     const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
     
-    // Compute total excess: from wages exceeding target AND from income (SS etc.) exceeding target after taxes
-    let totalExcess = excessIncome;
-    if (excessIncome === 0 && calculatedTakeHome > effectiveTargetTakeHome + 1) {
-      // After-tax income exceeds the target — save the surplus to brokerage
+    // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
+    let totalExcess = 0;
+    if (calculatedTakeHome > effectiveTargetTakeHome + 1) {
       totalExcess = calculatedTakeHome - effectiveTargetTakeHome;
     }
     
