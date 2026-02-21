@@ -326,7 +326,7 @@ const Index = () => {
           <h1 className="text-2xl sm:text-3xl font-extrabold text-primary-foreground tracking-tight mb-1">
             Retirement Drawdown Planner
           </h1>
-          <p className="text-primary-foreground/75 mt-1.5 text-sm sm:text-base pl-4">
+          <p className="text-primary-foreground/95 mt-1.5 text-sm sm:text-base pl-4 font-medium">
             Model tax-efficient retirement withdrawal strategies with Social Security optimization
           </p>
           <p className="text-primary-foreground/50 mt-2 text-xs pl-4 italic">
