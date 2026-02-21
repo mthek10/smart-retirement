@@ -179,6 +179,8 @@ function solveRequiredWithdrawal(
   rothConversionCustom: number,
   state: string,
   stateRate: number,
+  acaSettings?: { enabled: boolean; householdSize: number; customBenchmarkPremium: number },
+  acaEnrolleeAges?: number[],
 ): number {
   let low = Math.max(0, currentRMD);
   let high = Math.max(
@@ -282,7 +284,23 @@ function solveRequiredWithdrawal(
     const niit = calculateNIIT(capitalGainsRealized, magi, effectiveFilingStatus, yearIndex, inflationFraction);
     const amt = calculateAMT(totalOrdinaryIncome, capitalGainsRealized, effectiveFilingStatus, yearIndex, inflationFraction);
     
-    const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt;
+    // ACA cost calculation
+    let netAcaCost = 0;
+    if (acaSettings?.enabled && acaEnrolleeAges && acaEnrolleeAges.length > 0) {
+      const acaResult = calculateACASubsidy(
+        magi,
+        acaSettings.householdSize,
+        acaEnrolleeAges,
+        yearIndex,
+        inflationFraction
+      );
+      const acaPremium = acaSettings.customBenchmarkPremium > 0
+        ? acaSettings.customBenchmarkPremium * 12 * Math.pow(1 + inflationFraction, yearIndex) * acaEnrolleeAges.length
+        : acaResult.premium;
+      netAcaCost = acaPremium - acaResult.subsidy;
+    }
+
+    const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
     
     if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
       return testWithdrawal;
@@ -533,6 +551,17 @@ export function calculateProjections(
     
     const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages);
     
+    // Compute ACA enrollee ages for the solver
+    const solverEnrolleeAges: number[] = [];
+    if (taxSettings.acaSettings.enabled) {
+      if (spouse1Alive && spouse1CurrentAge < 65) solverEnrolleeAges.push(spouse1CurrentAge);
+      if (spouse2Alive && spouse2CurrentAge < 65 && effectiveFilingStatus === 'married') solverEnrolleeAges.push(spouse2CurrentAge);
+    }
+    
+    const effectiveHouseholdSize = (spouse1Alive && spouse2Alive) 
+      ? taxSettings.acaSettings.householdSize 
+      : Math.max(1, taxSettings.acaSettings.householdSize - 1);
+    
     let requiredWithdrawal = adjustedTargetTakeHome > 0 ? solveRequiredWithdrawal(
       adjustedTargetTakeHome,
       ssAnnual,
@@ -549,6 +578,8 @@ export function calculateProjections(
       taxSettings.rothConversionCustom,
       taxSettings.state,
       taxSettings.stateRate,
+      taxSettings.acaSettings,
+      solverEnrolleeAges,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
@@ -804,25 +835,17 @@ export function calculateProjections(
     let netAcaCost = 0;
     
     if (taxSettings.acaSettings.enabled) {
-      const enrolleeAges: number[] = [];
-      if (spouse1Alive && spouse1CurrentAge < 65) enrolleeAges.push(spouse1CurrentAge);
-      if (spouse2Alive && spouse2CurrentAge < 65 && effectiveFilingStatus === 'married') enrolleeAges.push(spouse2CurrentAge);
-      
-      const effectiveHouseholdSize = (spouse1Alive && spouse2Alive) 
-        ? taxSettings.acaSettings.householdSize 
-        : Math.max(1, taxSettings.acaSettings.householdSize - 1);
-      
-      if (enrolleeAges.length > 0) {
+      if (solverEnrolleeAges.length > 0) {
         const acaResult = calculateACASubsidy(
           magi,
           effectiveHouseholdSize,
-          enrolleeAges,
+          solverEnrolleeAges,
           i,
           taxSettings.inflationRate / 100
         );
         
         acaPremium = taxSettings.acaSettings.customBenchmarkPremium > 0
-          ? taxSettings.acaSettings.customBenchmarkPremium * 12 * Math.pow(1 + taxSettings.inflationRate / 100, i) * enrolleeAges.length
+          ? taxSettings.acaSettings.customBenchmarkPremium * 12 * Math.pow(1 + taxSettings.inflationRate / 100, i) * solverEnrolleeAges.length
           : acaResult.premium;
         acaSubsidy = acaResult.subsidy;
         netAcaCost = acaPremium - acaSubsidy;
