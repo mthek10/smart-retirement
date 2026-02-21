@@ -237,8 +237,15 @@ function solveRequiredWithdrawal(
       rothConversionCustom
     );
     if (targetIncomeLimit > 0 && testTrad > 0) {
-      const currentIncome = ssAnnual + traditionalWithdrawn;
-      const conversionRoom = Math.max(0, targetIncomeLimit - currentIncome);
+      // Match main loop's Roth conversion room calculation exactly
+      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages;
+      const taxableSSPreConversion = calculateTaxableSocialSecurity(
+        ssAnnual,
+        ordinaryIncomePreConversion + capitalGainsRealized,
+        effectiveFilingStatus
+      );
+      const totalOrdinaryPreConversion = ordinaryIncomePreConversion + taxableSSPreConversion;
+      const conversionRoom = Math.max(0, targetIncomeLimit - totalOrdinaryPreConversion);
       rothConversion = Math.min(conversionRoom, testTrad);
     }
     
