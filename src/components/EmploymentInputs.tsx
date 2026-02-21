@@ -220,7 +220,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                       ...taxSettings,
                       spouse1Employment: {
                         ...taxSettings.spouse1Employment,
-                        retirementAge: checked ? spouse1Age : 65,
+                        retirementAge: checked ? spouse1Age : Math.max(spouse1Age + 1, 66),
                         ...(checked ? { contributes401k: false } : {}),
                       },
                     });
@@ -294,7 +294,7 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                         ...taxSettings,
                         spouse2Employment: {
                           ...taxSettings.spouse2Employment,
-                          retirementAge: checked ? spouse2Age : 65,
+                          retirementAge: checked ? spouse2Age : Math.max(spouse2Age + 1, 66),
                           ...(checked ? { contributes401k: false } : {}),
                         },
                       });
