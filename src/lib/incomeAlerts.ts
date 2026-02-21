@@ -1,7 +1,8 @@
 // Income threshold alert utilities for IRMAA and ACA cliff detection
 
 import { 
-  irmaaBrackets2024, 
+  irmaaBracketsSingle2024,
+  irmaaBracketsMarried2024,
   federalPovertyLevel2024,
   federalTaxBrackets2024,
   standardDeductions2024
@@ -36,21 +37,28 @@ export interface BracketRoomInfo {
 export function getIRMAAProximity(
   magi: number,
   yearIndex: number = 0,
-  inflationRate: number = 0
+  inflationRate: number = 0,
+  filingStatus: string = 'single'
 ): { distanceToNextTier: number; currentTier: number; nextTier: number; nextTierThreshold: number } | null {
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
+  
+  // Use filing-status appropriate IRMAA brackets
+  const brackets = filingStatus === 'married' 
+    ? irmaaBracketsMarried2024 
+    : irmaaBracketsSingle2024;
   
   // Find current bracket
-  const currentBracketIndex = irmaaBrackets2024.findIndex(
+  const currentBracketIndex = brackets.findIndex(
     (b) => magi >= b.min * inflationMultiplier && magi < b.max * inflationMultiplier
   );
   
-  if (currentBracketIndex === -1 || currentBracketIndex >= irmaaBrackets2024.length - 1) {
+  if (currentBracketIndex === -1 || currentBracketIndex >= brackets.length - 1) {
     return null;
   }
   
-  const currentBracket = irmaaBrackets2024[currentBracketIndex];
-  const nextBracket = irmaaBrackets2024[currentBracketIndex + 1];
+  const currentBracket = brackets[currentBracketIndex];
+  const nextBracket = brackets[currentBracketIndex + 1];
   
   const nextThreshold = nextBracket.min * inflationMultiplier;
   const distance = nextThreshold - magi;
@@ -150,7 +158,7 @@ export function generateIncomeAlerts(
   const alerts: IncomeAlert[] = [];
   
   // IRMAA alerts (only for age 65+, but based on income 2 years prior)
-  const irmaaProximity = getIRMAAProximity(magi, yearIndex, inflationRate);
+  const irmaaProximity = getIRMAAProximity(magi, yearIndex, inflationRate, filingStatus);
   if (irmaaProximity && irmaaProximity.distanceToNextTier < irmaaProximity.nextTierThreshold * 0.10) {
     const monthlyIncrease = (irmaaProximity.nextTier - irmaaProximity.currentTier);
     const annualIncrease = monthlyIncrease * 12 * (filingStatus === 'married' ? 2 : 1);

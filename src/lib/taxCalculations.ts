@@ -51,7 +51,7 @@ export function getRothConversionLimit(
   if (strategy === 'none') return 0;
   if (strategy === 'custom' && customAmount) return customAmount;
 
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
   const standardDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
 
@@ -73,13 +73,16 @@ export function getRothConversionLimit(
   return grossIncomeLimit * inflationMultiplier;
 }
 
+// IRS 2024 standard deduction values
 export const standardDeductions2024: Record<string, number> = {
-  single: 15000,
-  married: 30000,
-  hoh: 22500,
+  single: 14600,
+  married: 29200,
+  hoh: 21900,
 };
 
-export const irmaaBrackets2024 = [
+// IRMAA brackets by filing status (2024)
+// Single/Head of Household thresholds
+export const irmaaBracketsSingle2024 = [
   { min: 0, max: 103000, premium: 0 },
   { min: 103000, max: 129000, premium: 69.90 },
   { min: 129000, max: 161000, premium: 174.70 },
@@ -87,6 +90,19 @@ export const irmaaBrackets2024 = [
   { min: 193000, max: 500000, premium: 384.30 },
   { min: 500000, max: Infinity, premium: 419.30 },
 ];
+
+// Married Filing Jointly thresholds (higher thresholds)
+export const irmaaBracketsMarried2024 = [
+  { min: 0, max: 206000, premium: 0 },
+  { min: 206000, max: 258000, premium: 69.90 },
+  { min: 258000, max: 322000, premium: 174.70 },
+  { min: 322000, max: 386000, premium: 279.50 },
+  { min: 386000, max: 750000, premium: 384.30 },
+  { min: 750000, max: Infinity, premium: 419.30 },
+];
+
+// Default export for backwards compatibility
+export const irmaaBrackets2024 = irmaaBracketsSingle2024;
 
 // Medicare Part B and D base premiums (2024)
 export const medicarePartBPremium2024 = 174.70; // Monthly premium
@@ -239,7 +255,8 @@ export function calculateFederalTax(
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
   
   // Apply inflation to standard deduction and bracket thresholds
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   
   const taxableIncome = Math.max(0, income - standardDeduction);
@@ -264,11 +281,18 @@ export function calculateFederalTax(
 export function calculateIRMAA(
   magi: number,
   yearIndex: number = 0,
-  inflationRate: number = 0
+  inflationRate: number = 0,
+  filingStatus: string = 'single'
 ): number {
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   
-  const bracket = irmaaBrackets2024.find(
+  // Use filing-status appropriate IRMAA brackets
+  const brackets = filingStatus === 'married' 
+    ? irmaaBracketsMarried2024 
+    : irmaaBracketsSingle2024;
+  
+  const bracket = brackets.find(
     (b) => magi >= b.min * inflationMultiplier && magi < b.max * inflationMultiplier
   );
   return bracket ? bracket.premium * 12 * inflationMultiplier : 0;
@@ -382,9 +406,21 @@ export function calculateSocialSecurityBenefit(
   let adjustment = 1;
   
   if (claimAge < fullRetirementAge) {
-    // Early claiming reduction: ~6.67% per year (before FRA)
+    // SSA early claiming reduction uses two-tier system:
+    // - First 36 months early: 5/9 of 1% per month (≈6.67%/year)
+    // - Additional months beyond 36: 5/12 of 1% per month (≈5%/year)
     const monthsEarly = (fullRetirementAge - claimAge) * 12;
-    adjustment = 1 - (monthsEarly * 0.00556);
+    
+    if (monthsEarly <= 36) {
+      // Only the first tier applies
+      adjustment = 1 - (monthsEarly * (5/9) * 0.01);
+    } else {
+      // Both tiers apply
+      const firstTierReduction = 36 * (5/9) * 0.01; // 20% for first 36 months
+      const additionalMonths = monthsEarly - 36;
+      const secondTierReduction = additionalMonths * (5/12) * 0.01;
+      adjustment = 1 - firstTierReduction - secondTierReduction;
+    }
   } else if (claimAge > fullRetirementAge) {
     // Delayed retirement credits: 8% per year
     const yearsDelayed = claimAge - fullRetirementAge;
@@ -602,7 +638,8 @@ export function calculateCapitalGainsTax(
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
   
   // Apply inflation adjustments
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   
   // Capital gains are taxed based on total taxable income (ordinary + capital gains)
@@ -681,7 +718,8 @@ export function calculateNIIT(
   // 2. MAGI exceeding the threshold
   
   const baseThreshold = niitThresholds2024[filingStatus] || niitThresholds2024.single;
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const threshold = baseThreshold * inflationMultiplier;
   
   if (magi <= threshold) {
@@ -704,7 +742,8 @@ export function getMarginalTaxBracket(
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
   
   // Apply inflation to standard deduction and bracket thresholds
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   
   const taxableIncome = Math.max(0, income - standardDeduction);
@@ -727,7 +766,8 @@ export function getBracketLimit(
   inflationRate: number = 0
 ): number {
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   
   // Map strategy to bracket rate
   const bracketRateMap: Record<string, number> = {
@@ -909,7 +949,8 @@ export function calculateAMTI(
   inflationRate: number = 0
 ): number {
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   
   // Start with regular taxable income
@@ -940,7 +981,8 @@ export function calculateAMT(
   yearIndex: number = 0,
   inflationRate: number = 0
 ): number {
-  const inflationMultiplier = Math.pow(1 + inflationRate / 100, yearIndex);
+  // inflationRate expected as decimal (e.g., 0.03 for 3%)
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   
   // Calculate AMTI
   const amti = calculateAMTI(income, capitalGains, filingStatus, yearIndex, inflationRate);

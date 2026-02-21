@@ -100,7 +100,7 @@ export function calculateRMDProjections(
     }
     
     // Calculate projected federal tax on RMD
-    const projectedTax = calculateFederalTax(totalIncome, filingStatus, inflationMultiplier);
+    const projectedTax = calculateFederalTax(totalIncome, filingStatus, yearOffset, inflationRate / 100);
     
     // Determine bracket impact severity
     let taxBracketImpact: 'low' | 'medium' | 'high' = 'low';

@@ -44,7 +44,8 @@ function randomNormal(mean: number, stdDev: number): number {
 }
 
 /**
- * Run a single simulation with randomized returns
+ * Run a single simulation with year-by-year randomized returns.
+ * This properly models sequence-of-returns risk by applying random returns each year.
  */
 function runSingleSimulation(
   accounts: Accounts,
@@ -53,64 +54,98 @@ function runSingleSimulation(
   strategy: string,
   settings: MonteCarloSettings
 ): SimulationOutcome {
-  // Generate random returns for each year
   const maxYears = Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age);
-  const randomReturns: number[] = [];
+  const DEPLETION_THRESHOLD = 1000;
   
-  for (let i = 0; i <= maxYears; i++) {
-    randomReturns.push(randomNormal(settings.returnMean, settings.returnStdDev));
-  }
+  // Initialize account balances
+  let traditionalBalance = accounts.spouse1Traditional + accounts.spouse2Traditional;
+  let rothBalance = accounts.roth;
+  let taxableBalance = accounts.taxable;
   
-  // Create modified accounts with average return for projection calculation
-  // (we'll apply variance through a simulation-specific approach)
-  const modifiedAccounts: Accounts = {
-    ...accounts,
-    traditionalReturn: settings.returnMean * 100,
-    rothReturn: settings.returnMean * 100,
-    taxableReturn: settings.returnMean * 100,
-  };
+  // Get baseline projection for withdrawal amounts and tax estimates
+  // This gives us the planned withdrawal sequence and Roth conversion amounts
+  const baselineProjections = calculateProjections(accounts, ssData, taxSettings, strategy);
   
-  // Run projection with strategy
-  const projections = calculateProjections(modifiedAccounts, ssData, taxSettings, strategy);
-  
-  // Apply random return variance to final outcomes
-  // Simple approach: scale final outcomes by cumulative return variance
-  const cumulativeVariance = randomReturns.reduce((acc, r, i) => {
-    return acc * (1 + r - settings.returnMean);
-  }, 1);
-  
-  const lastRow = projections[projections.length - 1];
-  const baseTotal = lastRow 
-    ? lastRow.traditionalBalance + lastRow.rothBalance + lastRow.taxableBalance 
-    : 0;
-  
-  // Apply variance to final balance (capped at reasonable bounds)
-  const adjustedBalance = Math.max(0, baseTotal * cumulativeVariance);
-  
-  // Calculate depletion with variance consideration
   let depletionAge: number | null = null;
-  const THRESHOLD = 1000;
+  let lifetimeTax = 0;
   
-  for (let i = 1; i < projections.length; i++) {
-    const prev = projections[i - 1];
-    const curr = projections[i];
-    const prevTotal = prev.traditionalBalance + prev.rothBalance + prev.taxableBalance;
-    const currTotal = curr.traditionalBalance + curr.rothBalance + curr.taxableBalance;
+  // Simulate year by year with random returns
+  for (let year = 0; year <= maxYears; year++) {
+    const currentAge = taxSettings.spouse1Age + year;
+    const totalBalance = traditionalBalance + rothBalance + taxableBalance;
     
-    // Apply year-specific variance
-    const yearVariance = randomReturns.slice(0, i).reduce((acc, r) => acc * (1 + r - settings.returnMean), 1);
-    const adjustedCurrTotal = currTotal * yearVariance;
-    
-    if (prevTotal >= THRESHOLD && adjustedCurrTotal < THRESHOLD) {
-      depletionAge = curr.age;
+    // Check for depletion before processing this year
+    if (totalBalance < DEPLETION_THRESHOLD && depletionAge === null) {
+      depletionAge = currentAge;
       break;
     }
+    
+    // Get withdrawal and tax info from baseline projection
+    const baselineRow = baselineProjections[year];
+    if (!baselineRow) break;
+    
+    // Use baseline projection's withdrawal amount (adjusted proportionally if balances differ)
+    const baselineTotal = baselineRow.traditionalBalance + baselineRow.rothBalance + baselineRow.taxableBalance;
+    const balanceRatio = baselineTotal > 0 ? totalBalance / baselineTotal : 1;
+    
+    // Scale withdrawal if our balance is significantly different
+    const targetWithdrawal = Math.min(
+      baselineRow.withdrawals * Math.min(balanceRatio, 1.5),
+      totalBalance * 0.5 // Safety cap: don't withdraw more than 50% in one year
+    );
+    
+    lifetimeTax += baselineRow.totalTaxes;
+    
+    // Execute withdrawal from accounts (same order as main projection: traditional -> taxable -> roth)
+    let remaining = targetWithdrawal;
+    
+    // 1. From traditional (including RMD)
+    if (remaining > 0 && traditionalBalance > 0) {
+      const fromTrad = Math.min(remaining, traditionalBalance);
+      traditionalBalance -= fromTrad;
+      remaining -= fromTrad;
+    }
+    
+    // 2. From taxable
+    if (remaining > 0 && taxableBalance > 0) {
+      const fromTaxable = Math.min(remaining, taxableBalance);
+      taxableBalance -= fromTaxable;
+      remaining -= fromTaxable;
+    }
+    
+    // 3. From Roth
+    if (remaining > 0 && rothBalance > 0) {
+      const fromRoth = Math.min(remaining, rothBalance);
+      rothBalance -= fromRoth;
+      remaining -= fromRoth;
+    }
+    
+    // Handle Roth conversions (move from traditional to Roth, scaled by balance ratio)
+    const rothConversion = (baselineRow.rothConversion || 0) * Math.min(balanceRatio, 1);
+    if (rothConversion > 0 && traditionalBalance > 0) {
+      const actualConversion = Math.min(rothConversion, traditionalBalance);
+      traditionalBalance -= actualConversion;
+      rothBalance += actualConversion;
+    }
+    
+    // Apply random return for this year (key for sequence-of-returns risk)
+    const yearReturn = randomNormal(settings.returnMean, settings.returnStdDev);
+    
+    // Apply returns to each account
+    traditionalBalance *= (1 + yearReturn);
+    rothBalance *= (1 + yearReturn);
+    taxableBalance *= (1 + yearReturn);
+    
+    // Ensure balances don't go negative
+    traditionalBalance = Math.max(0, traditionalBalance);
+    rothBalance = Math.max(0, rothBalance);
+    taxableBalance = Math.max(0, taxableBalance);
   }
   
-  const lifetimeTax = projections.reduce((sum, p) => sum + p.totalTaxes, 0);
+  const finalBalance = traditionalBalance + rothBalance + taxableBalance;
   
   return {
-    finalBalance: adjustedBalance,
+    finalBalance,
     depletionAge,
     lifetimeTax,
     success: depletionAge === null || depletionAge >= 100,

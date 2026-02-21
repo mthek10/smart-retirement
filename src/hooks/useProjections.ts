@@ -267,10 +267,10 @@ function solveRequiredWithdrawal(
     const magi = totalOrdinaryIncome + capitalGainsRealized;
     let irmaa = 0;
     if (spouse1Age >= 65 && spouse1Age <= 100) {
-      irmaa += calculateIRMAA(magi, yearIndex, inflationFraction);
+      irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
     }
     if (spouse2Age >= 65 && spouse2Age <= 100) {
-      irmaa += calculateIRMAA(magi, yearIndex, inflationFraction);
+      irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
     }
     
     let medicarePremiums = 0;
@@ -689,19 +689,19 @@ export function calculateProjections(
         const magiWithoutConversion = totalOrdinaryIncomePreConversion + capitalGains;
         let irmaaWithoutConversion = 0;
         if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-          irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100);
+          irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
         }
         if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-          irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100);
+          irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
         }
         
         const magiWithConversion = totalOrdinaryIncomePreConversion + proposedConversion + capitalGains;
         let irmaaWithConversion = 0;
         if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-          irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100);
+          irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
         }
         if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-          irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100);
+          irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
         }
         
         const irmaaIncrease = irmaaWithConversion - irmaaWithoutConversion;
@@ -716,10 +716,10 @@ export function calculateProjections(
             const testMagi = totalOrdinaryIncomePreConversion + testConversion + capitalGains;
             let testIrmaa = 0;
             if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-              testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100);
+              testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
             }
             if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-              testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100);
+              testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
             }
             
             const testIrmaaIncrease = testIrmaa - irmaaWithoutConversion;
@@ -775,11 +775,12 @@ export function calculateProjections(
     
     const totalOrdinaryIncome = ordinaryIncome + taxableSSIncome;
 
-    const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, i, taxSettings.inflationRate);
-    const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, effectiveFilingStatus, i, taxSettings.inflationRate);
+    const inflationFraction = taxSettings.inflationRate / 100;
+    const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
+    const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
     const federalTax = federalTaxOrdinary + federalTaxCapitalGains;
     
-    const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, effectiveFilingStatus, i, taxSettings.inflationRate);
+    const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
     
     const agi = totalOrdinaryIncome + capitalGains;
     
@@ -816,10 +817,10 @@ export function calculateProjections(
     const magi = totalOrdinaryIncome + capitalGains;
     let irmaa = 0;
     if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-      irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100);
+      irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
     }
     if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-      irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100);
+      irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
     }
 
     let medicarePremiums = 0;
