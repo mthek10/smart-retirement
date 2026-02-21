@@ -856,7 +856,7 @@ export function calculateProjections(
     
     const takeHome = totalExcess > 0 ? effectiveTargetTakeHome : calculatedTakeHome;
     
-    const totalTaxes = federalTax + federalTaxCapitalGains + stateTax + stateCapitalGainsTax + irmaa + medicarePremiums + niit + amt;
+    const totalTaxes = federalTax + federalTaxCapitalGains + stateTax + stateCapitalGainsTax + totalPayrollTax + irmaa + medicarePremiums + niit + amt;
     
     results.push({
       year,
