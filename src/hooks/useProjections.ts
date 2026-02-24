@@ -39,10 +39,12 @@ export interface SSData {
   spouse1: {
     estimatedBenefit: number;
     claimAge: number;
+    lifeExpectancy: number;
   };
   spouse2: {
     estimatedBenefit: number;
     claimAge: number;
+    lifeExpectancy: number;
   };
 }
 
@@ -887,7 +889,7 @@ export function calculateProjections(
     
     const takeHome = totalExcess > 0 ? effectiveTargetTakeHome : calculatedTakeHome;
     
-    const totalTaxes = federalTax + federalTaxCapitalGains + stateTax + stateCapitalGainsTax + totalPayrollTax + irmaa + medicarePremiums + niit + amt;
+    const totalTaxes = federalTax + stateTax + stateCapitalGainsTax + totalPayrollTax + irmaa + medicarePremiums + niit + amt;
     
     results.push({
       year,
