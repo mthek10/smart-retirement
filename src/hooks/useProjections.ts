@@ -68,6 +68,7 @@ export interface ACASettings {
   enabled: boolean;
   householdSize: number;
   customBenchmarkPremium: number;
+  annualHealthInsuranceCost: number;
 }
 
 export interface StateRelocationSettings {
@@ -181,7 +182,7 @@ function solveRequiredWithdrawal(
   rothConversionCustom: number,
   state: string,
   stateRate: number,
-  acaSettings?: { enabled: boolean; householdSize: number; customBenchmarkPremium: number },
+  acaSettings?: ACASettings,
   acaEnrolleeAges?: number[],
 ): number {
   let low = Math.max(0, currentRMD);
@@ -309,7 +310,16 @@ function solveRequiredWithdrawal(
       netAcaCost = acaPremium - acaResult.subsidy;
     }
 
-    const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
+    // Annual health insurance cost (inflation-adjusted, pre-Medicare only)
+    let healthInsuranceCost = 0;
+    if (acaSettings?.annualHealthInsuranceCost && acaSettings.annualHealthInsuranceCost > 0) {
+      const anyPreMedicare = (spouse1Age < 65) || (spouse2Age < 65 && spouse2Age > 0);
+      if (anyPreMedicare) {
+        healthInsuranceCost = acaSettings.annualHealthInsuranceCost * Math.pow(1 + inflationFraction, yearIndex);
+      }
+    }
+
+    const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
     
     if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
       return testWithdrawal;
@@ -862,13 +872,22 @@ export function calculateProjections(
       }
     }
 
-    const totalHealthcareCost = netAcaCost + medicarePremiums + irmaa;
+    // Annual health insurance cost (inflation-adjusted, pre-Medicare only)
+    let healthInsuranceCost = 0;
+    if (taxSettings.acaSettings.annualHealthInsuranceCost && taxSettings.acaSettings.annualHealthInsuranceCost > 0) {
+      const anyPreMedicare = (spouse1CurrentAge < 65) || (spouse2CurrentAge < 65 && spouse2CurrentAge > 0);
+      if (anyPreMedicare) {
+        healthInsuranceCost = taxSettings.acaSettings.annualHealthInsuranceCost * Math.pow(1 + taxSettings.inflationRate / 100, i);
+      }
+    }
+
+    const totalHealthcareCost = netAcaCost + medicarePremiums + irmaa + healthInsuranceCost;
 
     const niit = calculateNIIT(capitalGains, magi, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
     const amt = calculateAMT(totalOrdinaryIncome, capitalGains, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
 
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - totalPayrollTax - irmaa - medicarePremiums - niit - amt - netAcaCost;
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - totalPayrollTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
     
     // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
     let totalExcess = 0;

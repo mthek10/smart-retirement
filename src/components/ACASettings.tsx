@@ -9,6 +9,7 @@ interface ACASettingsProps {
     enabled: boolean;
     householdSize: number;
     customBenchmarkPremium: number;
+    annualHealthInsuranceCost: number;
   };
   onChange: (settings: any) => void;
 }
@@ -37,6 +38,24 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
             checked={acaSettings.enabled}
             onCheckedChange={(checked) => handleChange('enabled', checked)}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="annualHealthInsuranceCost">Annual Health Insurance Cost</Label>
+          <DebouncedInput
+            id="annualHealthInsuranceCost"
+            type="number"
+            step="100"
+            placeholder="0"
+            value={acaSettings.annualHealthInsuranceCost || ''}
+            onChange={(value) => handleChange('annualHealthInsuranceCost', parseFloat(value) || 0)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Enter your total annual health insurance premium. This cost increases annually at the inflation rate and stops at age 65 when Medicare begins.
+          </p>
+          <p className="text-xs text-muted-foreground italic">
+            Note: Medicare eligibility begins at age 65. Once all covered household members reach 65, this cost will no longer apply.
+          </p>
         </div>
 
         {acaSettings.enabled && (
