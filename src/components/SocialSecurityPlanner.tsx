@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
@@ -77,38 +77,38 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
           </p>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <Label>Claiming Age: {data.claimAge}</Label>
-            <span className="text-sm text-muted-foreground">
-              Range: 62-70
-            </span>
-          </div>
-          <Slider
-            value={[data.claimAge]}
-            onValueChange={([value]) => handleChange(spouse, 'claimAge', value)}
-            min={62}
-            max={70}
-            step={1}
-            className="w-full"
-          />
+        <div className="space-y-2">
+          <Label>Claiming Age</Label>
+          <Select
+            value={String(data.claimAge)}
+            onValueChange={(value) => handleChange(spouse, 'claimAge', parseInt(value))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select claiming age" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 9 }, (_, i) => 62 + i).map((age) => (
+                <SelectItem key={age} value={String(age)}>{age}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <Label>Life Expectancy: {data.lifeExpectancy}</Label>
-            <span className="text-sm text-muted-foreground">
-              Range: 75-100
-            </span>
-          </div>
-          <Slider
-            value={[data.lifeExpectancy]}
-            onValueChange={([value]) => handleChange(spouse, 'lifeExpectancy', value)}
-            min={75}
-            max={100}
-            step={1}
-            className="w-full"
-          />
+        <div className="space-y-2">
+          <Label>Life Expectancy</Label>
+          <Select
+            value={String(data.lifeExpectancy)}
+            onValueChange={(value) => handleChange(spouse, 'lifeExpectancy', parseInt(value))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select life expectancy" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 26 }, (_, i) => 75 + i).map((age) => (
+                <SelectItem key={age} value={String(age)}>{age}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="p-4 bg-accent rounded-lg space-y-3">
