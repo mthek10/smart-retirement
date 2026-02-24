@@ -887,7 +887,7 @@ export function calculateProjections(
     const amt = calculateAMT(totalOrdinaryIncome, capitalGains, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
 
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - totalPayrollTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
     
     // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
     let totalExcess = 0;
