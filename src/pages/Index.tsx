@@ -73,6 +73,7 @@ const Index = () => {
       enabled: true,
       householdSize: 2,
       customBenchmarkPremium: 0,
+      annualHealthInsuranceCost: 0,
     },
     spouse1Employment: {
       currentIncome: 0,
