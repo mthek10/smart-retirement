@@ -581,6 +581,23 @@ export function calculateProjections(
       ? taxSettings.acaSettings.householdSize 
       : Math.max(1, taxSettings.acaSettings.householdSize - 1);
     
+    // Determine effective state BEFORE solver call (must match main loop)
+    const effectiveState = taxSettings.stateRelocation?.enabled && 
+      spouse1CurrentAge >= (taxSettings.stateRelocation?.relocationAge || 65)
+      ? taxSettings.stateRelocation.targetState
+      : taxSettings.state;
+
+    // Determine effective conversion strategy for solver (must match main loop)
+    const isSurvivorYear = (!spouse1Alive || !spouse2Alive) && survivorEnabled;
+    let solverConversionStrategy = effectiveConversionStrategy;
+    if (effectiveConversionStrategy === 'survivor_smooth') {
+      if (isSurvivorYear) {
+        solverConversionStrategy = 'fill_24';
+      } else {
+        solverConversionStrategy = taxSettings.preSurvivorStrategy || 'fill_22';
+      }
+    }
+
     let requiredWithdrawal = adjustedTargetTakeHome > 0 ? solveRequiredWithdrawal(
       adjustedTargetTakeHome,
       ssAnnual,
@@ -592,10 +609,10 @@ export function calculateProjections(
       taxableWages,
       effectiveFilingStatus,
       accounts.taxableCostBasisPercent,
-      effectiveConversionStrategy,
+      solverConversionStrategy,
       taxSettings.inflationRate,
       taxSettings.rothConversionCustom,
-      taxSettings.state,
+      effectiveState,
       taxSettings.stateRate,
       taxSettings.acaSettings,
       solverEnrolleeAges,
@@ -656,8 +673,7 @@ export function calculateProjections(
       rothBalance -= rothWithdrawal;
     }
 
-    // Detect survivor year for survivor-aware strategies
-    const isSurvivorYear = (!spouse1Alive || !spouse2Alive) && survivorEnabled;
+    // Reuse isSurvivorYear computed above (before solver call)
     
     // SURVIVOR-AWARE ROTH CONVERSION STRATEGY
     // When survivor_smooth is active and we're in a survivor year, 
@@ -806,11 +822,7 @@ export function calculateProjections(
     let stateTax = 0;
     let stateCapitalGainsTax = 0;
     
-    // Determine effective state (considering relocation planning)
-    const effectiveState = taxSettings.stateRelocation?.enabled && 
-      spouse1CurrentAge >= (taxSettings.stateRelocation?.relocationAge || 65)
-      ? taxSettings.stateRelocation.targetState
-      : taxSettings.state;
+    // effectiveState already computed above (before solver call)
     
     if (effectiveState === 'other') {
       stateTax = totalOrdinaryIncome * (taxSettings.stateRate / 100);
