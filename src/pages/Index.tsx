@@ -408,7 +408,7 @@ const Index = () => {
             </SummaryCards>
 
             <div className="flex justify-end pt-2">
-              <Button onClick={() => setActiveTab("projections")} className="px-8">
+              <Button onClick={() => { commitInputs(); setActiveTab("projections"); }} className="px-8">
                 View Projections →
               </Button>
             </div>
