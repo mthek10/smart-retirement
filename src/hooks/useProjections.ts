@@ -345,12 +345,12 @@ export function calculateProjections(
   strategyOverride?: string // Override the Roth conversion strategy
 ): ProjectionRow[] {
   const results: ProjectionRow[] = [];
+  const isMarried = taxSettings.filingStatus === 'married';
   let spouse1TradBalance = accounts.spouse1Traditional;
-  let spouse2TradBalance = accounts.spouse2Traditional;
+  let spouse2TradBalance = isMarried ? accounts.spouse2Traditional : 0;
   let rothBalance = accounts.roth;
   let taxableBalance = accounts.taxable;
 
-  const isMarried = taxSettings.filingStatus === 'married';
   const maxYears = isMarried
     ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
     : 100 - taxSettings.spouse1Age;
