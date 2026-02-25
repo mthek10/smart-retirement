@@ -191,8 +191,8 @@ function solveRequiredWithdrawal(
     currentBalances.tradBalance + currentBalances.rothBalance + currentBalances.taxableBalance
   );
   
-  const tolerance = 100;
-  const maxIterations = 30;
+  const tolerance = 1;
+  const maxIterations = 50;
   const inflationFraction = inflationRate / 100;
   
   for (let iter = 0; iter < maxIterations; iter++) {
