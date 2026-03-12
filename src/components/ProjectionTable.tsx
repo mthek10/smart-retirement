@@ -172,6 +172,9 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                     <>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">SS Income</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Wages</th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                        <span className="inline-flex items-center gap-1">Pension <InfoTooltip text="Annual pension income (pre-tax). Treated as ordinary taxable income and reduces required portfolio withdrawals." /></span>
+                      </th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Excess Saved</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
                         <span className="inline-flex items-center gap-1">RMD <InfoTooltip text="Required Minimum Distribution — mandatory annual withdrawals from Traditional IRA starting at age 73." /></span>
