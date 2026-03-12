@@ -270,6 +270,15 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                           )}
                         </td>
                         <td className="p-4 align-middle text-right">
+                          {projection.pensionIncome && projection.pensionIncome > 0 ? (
+                            <span className="text-blue-600 dark:text-blue-400 font-medium">
+                              {formatCurrency(projection.pensionIncome)}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="p-4 align-middle text-right">
                           {projection.excessSavings && projection.excessSavings > 0 ? (
                             <span className="text-green-600 dark:text-green-400 font-medium">
                               +{formatCurrency(projection.excessSavings)}
