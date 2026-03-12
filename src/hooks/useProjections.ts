@@ -626,6 +626,7 @@ export function calculateProjections(
       spouse1CurrentAge,
       spouse2CurrentAge,
       taxableWages,
+      totalPensionIncome,
       effectiveFilingStatus,
       accounts.taxableCostBasisPercent,
       solverConversionStrategy,
