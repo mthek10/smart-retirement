@@ -327,7 +327,7 @@ function solveRequiredWithdrawal(
       }
     }
 
-    const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
+    const calculatedTakeHome = testWithdrawal + ssAnnual + pensionIncome - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
     
     if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
       return testWithdrawal;
