@@ -182,6 +182,7 @@ function solveRequiredWithdrawal(
   spouse1Age: number,
   spouse2Age: number,
   taxableWages: number,
+  pensionIncome: number,
   effectiveFilingStatus: string,
   costBasisPercent: number,
   conversionStrategy: string,
