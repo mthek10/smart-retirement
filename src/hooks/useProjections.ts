@@ -249,10 +249,10 @@ function solveRequiredWithdrawal(
     );
     if (targetIncomeLimit > 0 && testTrad > 0) {
       // Match main loop's Roth conversion room calculation exactly
-      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages;
+      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome;
       const taxableSSPreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
-         ordinaryIncomePreConversion + capitalGainsRealized,
+        ordinaryIncomePreConversion + capitalGainsRealized,
         effectiveFilingStatus
       );
       const totalOrdinaryPreConversion = ordinaryIncomePreConversion + taxableSSPreConversion;
