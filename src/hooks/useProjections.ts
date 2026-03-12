@@ -587,7 +587,7 @@ export function calculateProjections(
       ? baseTargetTakeHome 
       : baseTargetTakeHome * (survivorSpendingPercent / 100);
     
-    const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages);
+    const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages - totalPensionIncome);
     
     // Compute ACA enrollee ages for the solver
     const solverEnrolleeAges: number[] = [];
