@@ -970,7 +970,7 @@ export function calculateProjections(
       totalTaxes,
       takeHome,
       rmd,
-      totalIncome: ssAnnual + totalWithdrawals + netWages,
+      totalIncome: ssAnnual + totalWithdrawals + netWages + totalPensionIncome,
       ordinaryIncome: totalOrdinaryIncome, // Gross ordinary income used for tax bracket calculations
       rothConversion,
       marginalBracket,
