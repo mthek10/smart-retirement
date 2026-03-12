@@ -18,6 +18,7 @@ interface YearProjection {
   taxableBalance: number;
   ssIncome: number;
   employmentIncome?: number;
+  pensionIncome?: number;
   netWages?: number;
   excessSavings?: number;
   payrollTax?: number;
@@ -171,6 +172,9 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                     <>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">SS Income</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Wages</th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                        <span className="inline-flex items-center gap-1">Pension <InfoTooltip text="Annual pension income (pre-tax). Treated as ordinary taxable income and reduces required portfolio withdrawals." /></span>
+                      </th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Excess Saved</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
                         <span className="inline-flex items-center gap-1">RMD <InfoTooltip text="Required Minimum Distribution — mandatory annual withdrawals from Traditional IRA starting at age 73." /></span>
@@ -260,6 +264,15 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                           {projection.employmentIncome && projection.employmentIncome > 0 ? (
                             <span className="text-green-600 dark:text-green-400">
                               {formatCurrency(projection.employmentIncome)}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="p-4 align-middle text-right">
+                          {projection.pensionIncome && projection.pensionIncome > 0 ? (
+                            <span className="text-blue-600 dark:text-blue-400 font-medium">
+                              {formatCurrency(projection.pensionIncome)}
                             </span>
                           ) : (
                             '-'
