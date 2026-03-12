@@ -951,6 +951,7 @@ export function calculateProjections(
       taxableBalance,
       ssIncome: ssAnnual,
       employmentIncome: totalWages,
+      pensionIncome: totalPensionIncome,
       netWages,
       excessSavings: totalExcess,
       payrollTax: totalPayrollTax,
