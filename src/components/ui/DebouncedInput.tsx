@@ -15,7 +15,7 @@ interface DebouncedInputProps extends Omit<React.ComponentProps<"input">, 'onCha
 export const DebouncedInput = React.forwardRef<HTMLInputElement, DebouncedInputProps>(
   ({ value: externalValue, onChange, debounceMs = 300, className, ...props }, ref) => {
     const [localValue, setLocalValue] = React.useState(String(externalValue ?? ''));
-    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     const isTypingRef = React.useRef(false);
 
     // Sync local value when external value changes (only if not currently typing)

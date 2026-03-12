@@ -48,6 +48,12 @@ export interface SSData {
   };
 }
 
+export interface PensionSettings {
+  monthlyAmount: number;
+  startAge: number;
+  cola: number; // annual COLA percentage
+}
+
 export interface EmploymentSettings {
   currentIncome: number;
   retirementAge: number;
@@ -55,6 +61,7 @@ export interface EmploymentSettings {
   contribution401kAmount: number;
   roth401kAmount: number;
   employerMatchAmount: number;
+  pension?: PensionSettings;
 }
 
 export interface SurvivorSettings {
