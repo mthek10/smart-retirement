@@ -82,6 +82,7 @@ const Index = () => {
       contribution401kAmount: 0,
       roth401kAmount: 0,
       employerMatchAmount: 0,
+      pension: { monthlyAmount: 0, startAge: 65, cola: 0 },
     },
     spouse2Employment: {
       currentIncome: 0,
@@ -90,6 +91,7 @@ const Index = () => {
       contribution401kAmount: 0,
       roth401kAmount: 0,
       employerMatchAmount: 0,
+      pension: { monthlyAmount: 0, startAge: 65, cola: 0 },
     },
     survivorSettings: {
       enabled: false,

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { get401kLimit } from "@/lib/taxCalculations";
 
 function AgeInput({ id, value, onChange, disabled, className, minAge }: { id: string; value: number; onChange: (val: number) => void; disabled?: boolean; label?: string; className?: string; minAge?: number }) {
@@ -52,6 +53,12 @@ function AgeInput({ id, value, onChange, disabled, className, minAge }: { id: st
   );
 }
 
+interface PensionSettings {
+  monthlyAmount: number;
+  startAge: number;
+  cola: number;
+}
+
 interface EmploymentSettings {
   currentIncome: number;
   retirementAge: number;
@@ -59,6 +66,7 @@ interface EmploymentSettings {
   contribution401kAmount: number;
   roth401kAmount: number;
   employerMatchAmount: number;
+  pension?: PensionSettings;
 }
 
 interface EmploymentInputsProps {
@@ -157,6 +165,75 @@ function Spouse401kInputs({
   );
 }
 
+function PensionInputs({
+  prefix,
+  pension,
+  onChange,
+}: {
+  prefix: string;
+  pension: PensionSettings;
+  onChange: (pension: PensionSettings) => void;
+}) {
+  return (
+    <div className="space-y-4 mt-2 pl-4 border-l-2 border-primary/20">
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor={`${prefix}PensionAmount`}>Monthly Amount ($)</Label>
+            <InfoTooltip text="Gross monthly pension payment before taxes. This is treated as taxable ordinary income." />
+          </div>
+          <DebouncedInput
+            id={`${prefix}PensionAmount`}
+            type="number"
+            step="100"
+            min="0"
+            placeholder="0"
+            value={pension.monthlyAmount || ''}
+            onChange={(value) => onChange({ ...pension, monthlyAmount: parseFloat(value) || 0 })}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor={`${prefix}PensionStartAge`}>Start Age</Label>
+            <InfoTooltip text="The age at which pension payments begin. Payments continue for life." />
+          </div>
+          <DebouncedInput
+            id={`${prefix}PensionStartAge`}
+            type="number"
+            min="50"
+            max="80"
+            placeholder="65"
+            value={pension.startAge || ''}
+            onChange={(value) => onChange({ ...pension, startAge: parseInt(value) || 65 })}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor={`${prefix}PensionCOLA`}>COLA (%)</Label>
+            <InfoTooltip text="Annual cost-of-living adjustment. Many pensions have 0% COLA (fixed payments), while some offer 1-3% annual increases." />
+          </div>
+          <DebouncedInput
+            id={`${prefix}PensionCOLA`}
+            type="number"
+            step="0.5"
+            min="0"
+            max="5"
+            placeholder="0"
+            value={pension.cola || ''}
+            onChange={(value) => onChange({ ...pension, cola: parseFloat(value) || 0 })}
+          />
+        </div>
+      </div>
+      {pension.monthlyAmount > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Annual pension: <strong>${(pension.monthlyAmount * 12).toLocaleString()}</strong>/year
+          {pension.cola > 0 && ` with ${pension.cola}% annual COLA`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age }: EmploymentInputsProps) {
   const spouse1Limit = get401kLimit(spouse1Age);
   const spouse2Limit = get401kLimit(spouse2Age);
@@ -175,13 +252,29 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
     });
   };
 
+  const handleSpouse1PensionChange = (pension: PensionSettings) => {
+    onChange({
+      ...taxSettings,
+      spouse1Employment: { ...taxSettings.spouse1Employment, pension }
+    });
+  };
+
+  const handleSpouse2PensionChange = (pension: PensionSettings) => {
+    onChange({
+      ...taxSettings,
+      spouse2Employment: { ...taxSettings.spouse2Employment, pension }
+    });
+  };
+
   const isMarried = taxSettings.filingStatus === 'married';
+  const spouse1Pension = taxSettings.spouse1Employment.pension || { monthlyAmount: 0, startAge: 65, cola: 0 };
+  const spouse2Pension = taxSettings.spouse2Employment.pension || { monthlyAmount: 0, startAge: 65, cola: 0 };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Employment Income</CardTitle>
-        <CardDescription>Configure current employment income if still working</CardDescription>
+        <CardTitle>Employment & Pension Income</CardTitle>
+        <CardDescription>Configure current employment income and pension benefits</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Spouse 1 Employment */}
@@ -255,6 +348,19 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
               onChange={handleSpouse1Change}
             />
           )}
+
+          {/* Spouse 1 Pension */}
+          <div className="pt-2">
+            <div className="flex items-center gap-1.5 mb-2">
+              <h4 className="text-sm font-medium">{isMarried ? 'Spouse 1 Pension' : 'Pension Income'}</h4>
+              <InfoTooltip text="Enter monthly pension benefit if you receive or will receive a defined benefit pension. This is taxed as ordinary income." />
+            </div>
+            <PensionInputs
+              prefix="spouse1"
+              pension={spouse1Pension}
+              onChange={handleSpouse1PensionChange}
+            />
+          </div>
         </div>
 
         {/* Spouse 2 Employment */}
@@ -329,6 +435,19 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
                 onChange={handleSpouse2Change}
               />
             )}
+
+            {/* Spouse 2 Pension */}
+            <div className="pt-2">
+              <div className="flex items-center gap-1.5 mb-2">
+                <h4 className="text-sm font-medium">Spouse 2 Pension</h4>
+                <InfoTooltip text="Enter monthly pension benefit if your spouse receives or will receive a defined benefit pension." />
+              </div>
+              <PensionInputs
+                prefix="spouse2"
+                pension={spouse2Pension}
+                onChange={handleSpouse2PensionChange}
+              />
+            </div>
           </div>
         )}
       </CardContent>

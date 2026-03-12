@@ -48,6 +48,12 @@ export interface SSData {
   };
 }
 
+export interface PensionSettings {
+  monthlyAmount: number;
+  startAge: number;
+  cola: number; // annual COLA percentage
+}
+
 export interface EmploymentSettings {
   currentIncome: number;
   retirementAge: number;
@@ -55,6 +61,7 @@ export interface EmploymentSettings {
   contribution401kAmount: number;
   roth401kAmount: number;
   employerMatchAmount: number;
+  pension?: PensionSettings;
 }
 
 export interface SurvivorSettings {
@@ -103,6 +110,7 @@ export interface ProjectionRow {
   taxableBalance: number;
   ssIncome: number;
   employmentIncome: number;
+  pensionIncome: number;
   netWages: number;
   excessSavings: number;
   payrollTax: number;
@@ -175,6 +183,7 @@ function solveRequiredWithdrawal(
   spouse1Age: number,
   spouse2Age: number,
   taxableWages: number,
+  pensionIncome: number,
   effectiveFilingStatus: string,
   costBasisPercent: number,
   conversionStrategy: string,
@@ -241,7 +250,7 @@ function solveRequiredWithdrawal(
     );
     if (targetIncomeLimit > 0 && testTrad > 0) {
       // Match main loop's Roth conversion room calculation exactly
-      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages;
+      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome;
       const taxableSSPreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
         ordinaryIncomePreConversion + capitalGainsRealized,
@@ -252,7 +261,7 @@ function solveRequiredWithdrawal(
       rothConversion = Math.min(conversionRoom, testTrad);
     }
     
-    const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages;
+    const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages + pensionIncome;
     const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGainsRealized, effectiveFilingStatus);
     const totalOrdinaryIncome = ordinaryIncome + taxableSS;
     
@@ -319,7 +328,7 @@ function solveRequiredWithdrawal(
       }
     }
 
-    const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
+    const calculatedTakeHome = testWithdrawal + ssAnnual + pensionIncome - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
     
     if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
       return testWithdrawal;
@@ -478,6 +487,17 @@ export function calculateProjections(
     
     const totalWages = spouse1Wages + spouse2Wages;
     
+    // Calculate pension income (taxable ordinary income)
+    const spouse1Pension = taxSettings.spouse1Employment.pension;
+    const spouse2Pension = taxSettings.spouse2Employment.pension;
+    const spouse1PensionIncome = (spouse1Alive && spouse1Pension && spouse1Pension.monthlyAmount > 0 && spouse1CurrentAge >= spouse1Pension.startAge)
+      ? spouse1Pension.monthlyAmount * 12 * Math.pow(1 + (spouse1Pension.cola || 0) / 100, spouse1CurrentAge - spouse1Pension.startAge)
+      : 0;
+    const spouse2PensionIncome = (spouse2Alive && isMarried && spouse2Pension && spouse2Pension.monthlyAmount > 0 && spouse2CurrentAge >= spouse2Pension.startAge)
+      ? spouse2Pension.monthlyAmount * 12 * Math.pow(1 + (spouse2Pension.cola || 0) / 100, spouse2CurrentAge - spouse2Pension.startAge)
+      : 0;
+    const totalPensionIncome = spouse1PensionIncome + spouse2PensionIncome;
+
     // Calculate combined 401(k) contributions with shared limit per spouse
     const inflRate = taxSettings.inflationRate / 100;
     
@@ -568,7 +588,7 @@ export function calculateProjections(
       ? baseTargetTakeHome 
       : baseTargetTakeHome * (survivorSpendingPercent / 100);
     
-    const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages);
+    const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages - totalPensionIncome);
     
     // Compute ACA enrollee ages for the solver
     const solverEnrolleeAges: number[] = [];
@@ -607,6 +627,7 @@ export function calculateProjections(
       spouse1CurrentAge,
       spouse2CurrentAge,
       taxableWages,
+      totalPensionIncome,
       effectiveFilingStatus,
       accounts.taxableCostBasisPercent,
       solverConversionStrategy,
@@ -705,7 +726,7 @@ export function calculateProjections(
     
     if (targetIncomeLimit > 0 && remainingTradForConversion > 0) {
       const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
-      const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages;
+      const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages + totalPensionIncome;
       const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
         ordinaryIncomePreConversion + capitalGains,
@@ -800,7 +821,7 @@ export function calculateProjections(
     }
 
     const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
-    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages;
+    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome;
     
     const taxableSSIncome = calculateTaxableSocialSecurity(
       ssAnnual, 
@@ -899,7 +920,7 @@ export function calculateProjections(
     const amt = calculateAMT(totalOrdinaryIncome, capitalGains, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
 
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
     
     // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
     let totalExcess = 0;
@@ -930,6 +951,7 @@ export function calculateProjections(
       taxableBalance,
       ssIncome: ssAnnual,
       employmentIncome: totalWages,
+      pensionIncome: totalPensionIncome,
       netWages,
       excessSavings: totalExcess,
       payrollTax: totalPayrollTax,
@@ -950,7 +972,7 @@ export function calculateProjections(
       totalTaxes,
       takeHome,
       rmd,
-      totalIncome: ssAnnual + totalWithdrawals + netWages,
+      totalIncome: ssAnnual + totalWithdrawals + netWages + totalPensionIncome,
       ordinaryIncome: totalOrdinaryIncome, // Gross ordinary income used for tax bracket calculations
       rothConversion,
       marginalBracket,
