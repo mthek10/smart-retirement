@@ -725,7 +725,7 @@ export function calculateProjections(
     
     if (targetIncomeLimit > 0 && remainingTradForConversion > 0) {
       const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
-      const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages;
+      const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages + totalPensionIncome;
       const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
         ordinaryIncomePreConversion + capitalGains,
