@@ -18,6 +18,7 @@ interface YearProjection {
   taxableBalance: number;
   ssIncome: number;
   employmentIncome?: number;
+  pensionIncome?: number;
   netWages?: number;
   excessSavings?: number;
   payrollTax?: number;
