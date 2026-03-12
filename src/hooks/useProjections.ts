@@ -486,6 +486,17 @@ export function calculateProjections(
     
     const totalWages = spouse1Wages + spouse2Wages;
     
+    // Calculate pension income (taxable ordinary income)
+    const spouse1Pension = taxSettings.spouse1Employment.pension;
+    const spouse2Pension = taxSettings.spouse2Employment.pension;
+    const spouse1PensionIncome = (spouse1Alive && spouse1Pension && spouse1Pension.monthlyAmount > 0 && spouse1CurrentAge >= spouse1Pension.startAge)
+      ? spouse1Pension.monthlyAmount * 12 * Math.pow(1 + (spouse1Pension.cola || 0) / 100, spouse1CurrentAge - spouse1Pension.startAge)
+      : 0;
+    const spouse2PensionIncome = (spouse2Alive && isMarried && spouse2Pension && spouse2Pension.monthlyAmount > 0 && spouse2CurrentAge >= spouse2Pension.startAge)
+      ? spouse2Pension.monthlyAmount * 12 * Math.pow(1 + (spouse2Pension.cola || 0) / 100, spouse2CurrentAge - spouse2Pension.startAge)
+      : 0;
+    const totalPensionIncome = spouse1PensionIncome + spouse2PensionIncome;
+
     // Calculate combined 401(k) contributions with shared limit per spouse
     const inflRate = taxSettings.inflationRate / 100;
     
