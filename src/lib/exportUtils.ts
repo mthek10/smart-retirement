@@ -104,31 +104,46 @@ export function parseSetupCSV(csvContent: string): {
  * Column mappings for projection export with human-readable headers.
  */
 const PROJECTION_COLUMNS: { key: keyof ProjectionRow; header: string }[] = [
+  // Always visible
   { key: "year", header: "Year" },
   { key: "age", header: "Age" },
-  { key: "traditionalBalance", header: "Traditional Balance" },
-  { key: "rothBalance", header: "Roth Balance" },
-  { key: "taxableBalance", header: "Brokerage Balance" },
-  { key: "ssIncome", header: "Social Security Income" },
-  { key: "employmentIncome", header: "Employment Income" },
+  // Balances group
+  { key: "traditionalBalance", header: "Traditional" },
+  { key: "rothBalance", header: "Roth" },
+  { key: "taxableBalance", header: "Brokerage" },
   { key: "withdrawals", header: "Withdrawals" },
+  // Income group
+  { key: "ssIncome", header: "SS Income" },
+  { key: "employmentIncome", header: "Wages" },
+  { key: "pensionIncome", header: "Pension" },
+  { key: "excessSavings", header: "Excess Saved" },
   { key: "rmd", header: "RMD" },
-  { key: "rothConversion", header: "Roth Conversion" },
-  { key: "marginalBracket", header: "Marginal Tax Bracket" },
+  { key: "rothConversion", header: "Conversion" },
+  { key: "marginalBracket", header: "Tax Bracket" },
+  // Taxes group
   { key: "payrollTax", header: "Payroll Tax" },
-  { key: "federalTax", header: "Federal Tax" },
-  { key: "federalCapitalGainsTax", header: "Federal Capital Gains Tax" },
+  { key: "federalTax", header: "Fed Tax" },
+  { key: "federalCapitalGainsTax", header: "Fed CG Tax" },
   { key: "stateTax", header: "State Tax" },
-  { key: "stateCapitalGainsTax", header: "State Capital Gains Tax" },
+  { key: "stateCapitalGainsTax", header: "State CG Tax" },
   { key: "niit", header: "NIIT" },
   { key: "amt", header: "AMT" },
+  // Healthcare group
   { key: "irmaa", header: "IRMAA" },
-  { key: "medicarePremiums", header: "Medicare Premiums" },
+  { key: "medicarePremiums", header: "Medicare B & D" },
   { key: "acaSubsidy", header: "ACA Subsidy" },
   { key: "healthcareCost", header: "Healthcare Cost" },
+  // Summary
   { key: "totalTaxes", header: "Total Taxes" },
   { key: "takeHome", header: "Take Home" },
-  { key: "excessSavings", header: "Excess Savings" },
+  // Additional data fields
+  { key: "netWages", header: "Net Wages" },
+  { key: "contributions401k", header: "401k Contributions" },
+  { key: "employerMatch", header: "Employer Match" },
+  { key: "acaPremium", header: "ACA Premium" },
+  { key: "totalIncome", header: "Total Income" },
+  { key: "ordinaryIncome", header: "Ordinary Income" },
+  { key: "conversionExcessReinvested", header: "Conversion Excess Reinvested" },
   { key: "isSurvivorYear", header: "Survivor Year" },
 ];
 
