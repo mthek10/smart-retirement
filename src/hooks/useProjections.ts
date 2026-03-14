@@ -584,9 +584,12 @@ export function calculateProjections(
     
     const survivorSpendingPercent = taxSettings.survivorSettings?.survivorSpendingPercent || 75;
     const baseTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
-    const effectiveTargetTakeHome = (spouse1Alive && spouse2Alive) 
-      ? baseTargetTakeHome 
-      : baseTargetTakeHome * (survivorSpendingPercent / 100);
+    // Only apply survivor spending reduction when a married couple loses a spouse
+    // Single filers should always use the full target
+    const isSurvivorReduction = survivorEnabled && !(spouse1Alive && spouse2Alive);
+    const effectiveTargetTakeHome = isSurvivorReduction
+      ? baseTargetTakeHome * (survivorSpendingPercent / 100)
+      : baseTargetTakeHome;
     
     const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages - totalPensionIncome);
     
