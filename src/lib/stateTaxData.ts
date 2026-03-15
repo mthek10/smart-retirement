@@ -12,6 +12,8 @@ export interface StateTaxData {
   flatRate?: number;
   brackets?: StateTaxBracket[];
   capitalGainsAsOrdinary: boolean;
+  capitalGainsRate?: number;
+  capitalGainsExemption?: number;
 }
 
 // Comprehensive state tax data for 2025
@@ -135,7 +137,8 @@ export const stateTaxData: Record<string, StateTaxData> = {
     { min: 0, max: 3000, rate: 0.02 }, { min: 3000, max: 5000, rate: 0.03 },
     { min: 5000, max: 17000, rate: 0.05 }, { min: 17000, max: Infinity, rate: 0.0575 }
   ], capitalGainsAsOrdinary: true },
-  WA: { hasIncomeTax: false, taxType: 'none', capitalGainsAsOrdinary: false },
+  // Washington has no broad wage income tax, but large capital gains can trigger the state excise tax.
+  WA: { hasIncomeTax: false, taxType: 'none', capitalGainsAsOrdinary: false, capitalGainsRate: 0.07, capitalGainsExemption: 250000 },
   WV: { hasIncomeTax: true, taxType: 'flat', flatRate: 0.0465, capitalGainsAsOrdinary: true },
   WI: { hasIncomeTax: true, taxType: 'progressive', brackets: [
     { min: 0, max: 13810, rate: 0.0354 }, { min: 13810, max: 27630, rate: 0.0465 },

@@ -133,6 +133,8 @@ export interface ProjectionRow {
   rmd: number;
   totalIncome: number;
   ordinaryIncome: number; // Gross ordinary income for tax bracket calculations (includes taxable SS)
+  nonSocialSecurityOrdinaryIncome: number;
+  capitalGainsIncome: number;
   rothConversion: number;
   marginalBracket: number;
   conversionExcessReinvested: number;
@@ -314,7 +316,10 @@ function solveRequiredWithdrawal(
       stateCapitalGainsTax = capitalGainsRealized * (stateRate / 100);
     } else if (state && state !== 'none') {
       const agi = totalOrdinaryIncome + capitalGainsRealized;
-      const stateSSTax = calculateStateSocialSecurityTax(ssAnnual, agi, effectiveFilingStatus, state, spouse1Age);
+      const olderLivingSpouseAge = spouse1Alive && spouse2Alive
+        ? Math.max(spouse1Age, spouse2Age)
+        : (spouse1Alive ? spouse1Age : spouse2Age);
+      const stateSSTax = calculateStateSocialSecurityTax(ssAnnual, agi, effectiveFilingStatus, state, olderLivingSpouseAge);
       const nonSSIncome = ordinaryIncome;
       const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, state, effectiveFilingStatus);
       stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGainsRealized, nonSSIncome, state, effectiveFilingStatus);
@@ -1027,6 +1032,8 @@ export function calculateProjections(
       rmd,
       totalIncome: ssAnnual + totalWithdrawals + netWages + totalPensionIncome,
       ordinaryIncome: totalOrdinaryIncome, // Gross ordinary income used for tax bracket calculations
+      nonSocialSecurityOrdinaryIncome: ordinaryIncome,
+      capitalGainsIncome: capitalGains,
       rothConversion,
       marginalBracket,
       conversionExcessReinvested,

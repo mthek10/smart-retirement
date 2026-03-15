@@ -12,7 +12,13 @@ import {
   MapPin
 } from "lucide-react";
 import { getBracketRoom } from "@/lib/incomeAlerts";
-import { calculateCapitalGainsHarvestingRoom, calculateStateCapitalGainsTax, standardDeductions2024 } from "@/lib/taxCalculations";
+import {
+  calculateCapitalGainsHarvestingRoom,
+  calculateStateCapitalGainsTax,
+  calculateStateIncomeTax,
+  calculateStateSocialSecurityTax,
+  standardDeductions2024,
+} from "@/lib/taxCalculations";
 import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
 import type { ProjectionRow } from "@/hooks/useProjections";
@@ -29,6 +35,7 @@ interface ActionItemsProps {
   taxableUnrealizedGains?: number;
   taxableCostBasisPercent?: number;
   stateCode?: string;
+  stateRate?: number;
   stateRelocation?: {
     enabled: boolean;
     targetState: string;
@@ -72,6 +79,59 @@ const getCategoryIcon = (category: ActionItem['category']) => {
   }
 };
 
+const fullyTaxFreeStates = ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WY'];
+
+function estimateStateCapitalGainsRate(
+  state: string | undefined | null,
+  filingStatus: string,
+  ordinaryIncome: number,
+  sampleGain: number,
+  customStateRate: number = 0
+) {
+  if (!state || state === 'none' || sampleGain <= 0) return 0;
+  if (state === 'other') return Math.max(0, customStateRate) / 100;
+  return calculateStateCapitalGainsTax(sampleGain, ordinaryIncome, state, filingStatus) / sampleGain;
+}
+
+function estimateStateTaxesForProjection(
+  projection: ProjectionRow,
+  state: string | undefined,
+  filingStatus: string,
+  customStateRate: number,
+  spouse1StartAge: number,
+  spouse2StartAge: number
+) {
+  if (!state || state === 'none') {
+    return { stateTax: 0, stateCapitalGainsTax: 0, total: 0 };
+  }
+
+  if (state === 'other') {
+    const flatRate = Math.max(0, customStateRate) / 100;
+    const stateTax = projection.ordinaryIncome * flatRate;
+    const stateCapitalGainsTax = projection.capitalGainsIncome * flatRate;
+    return { stateTax, stateCapitalGainsTax, total: stateTax + stateCapitalGainsTax };
+  }
+
+  const spouse2ProjectedAge = spouse2StartAge + (projection.age - spouse1StartAge);
+  const olderLivingSpouseAge = Math.max(projection.age, spouse2ProjectedAge);
+  const agi = projection.ordinaryIncome + projection.capitalGainsIncome;
+  const stateTax = calculateStateSocialSecurityTax(
+    projection.ssIncome,
+    agi,
+    filingStatus,
+    state,
+    olderLivingSpouseAge
+  ) + calculateStateIncomeTax(projection.nonSocialSecurityOrdinaryIncome, state, filingStatus);
+  const stateCapitalGainsTax = calculateStateCapitalGainsTax(
+    projection.capitalGainsIncome,
+    projection.nonSocialSecurityOrdinaryIncome,
+    state,
+    filingStatus
+  );
+
+  return { stateTax, stateCapitalGainsTax, total: stateTax + stateCapitalGainsTax };
+}
+
 export function ActionItems({
   projections,
   filingStatus,
@@ -85,6 +145,7 @@ export function ActionItems({
   taxableUnrealizedGains,
   taxableCostBasisPercent,
   stateCode,
+  stateRate = 0,
   stateRelocation,
   onNavigateToSetup,
 }: ActionItemsProps) {
@@ -94,17 +155,25 @@ export function ActionItems({
   const actionItems: ActionItem[] = [];
 
   // Pre-compute relocation flags (needed to suppress redundant Roth cards)
-  const zeroTaxStates = ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'];
-  const highTaxStates: Record<string, string> = {
-    CA: 'California (up to 13.3%)', NY: 'New York (up to 10.9%)', NJ: 'New Jersey (up to 10.75%)',
-    OR: 'Oregon (up to 9.9%)', MN: 'Minnesota (up to 9.85%)', DC: 'D.C. (up to 10.75%)',
-    HI: 'Hawaii (up to 11%)', CT: 'Connecticut (up to 6.99%)', VT: 'Vermont (up to 8.75%)',
-  };
   const hasRelocation = stateRelocation?.enabled && stateRelocation.targetState;
-  const targetIsHighTax = hasRelocation ? highTaxStates[stateRelocation.targetState] : null;
-  const currentIsLowerTax = !stateCode || stateCode === 'none' || stateCode === 'other' ||
-    zeroTaxStates.includes(stateCode) || !highTaxStates[stateCode];
-  const movingToHighTax = hasRelocation && targetIsHighTax && currentIsLowerTax;
+  const sampleGainAmount = Math.max(50000, currentYear.capitalGainsIncome || 0, taxableUnrealizedGains || 0);
+  const currentStateRateEstimate = estimateStateCapitalGainsRate(
+    stateCode,
+    filingStatus,
+    currentYear.nonSocialSecurityOrdinaryIncome,
+    sampleGainAmount,
+    stateRate
+  );
+  const targetStateRateEstimate = hasRelocation
+    ? estimateStateCapitalGainsRate(
+        stateRelocation.targetState,
+        filingStatus,
+        currentYear.nonSocialSecurityOrdinaryIncome,
+        sampleGainAmount,
+        stateRate
+      )
+    : 0;
+  const movingToHigherTaxState = Boolean(hasRelocation && targetStateRateEstimate > currentStateRateEstimate + 0.002);
 
   // 1. Roth Conversion Opportunity — year-by-year schedule
   const rothSchedule: { age: number; year: number; room: number; tax: number; bracket: number }[] = [];
@@ -128,7 +197,7 @@ export function ActionItems({
   }
 
   // Skip standalone Roth cards when pre-relocation combined strategy will include Roth
-  const willShowCombinedRelocation = movingToHighTax;
+  const willShowCombinedRelocation = movingToHigherTaxState;
 
   if (rothSchedule.length > 0 && rothConversionStrategy === 'none' && !willShowCombinedRelocation) {
     const scheduleLines = rothSchedule.slice(0, 5).map(
@@ -234,7 +303,7 @@ export function ActionItems({
     // Determine effective state CG rate per year (accounts for relocation)
     const stateCGSchedule: { age: number; year: number; stateCode: string; effectiveRate: number; recommendedGains: number; stateTaxSaved: number }[] = [];
     let gainsRemaining = taxableUnrealizedGains;
-    const testGainAmount = 100000; // Use $100k to estimate marginal rate
+    const testGainAmount = Math.max(100000, Math.min(taxableUnrealizedGains || 0, 300000));
 
     for (let i = 0; i < Math.min(15, projections.length); i++) {
       if (gainsRemaining < 1000) break;
@@ -244,11 +313,13 @@ export function ActionItems({
       // Determine which state applies this year
       const yearState = (hasRelocationForCG && p.age >= stateRelocation.relocationAge)
         ? stateRelocation.targetState
-        : (currentStateCode === 'other' ? null : currentStateCode);
+        : currentStateCode;
 
       if (!yearState) continue;
 
-      const stateCGTax = calculateStateCapitalGainsTax(testGainAmount, p.ordinaryIncome, yearState, filingStatus);
+      const stateCGTax = yearState === 'other'
+        ? testGainAmount * (stateRate / 100)
+        : calculateStateCapitalGainsTax(testGainAmount, p.nonSocialSecurityOrdinaryIncome, yearState, filingStatus);
       const effectiveRate = stateCGTax / testGainAmount;
 
       // Also calculate the 0% federal CG room for this year
@@ -266,7 +337,9 @@ export function ActionItems({
       );
 
       if (recommendedGains > 1000) {
-        const actualStateTax = calculateStateCapitalGainsTax(recommendedGains, p.ordinaryIncome, yearState, filingStatus);
+        const actualStateTax = yearState === 'other'
+          ? recommendedGains * (stateRate / 100)
+          : calculateStateCapitalGainsTax(recommendedGains, p.nonSocialSecurityOrdinaryIncome, yearState, filingStatus);
         stateCGSchedule.push({
           age: p.age,
           year: p.year,
@@ -414,18 +487,24 @@ export function ActionItems({
   }
 
   // 6. State Tax & Relocation Planning (combined)
-  const isInTaxableState = stateCode && stateCode !== 'none' && !zeroTaxStates.includes(stateCode);
+  const isInTaxableState = Boolean(stateCode && stateCode !== 'none' && !fullyTaxFreeStates.includes(stateCode));
   const lifetimeStateTax = isInTaxableState
     ? projections.reduce((sum, p) => sum + p.stateTax + p.stateCapitalGainsTax, 0)
     : 0;
-  const movingToZeroTax = hasRelocation && zeroTaxStates.includes(stateRelocation.targetState);
+  const estimatedNoMoveStateTax = isInTaxableState
+    ? projections.reduce(
+        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age).total,
+        0
+      )
+    : 0;
+  const movingToZeroTax = Boolean(hasRelocation && fullyTaxFreeStates.includes(stateRelocation.targetState));
 
 
-  if (movingToHighTax) {
+  if (movingToHigherTaxState) {
     const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
     const stateName = stateCode === 'other' ? 'your current state' : (stateCode || 'your current state');
     const targetSt = stateRelocation.targetState;
-    const currentSt = currentStateCode && currentStateCode !== 'other' ? currentStateCode : null;
+    const currentSt = currentStateCode;
 
     // Derive totals from brokerage balance + cost basis
     const brokerageBalance = projections[0]?.taxableBalance || 0;
@@ -433,12 +512,8 @@ export function ActionItems({
     const totalCostBasis = brokerageBalance * costBasisPct;
 
     // State rate comparison
-    const sampleGain = 50000;
-    const sampleOrdinaryIncome = projections[0]?.ordinaryIncome || 0;
-    const currentStateRate = currentSt
-      ? calculateStateCapitalGainsTax(sampleGain, sampleOrdinaryIncome, currentSt, filingStatus) / sampleGain
-      : 0;
-    const targetStateRate = calculateStateCapitalGainsTax(sampleGain, sampleOrdinaryIncome, targetSt, filingStatus) / sampleGain;
+    const currentStateRate = currentStateRateEstimate;
+    const targetStateRate = targetStateRateEstimate;
     const rateDifference = targetStateRate - currentStateRate;
 
     // Build combined year-by-year schedule: Roth + CG together
@@ -502,9 +577,13 @@ export function ActionItems({
 
         if (gainsRealized > 500) {
           saleAmount = gainPct > 0 ? gainsRealized / gainPct : gainsRealized;
-          cgCurrentTax = currentSt ? calculateStateCapitalGainsTax(gainsRealized, ordinaryWithRoth, currentSt, filingStatus) : 0;
+          cgCurrentTax = currentSt === 'other'
+            ? gainsRealized * (stateRate / 100)
+            : currentSt
+              ? calculateStateCapitalGainsTax(gainsRealized, ordinaryWithRoth, currentSt, filingStatus)
+              : 0;
           cgTargetTax = calculateStateCapitalGainsTax(gainsRealized, ordinaryWithRoth, targetSt, filingStatus);
-          cgSavings = cgTargetTax - cgCurrentTax;
+          cgSavings = Math.max(0, cgTargetTax - cgCurrentTax);
           federalCGRate = gainsRealized <= federalFreeRoom ? '0%' : '15%';
           gainsLeft -= gainsRealized;
           totalPreMoveSavings += cgSavings;
@@ -649,7 +728,7 @@ export function ActionItems({
 
     const totalSavingsDesc = hasSchedule
       ? `Combined pre-move strategy: ${hasRoth ? `convert ${formatCurrency(totalRothInPlan)} Roth` : ''}${hasRoth && hasCG ? ' + ' : ''}${hasCG ? `realize ${formatCurrency(totalGainsInPlan)} in gains (save ${formatCurrency(totalPreMoveSavings)} in state CG tax)` : ''} before relocating.`
-      : `You're planning to move from ${stateName} to ${targetIsHighTax}. Accelerate both Roth conversions and capital gains realization before the move.`;
+      : `You're planning to move from ${stateName} to ${targetSt}. Accelerate both Roth conversions and capital gains realization before the move.`;
 
     actionItems.push({
       id: 'state-relocation-combined',
@@ -668,15 +747,25 @@ export function ActionItems({
     const preMoveTax = projections
       .filter(p => p.age < stateRelocation.relocationAge)
       .reduce((sum, p) => sum + p.stateTax + p.stateCapitalGainsTax, 0);
-    const postMoveSavings = lifetimeStateTax - preMoveTax;
+    const postMoveStateTaxWithoutRelocation = projections
+      .filter(p => p.age >= stateRelocation.relocationAge)
+      .reduce(
+        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age).total,
+        0
+      );
+    const postMoveActualTax = projections
+      .filter(p => p.age >= stateRelocation.relocationAge)
+      .reduce((sum, p) => sum + p.stateTax + p.stateCapitalGainsTax, 0);
+    const postMoveSavings = Math.max(0, postMoveStateTaxWithoutRelocation - postMoveActualTax);
+    const lifetimeSavings = Math.max(0, estimatedNoMoveStateTax - lifetimeStateTax);
 
     actionItems.push({
       id: 'state-relocation-combined',
-      priority: postMoveSavings > 100000 ? 'high' : postMoveSavings > 25000 ? 'medium' : 'low',
+      priority: lifetimeSavings > 100000 ? 'high' : lifetimeSavings > 25000 ? 'medium' : 'low',
       category: 'state-tax',
       title: `State Relocation: Moving to ${stateRelocation.targetState} in ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'}`,
-      description: `Moving from ${stateName} to ${stateRelocation.targetState} (zero income tax) at age ${stateRelocation.relocationAge} will save an estimated ${formatCurrency(postMoveSavings)} in state taxes over your retirement.`,
-      impact: `Total projected lifetime state taxes: ${formatCurrency(lifetimeStateTax)} (${formatCurrency(preMoveTax)} before move, ${formatCurrency(postMoveSavings)} saved after)`,
+      description: `Moving from ${stateName} to ${stateRelocation.targetState} at age ${stateRelocation.relocationAge} is estimated to save ${formatCurrency(lifetimeSavings)} in lifetime state taxes versus staying put.`,
+      impact: `Projected state taxes: ${formatCurrency(lifetimeStateTax)} with relocation vs ${formatCurrency(estimatedNoMoveStateTax)} without relocation (${formatCurrency(preMoveTax)} before move, ${formatCurrency(postMoveSavings)} saved after)`,
       icon: <MapPin className="h-5 w-5 text-success" />,
     });
   } else if (isInTaxableState && lifetimeStateTax > 5000 && !hasRelocation) {
@@ -687,7 +776,7 @@ export function ActionItems({
       priority: lifetimeStateTax > 100000 ? 'high' : lifetimeStateTax > 25000 ? 'medium' : 'low',
       category: 'state-tax',
       title: 'State Tax Relocation Savings',
-      description: `Moving to a zero income-tax state (e.g., FL, TX, NV, WY, NH) could eliminate ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
+      description: `Moving to a tax-free state (e.g., FL, TX, NV, WY, NH) could eliminate up to ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
       impact: `Average savings of ${formatCurrency(Math.round(lifetimeStateTax / projections.length))}/year in state income and capital gains taxes`,
       icon: <MapPin className="h-5 w-5 text-primary" />,
     });
@@ -702,8 +791,8 @@ export function ActionItems({
       id: 'zero-tax-state-comparison',
       priority: 'low',
       category: 'state-tax',
-      title: 'Zero Income-Tax State Comparison',
-      description: `If you moved to a zero income-tax state (FL, TX, NV, WY, etc.) instead, you could eliminate up to ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
+      title: 'Tax-Free State Comparison',
+      description: `If you moved to a tax-free state (FL, TX, NV, WY, etc.) instead, you could eliminate up to ${formatCurrency(lifetimeStateTax)} in projected lifetime state taxes from ${stateName}.`,
       impact: `Potential savings of ~${formatCurrency(avgAnnualStateTax)}/year in state income and capital gains taxes`,
       icon: <MapPin className="h-5 w-5 text-primary" />,
     });

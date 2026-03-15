@@ -1,0 +1,384 @@
+{
+  "_description": "Smart Retirement Setup Inputs — All fields a user configures in the Setup wizard. Feed this JSON to another model to run retirement projections, tax optimization, or financial planning analysis.",
+
+  "accounts": {
+    "_description": "Investment account balances and expected annual return rates. These are the starting portfolio values used to project growth, withdrawals, and tax implications over the retirement horizon.",
+
+    "spouse1Traditional": {
+      "value": 2500000,
+      "type": "number",
+      "unit": "USD",
+      "min": 0,
+      "description": "Current balance of Spouse 1's Traditional IRA and/or Traditional 401(k) accounts combined. These are pre-tax (tax-deferred) accounts — contributions were made with pre-tax dollars, so the entire balance is taxed as ordinary income upon withdrawal. Subject to Required Minimum Distributions (RMDs) starting at age 73."
+    },
+    "spouse2Traditional": {
+      "value": 2500000,
+      "type": "number",
+      "unit": "USD",
+      "min": 0,
+      "description": "Current balance of Spouse 2's Traditional IRA and/or Traditional 401(k) accounts combined. Same tax treatment as spouse1Traditional. Only relevant when filingStatus is 'married'. Set to 0 if single."
+    },
+    "roth": {
+      "value": 0,
+      "type": "number",
+      "unit": "USD",
+      "min": 0,
+      "description": "Combined Roth IRA balance for the household. Contributions were made with after-tax dollars, so qualified withdrawals are completely tax-free. Not subject to RMDs (for the original owner). Roth accounts are the last to be drawn down in most optimal withdrawal strategies because of their tax-free growth advantage."
+    },
+    "taxable": {
+      "value": 3000000,
+      "type": "number",
+      "unit": "USD",
+      "min": 0,
+      "description": "Combined taxable brokerage account balance. These are after-tax investment accounts with no special tax shelter. Withdrawals are split between return of cost basis (tax-free) and capital gains (taxed at capital gains rates). Dividends and realized gains are taxed annually. Often drawn first in retirement to allow tax-advantaged accounts to continue growing."
+    },
+    "traditionalReturn": {
+      "value": 3,
+      "type": "number",
+      "unit": "percent",
+      "min": 0,
+      "max": 15,
+      "description": "Expected annual nominal return rate (%) for Traditional IRA/401(k) accounts. This is the pre-inflation growth rate applied each year to the Traditional balance. A conservative 3% might represent a bond-heavy allocation; 6-7% is typical for a balanced portfolio; 8-10% is aggressive/equity-heavy."
+    },
+    "rothReturn": {
+      "value": 3,
+      "type": "number",
+      "unit": "percent",
+      "min": 0,
+      "max": 15,
+      "description": "Expected annual nominal return rate (%) for Roth IRA accounts. Same interpretation as traditionalReturn but applied to Roth balances. Also used as the 'expected return' input for Monte Carlo simulations."
+    },
+    "taxableReturn": {
+      "value": 3,
+      "type": "number",
+      "unit": "percent",
+      "min": 0,
+      "max": 15,
+      "description": "Expected annual nominal return rate (%) for taxable brokerage accounts. Same interpretation as traditionalReturn. Gains in taxable accounts are subject to capital gains taxes, so the effective after-tax return is lower than the nominal rate."
+    },
+    "taxableCostBasisPercent": {
+      "value": 33,
+      "type": "number",
+      "unit": "percent",
+      "min": 0,
+      "max": 100,
+      "description": "Percentage of the current taxable account balance that represents original cost basis (i.e., the amount originally invested, not gains). The remainder (100% minus this value) represents unrealized capital gains. When withdrawing from the taxable account, only the gains portion is taxed at capital gains rates. A lower cost basis percent means more of the account is unrealized gains and therefore more tax will be owed on withdrawals. For example, 33% means $1M in cost basis and $2M in unrealized gains on a $3M account."
+    }
+  },
+
+  "socialSecurity": {
+    "_description": "Social Security benefit estimates and claiming strategy for each spouse. Benefits are based on the estimated monthly amount at Full Retirement Age (FRA). Claiming earlier reduces the monthly benefit permanently; claiming later (up to age 70) increases it via delayed retirement credits.",
+
+    "spouse1": {
+      "estimatedBenefit": {
+        "value": 4000,
+        "type": "number",
+        "unit": "USD/month",
+        "min": 0,
+        "description": "Spouse 1's estimated monthly Social Security benefit at their Full Retirement Age (FRA). This is the amount shown on your SSA.gov statement under 'Your estimated benefit at full retirement age'. The actual benefit received will be adjusted up or down depending on the claimAge relative to FRA. FRA is typically age 67 for people born in 1960 or later."
+      },
+      "claimAge": {
+        "value": 67,
+        "type": "number",
+        "unit": "years",
+        "min": 62,
+        "max": 70,
+        "description": "The age at which Spouse 1 will begin claiming Social Security benefits. Claiming at 62 (earliest allowed) results in a ~30% permanent reduction from the FRA benefit. Claiming at FRA gives the full estimated benefit. Delaying to age 70 (latest meaningful age) gives an ~24% increase over FRA via delayed retirement credits (8% per year from FRA to 70). Each year of delay past FRA adds approximately 8% to the annual benefit."
+      },
+      "lifeExpectancy": {
+        "value": 90,
+        "type": "number",
+        "unit": "years",
+        "min": 75,
+        "max": 100,
+        "description": "Spouse 1's expected lifespan in years. Used in the Social Security breakeven analysis to determine the optimal claiming age — a longer life expectancy favors delayed claiming (since you collect higher payments for more years), while a shorter life expectancy favors early claiming. Also used to determine how many years the retirement projection runs."
+      }
+    },
+    "spouse2": {
+      "estimatedBenefit": {
+        "value": 4000,
+        "type": "number",
+        "unit": "USD/month",
+        "min": 0,
+        "description": "Spouse 2's estimated monthly Social Security benefit at FRA. Same interpretation as spouse1. Only relevant when filingStatus is 'married'."
+      },
+      "claimAge": {
+        "value": 67,
+        "type": "number",
+        "unit": "years",
+        "min": 62,
+        "max": 70,
+        "description": "The age at which Spouse 2 will begin claiming Social Security benefits. Same rules as spouse1.claimAge."
+      },
+      "lifeExpectancy": {
+        "value": 90,
+        "type": "number",
+        "unit": "years",
+        "min": 75,
+        "max": 100,
+        "description": "Spouse 2's expected lifespan. Same interpretation as spouse1.lifeExpectancy."
+      }
+    }
+  },
+
+  "taxSettings": {
+    "_description": "Core tax, income, and strategy settings that drive the entire retirement projection. This includes household demographics, desired income, tax jurisdiction, inflation assumptions, Roth conversion strategy, and optimization goals.",
+
+    "filingStatus": {
+      "value": "married",
+      "type": "string",
+      "enum": ["single", "married", "hoh"],
+      "description": "Federal tax filing status. 'married' = Married Filing Jointly (wider tax brackets, higher standard deduction of ~$30,000+). 'single' = Single filer (narrower brackets, ~$15,000 standard deduction). 'hoh' = Head of Household (brackets between single and married). This fundamentally affects every tax calculation: bracket thresholds, standard deduction, Social Security taxation thresholds, capital gains thresholds, and IRMAA brackets. When a spouse dies in the survivor scenario, filing status changes to 'single' the year after death."
+    },
+    "spouse1Age": {
+      "value": 60,
+      "type": "number",
+      "unit": "years",
+      "min": 50,
+      "max": 99,
+      "description": "Current age of Spouse 1 (or the primary filer if single). This anchors the entire projection timeline — the model projects from the current year forward until both spouses reach age 100 (or the survivor reaches 100). Age determines: when RMDs begin (73), Medicare eligibility (65), Social Security eligibility (62), catch-up 401(k) contribution limits (50+, 60-63), and ACA subsidy eligibility (pre-65)."
+    },
+    "spouse2Age": {
+      "value": 58,
+      "type": "number",
+      "unit": "years",
+      "min": 50,
+      "max": 99,
+      "description": "Current age of Spouse 2. Only relevant when filingStatus is 'married'. Same age-based milestones apply. If spouse2 is younger, the projection timeline extends longer (until spouse2 reaches 100). The age difference between spouses affects the survivor scenario timing and tax strategy."
+    },
+    "targetTakeHome": {
+      "value": 200000,
+      "type": "number",
+      "unit": "USD/year",
+      "min": 1,
+      "description": "Desired annual after-tax (take-home) income in today's dollars for the first year. This is the net spending money the household wants each year after all federal taxes, state taxes, IRMAA surcharges, and ACA premiums are paid. The model works backwards from this number to determine gross withdrawals needed. This amount is adjusted upward each year by the inflationRate to maintain purchasing power. For example, $200,000 at 2.5% inflation becomes $205,000 in year 2, $210,125 in year 3, etc."
+    },
+    "state": {
+      "value": "other",
+      "type": "string",
+      "enum": ["none", "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC", "other"],
+      "description": "State of residence for state income tax calculations. Selecting a specific state uses that state's actual tax rates and rules. 'none' = no state income tax (equivalent to states like FL, TX, WA, NV, etc.). 'other' = use the custom flat rate specified in stateRate. State taxes can significantly impact total tax burden and optimal withdrawal strategy."
+    },
+    "stateRate": {
+      "value": 5,
+      "type": "number",
+      "unit": "percent",
+      "min": 0,
+      "max": 100,
+      "description": "Custom flat state income tax rate applied to taxable income. Only used when state is set to 'other'. This is a simplified flat-rate approximation. For example, 5% means $5,000 in state tax on $100,000 of taxable income. Real state taxes may be progressive (bracketed), but this flat rate is a reasonable approximation for planning."
+    },
+    "inflationRate": {
+      "value": 2.5,
+      "type": "number",
+      "unit": "percent",
+      "enum": [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0],
+      "description": "Annual inflation rate assumption. This rate is used to: (1) increase the targetTakeHome each year to maintain purchasing power, (2) adjust Social Security benefits annually via COLA (Cost of Living Adjustment), (3) inflate federal tax bracket thresholds, standard deductions, and other IRS limits each year. The Federal Reserve targets 2%, historical average is ~3%, and recent years have seen higher. A higher inflation rate means more aggressive spending growth and faster portfolio depletion."
+    },
+    "rothConversionStrategy": {
+      "value": "none",
+      "type": "string",
+      "enum": ["none", "fill_10", "fill_12", "fill_22", "fill_24", "survivor_smooth", "optimize_consistency", "custom"],
+      "description": "Strategy for annual Roth conversions — moving money from Traditional (pre-tax) to Roth (after-tax) accounts. You pay income tax on the converted amount now, but future growth and withdrawals from Roth are tax-free. Strategies: 'none' = no conversions. 'fill_10' through 'fill_24' = convert enough each year to fill up to the top of the 10%/12%/22%/24% federal tax bracket (after accounting for other income like Social Security and employment). 'survivor_smooth' = a two-phase strategy that uses a more aggressive conversion rate pre-widowhood to smooth the tax burden when the survivor switches to single filing status. 'optimize_consistency' = automatically finds the conversion amount that produces the most consistent year-over-year federal tax rate across the entire projection. 'custom' = convert up to a specific taxable income limit specified by rothConversionCustom."
+    },
+    "rothConversionCustom": {
+      "value": 94300,
+      "type": "number",
+      "unit": "USD",
+      "min": 0,
+      "description": "When rothConversionStrategy is 'custom', this is the target taxable income limit. The model will convert enough from Traditional to Roth each year to bring total taxable income up to (but not exceeding) this amount. For example, if other income is $50,000 and this is set to $94,300, up to $44,300 would be converted. The default of $94,300 corresponds to the top of the 2024 22% bracket for single filers."
+    },
+    "preSurvivorStrategy": {
+      "value": "fill_22",
+      "type": "string",
+      "enum": ["none", "fill_10", "fill_12", "fill_22", "fill_24", "custom"],
+      "description": "The Roth conversion strategy to use during the pre-survivor period (while both spouses are alive). Only used when rothConversionStrategy is 'survivor_smooth'. After the first spouse passes, the survivor phase uses a dynamically calculated conversion amount. This allows a two-phase approach: e.g., fill to 22% while married, then switch to a smoothed rate as a single survivor."
+    },
+    "optimizationGoal": {
+      "value": "minimize-taxes",
+      "type": "string",
+      "enum": ["minimize-taxes", "maximize-longevity", "balanced"],
+      "description": "The primary objective for the withdrawal optimization engine. 'minimize-taxes' = prioritize minimizing total lifetime federal + state taxes paid across the entire projection, even if it means slightly earlier portfolio depletion. 'maximize-longevity' = prioritize making the portfolio last as long as possible (latest depletion age), even if total taxes paid are higher. 'balanced' = a middle ground that balances tax efficiency and portfolio longevity."
+    },
+
+    "spouse1Employment": {
+      "_description": "Employment and 401(k) contribution settings for Spouse 1 during their remaining working years (from current age until retirementAge).",
+
+      "currentIncome": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "Spouse 1's current annual gross W-2 employment income (salary/wages). This income is included in the projection for each year until Spouse 1 reaches their retirementAge. It is subject to federal and state income tax, and it reduces the need for portfolio withdrawals during working years. Set to 0 if already retired."
+      },
+      "retirementAge": {
+        "value": 65,
+        "type": "number",
+        "unit": "years",
+        "min": "spouse1Age + 1",
+        "max": 99,
+        "description": "The age at which Spouse 1 will stop working and earning employment income. After this age, no further employment income or 401(k) contributions are modeled. If already retired, set this to the current age."
+      },
+      "contributes401k": {
+        "value": false,
+        "type": "boolean",
+        "description": "Whether Spouse 1 is actively contributing to a 401(k) plan during their working years. If true, the contribution401kAmount, roth401kAmount, and employerMatchAmount fields are used to model contributions that grow the Traditional and Roth balances while reducing taxable income."
+      },
+      "contribution401kAmount": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "Annual Traditional (pre-tax) 401(k) contribution amount. This reduces taxable income in the contribution year and adds to the Traditional account balance. Subject to IRS annual limits: $23,500 base (2025), $31,000 for age 50+ (catch-up), $34,750 for ages 60-63 (SECURE 2.0 super catch-up). Combined Traditional + Roth 401(k) contributions cannot exceed these limits."
+      },
+      "roth401kAmount": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "Annual Roth 401(k) contribution amount. Unlike Traditional contributions, Roth contributions are made with after-tax dollars (no current tax deduction) but grow tax-free. This adds to the Roth account balance. Subject to the same combined annual limit as Traditional 401(k) contributions."
+      },
+      "employerMatchAmount": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "Annual employer 401(k) matching contribution. This is free money from the employer that goes into the Traditional 401(k) balance (employer matches are always pre-tax, even if the employee contributes to Roth 401k). Not subject to the employee contribution limit. Added to the Traditional balance each working year."
+      }
+    },
+
+    "spouse2Employment": {
+      "_description": "Employment and 401(k) contribution settings for Spouse 2. Only relevant when filingStatus is 'married'. Same fields and rules as spouse1Employment.",
+
+      "currentIncome": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "Spouse 2's current annual gross W-2 employment income. Same interpretation as spouse1Employment.currentIncome."
+      },
+      "retirementAge": {
+        "value": 65,
+        "type": "number",
+        "unit": "years",
+        "min": "spouse2Age + 1",
+        "max": 99,
+        "description": "Age at which Spouse 2 stops working. Same interpretation as spouse1Employment.retirementAge."
+      },
+      "contributes401k": {
+        "value": false,
+        "type": "boolean",
+        "description": "Whether Spouse 2 is contributing to a 401(k). Same interpretation as spouse1Employment.contributes401k."
+      },
+      "contribution401kAmount": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "Spouse 2's annual Traditional 401(k) contribution. Same rules and limits as spouse1Employment.contribution401kAmount."
+      },
+      "roth401kAmount": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "Spouse 2's annual Roth 401(k) contribution. Same rules as spouse1Employment.roth401kAmount."
+      },
+      "employerMatchAmount": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "Spouse 2's annual employer match. Same interpretation as spouse1Employment.employerMatchAmount."
+      }
+    },
+
+    "acaSettings": {
+      "_description": "Affordable Care Act (ACA / Obamacare) health insurance settings. Relevant for pre-Medicare years (before age 65). ACA premium tax credits are based on income relative to the Federal Poverty Level (FPL), so Roth conversions and withdrawal strategy can significantly affect healthcare costs.",
+
+      "enabled": {
+        "value": true,
+        "type": "boolean",
+        "description": "Whether to include ACA health insurance premium calculations and subsidy estimates in the projection. When enabled, the model estimates ACA marketplace premiums and premium tax credits for years when household members are under age 65 (before Medicare eligibility). The ACA subsidy is income-sensitive, so it creates an interaction with Roth conversion strategy — too much converted income can reduce or eliminate the subsidy."
+      },
+      "householdSize": {
+        "value": 2,
+        "type": "number",
+        "unit": "people",
+        "min": 1,
+        "max": 8,
+        "description": "Total number of people in the household for ACA Federal Poverty Level (FPL) calculation. Includes the filer(s) and any dependents. A larger household size raises the FPL threshold, which can increase the ACA premium tax credit. For a married couple with no dependents, this is typically 2."
+      },
+      "customBenchmarkPremium": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/month",
+        "min": 0,
+        "description": "Custom monthly benchmark (second-lowest-cost Silver plan) premium to use instead of national age-based averages. Set to 0 to use the model's built-in national average premiums (which vary by age). If you know your local marketplace benchmark premium, enter it here for more accurate subsidy calculations. The premium tax credit is calculated as: benchmark premium minus expected household contribution (based on income as % of FPL)."
+      }
+    },
+
+    "survivorSettings": {
+      "_description": "Models what happens when one spouse passes away. This is critical for married couples because the surviving spouse switches from Married Filing Jointly to Single filing status, which has narrower (less favorable) tax brackets, lower standard deduction, and can cause a significant tax increase known as the 'widow's tax penalty'. The survivor also inherits the deceased spouse's Traditional IRA (adding to RMD burden).",
+
+      "enabled": {
+        "value": false,
+        "type": "boolean",
+        "description": "Whether to enable survivor scenario modeling. When enabled, the projection will model the death of one or both spouses at the specified ages, including the transition from married to single filing status, inheritance of accounts, adjusted spending (via survivorSpendingPercent), and the resulting tax impact. Highly recommended for married couples to understand the widow's tax penalty."
+      },
+      "spouse1DeathAge": {
+        "value": null,
+        "type": "number | null",
+        "unit": "years",
+        "min": "spouse1Age + 1",
+        "max": 100,
+        "description": "The age at which Spouse 1 is assumed to pass away. Set to null to assume Spouse 1 lives to 100 (end of projection). When Spouse 1 dies: their Social Security stops (but the survivor may receive a survivor benefit if it's higher than their own), their Traditional IRA is inherited by Spouse 2, and filing status changes to Single the following year."
+      },
+      "spouse2DeathAge": {
+        "value": null,
+        "type": "number | null",
+        "unit": "years",
+        "min": "spouse2Age + 1",
+        "max": 100,
+        "description": "The age at which Spouse 2 is assumed to pass away. Same rules as spouse1DeathAge but for Spouse 2. If both death ages are set, the model handles the sequence correctly — the first death triggers survivor mode, the second death ends the projection."
+      },
+      "survivorSpendingPercent": {
+        "value": 75,
+        "type": "number",
+        "unit": "percent",
+        "min": 50,
+        "max": 100,
+        "description": "The percentage of the couple's targetTakeHome that the surviving spouse needs after the other passes. A common rule of thumb is 70-80% — one person's expenses are less than two, but not half (housing costs remain, for example). At 75%, a $200,000 target becomes $150,000 for the survivor. This adjustment takes effect the year after the first spouse dies."
+      }
+    },
+
+    "stateRelocation": {
+      "_description": "Models a planned move to a different state at a future age. Useful for couples planning to relocate from a high-tax state to a no/low-tax state in retirement (e.g., California to Florida).",
+
+      "enabled": {
+        "value": false,
+        "type": "boolean",
+        "description": "Whether to model a state relocation. This is an annual model: when enabled, the projection uses the current state's tax rules until the first projection year in which Spouse 1 is at or above relocationAge, then switches to the targetState for all later years."
+      },
+      "targetState": {
+        "value": "FL",
+        "type": "string",
+        "description": "The state to relocate to. Uses the same state codes as the main 'state' field. The default of 'FL' (Florida) is a common choice since Florida has no state income tax."
+      },
+      "relocationAge": {
+        "value": 65,
+        "type": "number",
+        "unit": "years",
+        "min": 1,
+        "max": 100,
+        "description": "The age (of Spouse 1) at which the relocation occurs. In this annual model, the state tax rules switch from the current state to the targetState starting with the first projection year in which Spouse 1 reaches this age."
+      }
+    }
+  },
+
+  "_usage_notes": {
+    "projection_mechanics": "The model projects year-by-year from the current year until both spouses reach age 100. Each year it: (1) applies investment returns to all account balances, (2) adds employment income and 401(k) contributions if still working, (3) calculates RMDs from Traditional accounts for ages 73+, (4) adds Social Security income if at or past claimAge, (5) determines additional withdrawals needed to meet the inflation-adjusted targetTakeHome, (6) applies the Roth conversion strategy, (7) calculates federal + state taxes on all income, (8) deducts taxes and spending from accounts in an optimized order (typically: taxable first, then Traditional, then Roth).",
+    "tax_model": "Uses 2024 federal tax brackets (inflation-adjusted each year), including: ordinary income brackets, long-term capital gains brackets, Social Security taxation (up to 85% taxable), Net Investment Income Tax (NIIT at 3.8%), IRMAA Medicare surcharges, and the standard deduction (no itemized deductions modeled).",
+    "currency": "All monetary values are in nominal US dollars (not inflation-adjusted) unless otherwise noted. The targetTakeHome is in today's dollars and automatically inflated.",
+    "conditional_fields": "When filingStatus is 'single': spouse2Traditional, spouse2Employment, spouse2 Social Security, and survivorSettings are not applicable. When survivorSettings.enabled is false, death ages and survivorSpendingPercent are ignored. When stateRelocation.enabled is false, targetState and relocationAge are ignored. When acaSettings.enabled is false, ACA calculations are skipped."
+  }
+}

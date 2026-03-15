@@ -483,14 +483,19 @@ export function calculateStateIncomeTax(
   }
   
   if (stateData.taxType === 'progressive' && stateData.brackets) {
+    // Most bracket tables in `stateTaxData` are stored as single-filer thresholds.
+    // Scale them so joint/survivor scenarios do not reuse single brackets unchanged.
+    const bracketMultiplier = filingStatus === 'married' ? 2 : filingStatus === 'hoh' ? 1.5 : 1;
     let tax = 0;
     
     for (const bracket of stateData.brackets) {
-      if (income > bracket.min) {
-        const taxableInBracket = Math.min(income, bracket.max) - bracket.min;
+      const adjustedMin = bracket.min * bracketMultiplier;
+      const adjustedMax = Number.isFinite(bracket.max) ? bracket.max * bracketMultiplier : Infinity;
+      if (income > adjustedMin) {
+        const taxableInBracket = Math.min(income, adjustedMax) - adjustedMin;
         tax += taxableInBracket * bracket.rate;
       }
-      if (income <= bracket.max) break;
+      if (income <= adjustedMax) break;
     }
     
     return tax;
@@ -509,7 +514,7 @@ export function calculateStateCapitalGainsTax(
   if (state === 'none' || state === 'other' || !state) return 0;
   
   const stateData = stateTaxData[state];
-  if (!stateData || !stateData.hasIncomeTax) return 0;
+  if (!stateData) return 0;
   
   // Most states tax capital gains as ordinary income
   if (stateData.capitalGainsAsOrdinary) {
@@ -518,6 +523,11 @@ export function calculateStateCapitalGainsTax(
     const taxOnTotal = calculateStateIncomeTax(totalIncome, state, filingStatus);
     const taxOnOrdinary = calculateStateIncomeTax(ordinaryIncome, state, filingStatus);
     return taxOnTotal - taxOnOrdinary;
+  }
+
+  if (stateData.capitalGainsRate) {
+    const exemption = stateData.capitalGainsExemption || 0;
+    return Math.max(0, capitalGains - exemption) * stateData.capitalGainsRate;
   }
   
   return 0;

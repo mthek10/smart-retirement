@@ -219,7 +219,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
               <SelectItem value="UT">Utah</SelectItem>
               <SelectItem value="VT">Vermont</SelectItem>
               <SelectItem value="VA">Virginia</SelectItem>
-              <SelectItem value="WA">Washington</SelectItem>
+              <SelectItem value="WA">Washington (CG Excise)</SelectItem>
               <SelectItem value="WV">West Virginia</SelectItem>
               <SelectItem value="WI">Wisconsin</SelectItem>
               <SelectItem value="WY">Wyoming</SelectItem>
@@ -234,7 +234,9 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
             const data = stateTaxData[state];
             if (!data) return <p className="text-xs text-muted-foreground">Select a state to see tax rate details.</p>;
             if (!data.hasIncomeTax) {
-              return <p className="text-xs text-green-600 font-medium">No state income tax — 0% rate.</p>;
+              return data.capitalGainsRate
+                ? <p className="text-xs text-muted-foreground">No broad state income tax, but large capital gains may still be taxed.</p>
+                : <p className="text-xs text-green-600 font-medium">No state income tax — 0% rate.</p>;
             }
             if (data.taxType === 'flat') {
               return <p className="text-xs text-muted-foreground">Flat tax rate: <span className="font-medium">{((data.flatRate || 0) * 100).toFixed(2)}%</span> on all taxable income.</p>;
@@ -272,7 +274,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
               <Label htmlFor="stateRelocationEnabled" className="text-sm font-medium">
                 Plan State Relocation
               </Label>
-              <InfoTooltip text="Model moving to a lower-tax state at a specific age. This can significantly reduce your lifetime tax burden in retirement." />
+              <InfoTooltip text="Model moving to a different state at a specific age. This is an annual model: the target state's tax rules apply starting with the first projection year in which Spouse 1 is at or above the relocation age." />
             </div>
             <input
               type="checkbox"
@@ -348,12 +350,12 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                     <SelectItem value="TN">Tennessee (No Income Tax)</SelectItem>
                     <SelectItem value="TX">Texas (No Income Tax)</SelectItem>
                     <SelectItem value="VT">Vermont (up to 8.75%)</SelectItem>
-                    <SelectItem value="WA">Washington (No Income Tax)</SelectItem>
+                    <SelectItem value="WA">Washington (No Wage Tax; CG Excise)</SelectItem>
                     <SelectItem value="WY">Wyoming (No Income Tax)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Model switching states at a specific age. For high-tax targets, you'll get pre-move advice.
+                  Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
                 </p>
               </div>
             </>
