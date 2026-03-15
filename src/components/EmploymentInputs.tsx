@@ -197,14 +197,11 @@ function PensionInputs({
             <Label htmlFor={`${prefix}PensionStartAge`}>Start Age</Label>
             <InfoTooltip text="The age at which pension payments begin. Payments continue for life." />
           </div>
-          <DebouncedInput
+          <AgeInput
             id={`${prefix}PensionStartAge`}
-            type="number"
-            min="50"
-            max="99"
-            placeholder="65"
-            value={pension.startAge || ''}
-            onChange={(value) => onChange({ ...pension, startAge: Math.min(Math.max(parseInt(value) || 65, 50), 99) })}
+            value={pension.startAge || 65}
+            onChange={(val) => onChange({ ...pension, startAge: val })}
+            minAge={50}
           />
         </div>
         <div className="space-y-2">
