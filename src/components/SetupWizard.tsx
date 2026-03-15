@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { AccountInputs } from "@/components/AccountInputs";
 import { SocialSecurityPlanner } from "@/components/SocialSecurityPlanner";
 import { TaxSettings } from "@/components/TaxSettings";
@@ -6,8 +6,9 @@ import { ACASettings } from "@/components/ACASettings";
 import { EmploymentInputs } from "@/components/EmploymentInputs";
 import { HouseholdInputs } from "@/components/HouseholdInputs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Calculator, Loader2, Download, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calculator, Loader2, Download, Upload, CheckCircle2, HardDrive, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportSetupToCSV, parseSetupCSV, readFileAsText } from "@/lib/exportUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,9 @@ const STEPS = [
   { id: "tax", label: "Tax Settings", description: "Set your desired take-home income and Roth conversion strategy. This drives the entire withdrawal plan." },
   { id: "aca", label: "Healthcare", description: "Configure ACA marketplace settings for pre-Medicare years. Income levels affect subsidy eligibility." },
 ] as const;
+
+export const SETUP_STEP_COUNT = STEPS.length;
+export type SetupSaveStatus = "idle" | "saving" | "saved";
 
 interface SetupWizardProps {
   accounts: {
@@ -41,7 +45,11 @@ interface SetupWizardProps {
   taxSettings: any;
   onTaxSettingsChange: (settings: any) => void;
   onCalculate: () => void;
-  onStepNavigate?: (goToStep: (step: number) => void) => void;
+  currentStep: number;
+  onCurrentStepChange: (step: number) => void;
+  saveStatus: SetupSaveStatus;
+  hasSavedDraft: boolean;
+  onClearSavedDraft: () => void;
 }
 
 export function SetupWizard({
@@ -52,9 +60,12 @@ export function SetupWizard({
   taxSettings,
   onTaxSettingsChange,
   onCalculate,
-  onStepNavigate,
+  currentStep,
+  onCurrentStepChange,
+  saveStatus,
+  hasSavedDraft,
+  onClearSavedDraft,
 }: SetupWizardProps) {
-  const [currentStep, setCurrentStep] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -62,8 +73,8 @@ export function SetupWizard({
   const handleExportSetup = () => {
     exportSetupToCSV(accounts, ssData, taxSettings);
     toast({
-      title: "Setup Exported",
-      description: "Your setup has been saved to a CSV file.",
+      title: "Backup Downloaded",
+      description: "Your setup was downloaded as a CSV backup file.",
     });
   };
 
@@ -97,29 +108,51 @@ export function SetupWizard({
     }
   };
 
-  // Expose the goToStep function to parent via callback ref
-  useEffect(() => {
-    onStepNavigate?.(setCurrentStep);
-  }, [onStepNavigate]);
-
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
 
   const goNext = () => {
     if (currentStep < STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
+      onCurrentStepChange(currentStep + 1);
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }), 0);
     }
   };
 
   const goBack = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      onCurrentStepChange(currentStep - 1);
     }
   };
 
   const goToStep = (index: number) => {
-    setCurrentStep(index);
+    onCurrentStepChange(index);
   };
+
+  const saveStatusConfig = {
+    idle: {
+      icon: HardDrive,
+      label: "Not saved yet",
+      detail: "Start entering your setup and we'll save it automatically in this browser.",
+      badgeClassName: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+      iconClassName: "text-amber-600 dark:text-amber-300",
+    },
+    saving: {
+      icon: Loader2,
+      label: "Saving changes",
+      detail: "Updating your browser save now so you can safely come back later.",
+      badgeClassName: "border-primary/30 bg-primary/10 text-primary",
+      iconClassName: "text-primary animate-spin",
+    },
+    saved: {
+      icon: CheckCircle2,
+      label: "Saved in this browser",
+      detail: "Your progress is being remembered automatically on this device.",
+      badgeClassName: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+      iconClassName: "text-emerald-600 dark:text-emerald-300",
+    },
+  } as const;
+
+  const statusConfig = saveStatusConfig[saveStatus];
+  const StatusIcon = statusConfig.icon;
 
   const renderStepContent = () => {
     switch (STEPS[currentStep].id) {
@@ -194,6 +227,31 @@ export function SetupWizard({
         {STEPS[currentStep].description}
       </p>
 
+      <div className="rounded-xl border bg-card/80 px-4 py-3 shadow-sm animate-in fade-in-0 slide-in-from-top-1 duration-300">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-full bg-background p-2 shadow-sm">
+              <StatusIcon className={cn("h-4 w-4", statusConfig.iconClassName)} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold">{statusConfig.label}</p>
+                <Badge variant="outline" className={statusConfig.badgeClassName}>
+                  Auto-save
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">{statusConfig.detail}</p>
+            </div>
+          </div>
+          {hasSavedDraft && (
+            <Button type="button" variant="ghost" size="sm" onClick={onClearSavedDraft} className="gap-1 self-start sm:self-auto">
+              <RotateCcw className="h-4 w-4" />
+              Forget browser save
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Step content */}
       <div className="min-h-[300px]">{renderStepContent()}</div>
 
@@ -210,14 +268,21 @@ export function SetupWizard({
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
           {currentStep === 0 ? (
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="gap-1"
-            >
-              <Upload className="h-4 w-4" />
-              Import Setup
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-1"
+              >
+                <Upload className="h-4 w-4" />
+                Import Setup
+              </Button>
+              {hasSavedDraft && (
+                <p className="text-xs text-muted-foreground">
+                  Browser save found. You can keep editing here or replace it by importing a file.
+                </p>
+              )}
+            </div>
           ) : (
             <Button
               variant="outline"
@@ -243,7 +308,7 @@ export function SetupWizard({
               className="gap-1"
             >
               <Download className="h-4 w-4" />
-              Export Setup
+              Download Backup
             </Button>
             <Button 
               onClick={() => {

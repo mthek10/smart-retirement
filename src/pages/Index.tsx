@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useRef } from "react";
-import { SetupWizard } from "@/components/SetupWizard";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { SetupWizard, SETUP_STEP_COUNT, type SetupSaveStatus } from "@/components/SetupWizard";
 import { ProjectionTable } from "@/components/ProjectionTable";
 
 import { ProjectionSummary } from "@/components/ProjectionSummary";
@@ -21,97 +21,194 @@ import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMon
 import { useScenarios } from "@/hooks/useScenarios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { calculateBracketConsistency } from "@/lib/taxCalculations";
 import { getCurrentYearAlerts } from "@/lib/incomeAlerts";
+import { History, RotateCcw, Sparkles } from "lucide-react";
+
+const SETUP_DRAFT_STORAGE_KEY = "smart-retirement-setup-draft";
+const SETUP_DRAFT_VERSION = 1;
+
+const DEFAULT_ACCOUNTS = {
+  spouse1Traditional: 2500000,
+  spouse2Traditional: 2500000,
+  roth: 0,
+  taxable: 3000000,
+  traditionalReturn: 3,
+  rothReturn: 3,
+  taxableReturn: 3,
+  taxableCostBasisPercent: 33,
+};
+
+const DEFAULT_SS_DATA = {
+  spouse1: {
+    estimatedBenefit: 4000,
+    claimAge: 67,
+    lifeExpectancy: 90,
+  },
+  spouse2: {
+    estimatedBenefit: 4000,
+    claimAge: 67,
+    lifeExpectancy: 90,
+  },
+};
+
+const DEFAULT_TAX_SETTINGS = {
+  filingStatus: "married",
+  state: "other",
+  stateRate: 5,
+  spouse1Age: 60,
+  spouse2Age: 58,
+  targetTakeHome: 200000,
+  inflationRate: 2.5,
+  rothConversionStrategy: "none",
+  rothConversionCustom: 94300,
+  acaSettings: {
+    enabled: true,
+    householdSize: 2,
+    customBenchmarkPremium: 0,
+    annualHealthInsuranceCost: 0,
+  },
+  spouse1Employment: {
+    currentIncome: 0,
+    retirementAge: 65,
+    contributes401k: false,
+    contribution401kAmount: 0,
+    roth401kAmount: 0,
+    employerMatchAmount: 0,
+    pension: { monthlyAmount: 0, startAge: 65, cola: 2.5 },
+  },
+  spouse2Employment: {
+    currentIncome: 0,
+    retirementAge: 65,
+    contributes401k: false,
+    contribution401kAmount: 0,
+    roth401kAmount: 0,
+    employerMatchAmount: 0,
+    pension: { monthlyAmount: 0, startAge: 65, cola: 2.5 },
+  },
+  survivorSettings: {
+    enabled: false,
+    spouse1DeathAge: null as number | null,
+    spouse2DeathAge: null as number | null,
+    survivorSpendingPercent: 75,
+  },
+  optimizationGoal: "minimize-taxes",
+  stateRelocation: {
+    enabled: false,
+    targetState: "FL",
+    relocationAge: 65,
+  },
+};
+
+type AccountsState = typeof DEFAULT_ACCOUNTS;
+type SSDataState = typeof DEFAULT_SS_DATA;
+type TaxSettingsState = typeof DEFAULT_TAX_SETTINGS;
+
+interface SetupDraft {
+  version: number;
+  accounts: AccountsState;
+  ssData: SSDataState;
+  taxSettings: TaxSettingsState;
+  currentStep: number;
+  savedAt: string;
+}
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+function mergeWithDefaults<T extends Record<string, unknown>>(defaults: T, candidate: unknown): T {
+  if (!isPlainObject(candidate)) {
+    return { ...defaults };
+  }
+
+  const merged = { ...defaults } as T;
+
+  for (const key of Object.keys(defaults) as Array<keyof T>) {
+    const defaultValue = defaults[key];
+    const candidateValue = candidate[key as string];
+
+    if (isPlainObject(defaultValue)) {
+      merged[key] = mergeWithDefaults(defaultValue, candidateValue) as T[keyof T];
+      continue;
+    }
+
+    if (defaultValue === null) {
+      merged[key] = (typeof candidateValue === "number" || candidateValue === null ? candidateValue : defaultValue) as T[keyof T];
+      continue;
+    }
+
+    if (typeof defaultValue === "number") {
+      merged[key] = (typeof candidateValue === "number" && Number.isFinite(candidateValue) ? candidateValue : defaultValue) as T[keyof T];
+      continue;
+    }
+
+    if (typeof defaultValue === "string") {
+      merged[key] = (typeof candidateValue === "string" ? candidateValue : defaultValue) as T[keyof T];
+      continue;
+    }
+
+    if (typeof defaultValue === "boolean") {
+      merged[key] = (typeof candidateValue === "boolean" ? candidateValue : defaultValue) as T[keyof T];
+    }
+  }
+
+  return merged;
+}
+
+function parseStoredDraft(rawDraft: string): SetupDraft | null {
+  try {
+    const parsed = JSON.parse(rawDraft) as Record<string, unknown>;
+
+    if (!isPlainObject(parsed) || parsed.version !== SETUP_DRAFT_VERSION) {
+      return null;
+    }
+
+    return {
+      version: SETUP_DRAFT_VERSION,
+      accounts: mergeWithDefaults(DEFAULT_ACCOUNTS, parsed.accounts),
+      ssData: mergeWithDefaults(DEFAULT_SS_DATA, parsed.ssData),
+      taxSettings: mergeWithDefaults(DEFAULT_TAX_SETTINGS, parsed.taxSettings),
+      currentStep:
+        typeof parsed.currentStep === "number" && Number.isInteger(parsed.currentStep)
+          ? Math.min(Math.max(parsed.currentStep, 0), SETUP_STEP_COUNT - 1)
+          : 0,
+      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("setup");
-  const wizardStepRef = useRef<(step: number) => void>();
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const restoreBannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [draftReady, setDraftReady] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<SetupDraft | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SetupSaveStatus>("idle");
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [showRestoreBanner, setShowRestoreBanner] = useState(false);
 
   const navigateToSetupStep = useCallback((stepIndex: number) => {
     setActiveTab("setup");
-    // Use a timeout so the tab switches first, then the wizard navigates
+    setCurrentStep(Math.min(Math.max(stepIndex, 0), SETUP_STEP_COUNT - 1));
     setTimeout(() => {
-      wizardStepRef.current?.(stepIndex);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }, 50);
   }, []);
-  const [accounts, setAccounts] = useState({
-    spouse1Traditional: 2500000,
-    spouse2Traditional: 2500000,
-    roth: 0,
-    taxable: 3000000,
-    traditionalReturn: 3,
-    rothReturn: 3,
-    taxableReturn: 3,
-    taxableCostBasisPercent: 33,
-  });
-
-  const [ssData, setSsData] = useState({
-    spouse1: {
-      estimatedBenefit: 4000,
-      claimAge: 67,
-      lifeExpectancy: 90,
-    },
-    spouse2: {
-      estimatedBenefit: 4000,
-      claimAge: 67,
-      lifeExpectancy: 90,
-    },
-  });
-
-  const [taxSettings, setTaxSettings] = useState({
-    filingStatus: 'married',
-    state: 'other',
-    stateRate: 5,
-    spouse1Age: 60,
-    spouse2Age: 58,
-    targetTakeHome: 200000,
-    inflationRate: 2.5,
-    rothConversionStrategy: 'none',
-    rothConversionCustom: 94300,
-    acaSettings: {
-      enabled: true,
-      householdSize: 2,
-      customBenchmarkPremium: 0,
-      annualHealthInsuranceCost: 0,
-    },
-    spouse1Employment: {
-      currentIncome: 0,
-      retirementAge: 65,
-      contributes401k: false,
-      contribution401kAmount: 0,
-      roth401kAmount: 0,
-      employerMatchAmount: 0,
-      pension: { monthlyAmount: 0, startAge: 65, cola: 2.5 },
-    },
-    spouse2Employment: {
-      currentIncome: 0,
-      retirementAge: 65,
-      contributes401k: false,
-      contribution401kAmount: 0,
-      roth401kAmount: 0,
-      employerMatchAmount: 0,
-      pension: { monthlyAmount: 0, startAge: 65, cola: 2.5 },
-    },
-    survivorSettings: {
-      enabled: false,
-      spouse1DeathAge: null as number | null,
-      spouse2DeathAge: null as number | null,
-      survivorSpendingPercent: 75,
-    },
-    optimizationGoal: 'minimize-taxes',
-    stateRelocation: {
-      enabled: false,
-      targetState: 'FL',
-      relocationAge: 65,
-    },
-  });
+  const [accounts, setAccounts] = useState<AccountsState>(DEFAULT_ACCOUNTS);
+  const [ssData, setSsData] = useState<SSDataState>(DEFAULT_SS_DATA);
+  const [taxSettings, setTaxSettings] = useState<TaxSettingsState>(DEFAULT_TAX_SETTINGS);
 
   // Committed state: projections only recalculate when the user explicitly
   // clicks "Go to Dashboard" or switches to a non-Setup tab.
-  const [committedAccounts, setCommittedAccounts] = useState(accounts);
-  const [committedSSData, setCommittedSSData] = useState(ssData);
-  const [committedTaxSettings, setCommittedTaxSettings] = useState(taxSettings);
+  const [committedAccounts, setCommittedAccounts] = useState<AccountsState>(DEFAULT_ACCOUNTS);
+  const [committedSSData, setCommittedSSData] = useState<SSDataState>(DEFAULT_SS_DATA);
+  const [committedTaxSettings, setCommittedTaxSettings] = useState<TaxSettingsState>(DEFAULT_TAX_SETTINGS);
 
   const commitInputs = useCallback(() => {
     setCommittedAccounts(accounts);
@@ -140,6 +237,149 @@ const Index = () => {
       }));
     }
   }, [accounts.rothReturn]);
+
+  const hasProgress = useMemo(
+    () =>
+      currentStep > 0 ||
+      JSON.stringify(accounts) !== JSON.stringify(DEFAULT_ACCOUNTS) ||
+      JSON.stringify(ssData) !== JSON.stringify(DEFAULT_SS_DATA) ||
+      JSON.stringify(taxSettings) !== JSON.stringify(DEFAULT_TAX_SETTINGS),
+    [accounts, currentStep, ssData, taxSettings]
+  );
+
+  useEffect(() => {
+    const storedDraft = window.localStorage.getItem(SETUP_DRAFT_STORAGE_KEY);
+
+    if (storedDraft) {
+      const parsedDraft = parseStoredDraft(storedDraft);
+
+      if (parsedDraft) {
+        setPendingDraft(parsedDraft);
+        setHasSavedDraft(true);
+        setLastSavedAt(parsedDraft.savedAt);
+        setSaveStatus("saved");
+      } else {
+        window.localStorage.removeItem(SETUP_DRAFT_STORAGE_KEY);
+      }
+    }
+
+    setDraftReady(true);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      if (restoreBannerTimeoutRef.current) {
+        clearTimeout(restoreBannerTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady || pendingDraft) {
+      return;
+    }
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    if (!hasProgress) {
+      window.localStorage.removeItem(SETUP_DRAFT_STORAGE_KEY);
+      setHasSavedDraft(false);
+      setLastSavedAt(null);
+      setSaveStatus("idle");
+      return;
+    }
+
+    setSaveStatus("saving");
+    saveTimeoutRef.current = setTimeout(() => {
+      const nextDraft: SetupDraft = {
+        version: SETUP_DRAFT_VERSION,
+        accounts,
+        ssData,
+        taxSettings,
+        currentStep,
+        savedAt: new Date().toISOString(),
+      };
+
+      window.localStorage.setItem(SETUP_DRAFT_STORAGE_KEY, JSON.stringify(nextDraft));
+      setHasSavedDraft(true);
+      setLastSavedAt(nextDraft.savedAt);
+      setSaveStatus("saved");
+    }, 450);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [accounts, currentStep, draftReady, hasProgress, pendingDraft, ssData, taxSettings]);
+
+  const showRestoreConfirmation = useCallback(() => {
+    setShowRestoreBanner(true);
+
+    if (restoreBannerTimeoutRef.current) {
+      clearTimeout(restoreBannerTimeoutRef.current);
+    }
+
+    restoreBannerTimeoutRef.current = setTimeout(() => {
+      setShowRestoreBanner(false);
+    }, 4500);
+  }, []);
+
+  const clearStoredDraft = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    window.localStorage.removeItem(SETUP_DRAFT_STORAGE_KEY);
+    setHasSavedDraft(false);
+    setLastSavedAt(null);
+    setSaveStatus("idle");
+  }, []);
+
+  const handleRestoreDraft = useCallback(() => {
+    if (!pendingDraft) {
+      return;
+    }
+
+    setAccounts(pendingDraft.accounts);
+    setSsData(pendingDraft.ssData);
+    setTaxSettings(pendingDraft.taxSettings);
+    setCurrentStep(pendingDraft.currentStep);
+    setPendingDraft(null);
+    setActiveTab("setup");
+    setHasSavedDraft(true);
+    setLastSavedAt(pendingDraft.savedAt);
+    setSaveStatus("saved");
+    showRestoreConfirmation();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [pendingDraft, showRestoreConfirmation]);
+
+  const handleStartNew = useCallback(() => {
+    clearStoredDraft();
+    setPendingDraft(null);
+    setShowRestoreBanner(false);
+    setActiveTab("setup");
+    setCurrentStep(0);
+    setAccounts({ ...DEFAULT_ACCOUNTS });
+    setSsData(structuredClone(DEFAULT_SS_DATA));
+    setTaxSettings(structuredClone(DEFAULT_TAX_SETTINGS));
+    setCommittedAccounts({ ...DEFAULT_ACCOUNTS });
+    setCommittedSSData(structuredClone(DEFAULT_SS_DATA));
+    setCommittedTaxSettings(structuredClone(DEFAULT_TAX_SETTINGS));
+    setMonteCarloSettings({
+      numSimulations: 1000,
+      returnMean: DEFAULT_ACCOUNTS.rothReturn / 100,
+      returnStdDev: 0.15,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [clearStoredDraft]);
+
+  const handleForgetBrowserSave = useCallback(() => {
+    clearStoredDraft();
+  }, [clearStoredDraft]);
 
 
   // Monte Carlo simulation results (reads committed snapshots only)
@@ -320,6 +560,8 @@ const Index = () => {
   // This is the totalOrdinaryIncome from projections (includes taxable SS, traditional withdrawals, 
   // Roth conversions, and taxable wages) - used to determine the tax bracket
   const currentYearGrossIncome = projections.length > 0 ? projections[0].ordinaryIncome : 0;
+  const pendingDraftSavedLabel = pendingDraft ? new Date(pendingDraft.savedAt).toLocaleString() : null;
+  const lastSavedLabel = lastSavedAt ? new Date(lastSavedAt).toLocaleString() : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -339,6 +581,71 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {pendingDraft && (
+          <Card className="mx-auto max-w-2xl border-primary/20 shadow-xl animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-300">
+            <CardHeader className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-primary/10 p-3 text-primary shadow-sm">
+                  <History className="h-5 w-5" />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-xl">Pick up where you left off?</CardTitle>
+                    <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
+                      Saved progress found
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-sm">
+                    We found saved setup progress in this browser. Restore it to continue where you stopped, or start fresh and clear it out.
+                  </CardDescription>
+                </div>
+              </div>
+              {pendingDraftSavedLabel && (
+                <p className="text-xs text-muted-foreground">
+                  Last saved: {pendingDraftSavedLabel}
+                </p>
+              )}
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 sm:flex-row">
+              <Button onClick={handleRestoreDraft} className="flex-1">
+                Restore progress
+              </Button>
+              <Button variant="outline" onClick={handleStartNew} className="flex-1 gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Start new
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!pendingDraft && showRestoreBanner && (
+          <div className="mb-6 animate-in fade-in-0 slide-in-from-top-2 duration-500">
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-4 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-background p-2 shadow-sm">
+                    <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                      Progress restored
+                    </p>
+                    <p className="text-xs text-emerald-800/80 dark:text-emerald-200/80">
+                      Your saved setup is back on screen and will keep saving automatically in this browser.
+                    </p>
+                  </div>
+                </div>
+                {lastSavedLabel && (
+                  <p className="text-xs text-emerald-800/80 dark:text-emerald-200/80">
+                    Restored from {lastSavedLabel}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!pendingDraft && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex w-full rounded-xl bg-card shadow-md border p-1.5 overflow-x-auto">
             <TabsTrigger value="setup" className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Setup</TabsTrigger>
@@ -357,7 +664,11 @@ const Index = () => {
               taxSettings={taxSettings}
               onTaxSettingsChange={setTaxSettings}
               onCalculate={() => { commitInputs(); setActiveTab("dashboard"); window.scrollTo({ top: 0 }); }}
-              onStepNavigate={(fn) => { wizardStepRef.current = fn; }}
+              currentStep={currentStep}
+              onCurrentStepChange={setCurrentStep}
+              saveStatus={saveStatus}
+              hasSavedDraft={hasSavedDraft}
+              onClearSavedDraft={handleForgetBrowserSave}
             />
           </TabsContent>
 
@@ -480,6 +791,7 @@ const Index = () => {
             <TaxChart data={taxChartData} />
           </TabsContent>
         </Tabs>
+        )}
       </main>
     </div>
   );

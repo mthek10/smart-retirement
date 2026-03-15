@@ -25,7 +25,7 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
     <Card>
       <CardHeader>
         <CardTitle>Healthcare Settings</CardTitle>
-        <CardDescription>Configure health insurance costs and ACA premium tax credits (pre-Medicare)</CardDescription>
+        <CardDescription>Configure pre-Medicare health insurance costs and ACA premium tax credits</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
@@ -39,10 +39,10 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
             onChange={(value) => handleChange('annualHealthInsuranceCost', parseFloat(value) || 0)}
           />
           <p className="text-xs text-muted-foreground">
-            Enter your total annual health insurance premium. This cost increases annually at the inflation rate and stops at age 65 when Medicare begins.
+            Enter your annual pre-Medicare health insurance premium. This cost increases annually at the inflation rate and stops once the covered filer reaches Medicare eligibility.
           </p>
           <p className="text-xs text-muted-foreground italic">
-            Note: Medicare eligibility begins at age 65. Once all covered household members reach 65, this cost will no longer apply.
+            Note: Medicare eligibility begins at age 65. Mixed-age married years use Medicare for the 65+ spouse and ACA modeling for the under-65 spouse instead of this manual premium.
           </p>
         </div>
 
