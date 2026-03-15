@@ -201,7 +201,7 @@ function PensionInputs({
             id={`${prefix}PensionStartAge`}
             type="number"
             min="50"
-            max="80"
+            max="99"
             placeholder="65"
             value={pension.startAge || ''}
             onChange={(value) => onChange({ ...pension, startAge: parseInt(value) || 65 })}
