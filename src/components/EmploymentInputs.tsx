@@ -267,8 +267,8 @@ export function EmploymentInputs({ taxSettings, onChange, spouse1Age, spouse2Age
   };
 
   const isMarried = taxSettings.filingStatus === 'married';
-  const spouse1Pension = taxSettings.spouse1Employment.pension || { monthlyAmount: 0, startAge: 65, cola: 0 };
-  const spouse2Pension = taxSettings.spouse2Employment.pension || { monthlyAmount: 0, startAge: 65, cola: 0 };
+  const spouse1Pension = taxSettings.spouse1Employment.pension || { monthlyAmount: 0, startAge: 65, cola: 2.5 };
+  const spouse2Pension = taxSettings.spouse2Employment.pension || { monthlyAmount: 0, startAge: 65, cola: 2.5 };
 
   return (
     <Card>
