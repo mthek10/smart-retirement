@@ -170,6 +170,42 @@ export function findDepletionAges(projections: ProjectionRow[]): {
   return { tradDepletionAge, taxableDepletionAge, rothDepletionAge };
 }
 
+function calculateManualHealthInsuranceCost(
+  annualHealthInsuranceCost: number | undefined,
+  yearIndex: number,
+  inflationFraction: number,
+  effectiveFilingStatus: string,
+  coveredPeople: Array<{ age: number; isActive: boolean }>
+): number {
+  if (!annualHealthInsuranceCost || annualHealthInsuranceCost <= 0) {
+    return 0;
+  }
+
+  const activeCoveredAges = coveredPeople
+    .filter((person) => person.isActive)
+    .map((person) => person.age);
+
+  if (activeCoveredAges.length === 0) {
+    return 0;
+  }
+
+  const hasPreMedicareCoverage = activeCoveredAges.some((age) => age < 65);
+  if (!hasPreMedicareCoverage) {
+    return 0;
+  }
+
+  // In mixed-age married years, the Medicare-eligible spouse should not also
+  // carry the manual pre-Medicare premium. Model the under-65 spouse via ACA instead.
+  if (effectiveFilingStatus === "married") {
+    const hasMedicareCoverage = activeCoveredAges.some((age) => age >= 65 && age <= 100);
+    if (hasMedicareCoverage) {
+      return 0;
+    }
+  }
+
+  return annualHealthInsuranceCost * Math.pow(1 + inflationFraction, yearIndex);
+}
+
 /**
  * Iterative binary search solver to find withdrawal amount achieving target take-home.
  * Extracted from calculateProjections for readability.
@@ -182,6 +218,8 @@ function solveRequiredWithdrawal(
   yearIndex: number,
   spouse1Age: number,
   spouse2Age: number,
+  spouse1Alive: boolean,
+  spouse2Alive: boolean,
   taxableWages: number,
   pensionIncome: number,
   effectiveFilingStatus: string,
@@ -285,18 +323,18 @@ function solveRequiredWithdrawal(
     
     const magi = totalOrdinaryIncome + capitalGainsRealized;
     let irmaa = 0;
-    if (spouse1Age >= 65 && spouse1Age <= 100) {
+    if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
       irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
     }
-    if (spouse2Age >= 65 && spouse2Age <= 100) {
+    if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
       irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
     }
     
     let medicarePremiums = 0;
-    if (spouse1Age >= 65 && spouse1Age <= 100) {
+    if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
       medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
     }
-    if (spouse2Age >= 65 && spouse2Age <= 100) {
+    if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
       medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
     }
     
@@ -320,15 +358,21 @@ function solveRequiredWithdrawal(
     }
 
     // Annual health insurance cost (inflation-adjusted, pre-Medicare only)
-    let healthInsuranceCost = 0;
-    if (acaSettings?.annualHealthInsuranceCost && acaSettings.annualHealthInsuranceCost > 0) {
-      const anyPreMedicare = (spouse1Age < 65) || (spouse2Age < 65 && spouse2Age > 0);
-      if (anyPreMedicare) {
-        healthInsuranceCost = acaSettings.annualHealthInsuranceCost * Math.pow(1 + inflationFraction, yearIndex);
-      }
-    }
+    const healthInsuranceCost = calculateManualHealthInsuranceCost(
+      acaSettings?.annualHealthInsuranceCost,
+      yearIndex,
+      inflationFraction,
+      effectiveFilingStatus,
+      [
+        { age: spouse1Age, isActive: spouse1Alive },
+        { age: spouse2Age, isActive: spouse2Alive },
+      ]
+    );
 
-    const calculatedTakeHome = testWithdrawal + ssAnnual + pensionIncome - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
+    // `targetTakeHome` has already been reduced by wages and pension before calling
+    // the solver, so only portfolio withdrawals plus Social Security should be
+    // matched here. Pension still stays in taxable income above.
+    const calculatedTakeHome = testWithdrawal + ssAnnual - federalTax - federalCapitalGainsTax - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
     
     if (Math.abs(calculatedTakeHome - targetTakeHome) < tolerance) {
       return testWithdrawal;
@@ -591,6 +635,7 @@ export function calculateProjections(
       ? baseTargetTakeHome * (survivorSpendingPercent / 100)
       : baseTargetTakeHome;
     
+    // Remove income sources that are already available outside the withdrawal solver.
     const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages - totalPensionIncome);
     
     // Compute ACA enrollee ages for the solver
@@ -629,6 +674,8 @@ export function calculateProjections(
       i,
       spouse1CurrentAge,
       spouse2CurrentAge,
+      spouse1Alive,
+      spouse2Alive,
       taxableWages,
       totalPensionIncome,
       effectiveFilingStatus,
@@ -909,13 +956,16 @@ export function calculateProjections(
     }
 
     // Annual health insurance cost (inflation-adjusted, pre-Medicare only)
-    let healthInsuranceCost = 0;
-    if (taxSettings.acaSettings.annualHealthInsuranceCost && taxSettings.acaSettings.annualHealthInsuranceCost > 0) {
-      const anyPreMedicare = (spouse1CurrentAge < 65) || (spouse2CurrentAge < 65 && spouse2CurrentAge > 0);
-      if (anyPreMedicare) {
-        healthInsuranceCost = taxSettings.acaSettings.annualHealthInsuranceCost * Math.pow(1 + taxSettings.inflationRate / 100, i);
-      }
-    }
+    const healthInsuranceCost = calculateManualHealthInsuranceCost(
+      taxSettings.acaSettings.annualHealthInsuranceCost,
+      i,
+      taxSettings.inflationRate / 100,
+      effectiveFilingStatus,
+      [
+        { age: spouse1CurrentAge, isActive: spouse1Alive },
+        { age: spouse2CurrentAge, isActive: spouse2Alive },
+      ]
+    );
 
     const totalHealthcareCost = netAcaCost + medicarePremiums + irmaa + healthInsuranceCost;
 

@@ -323,8 +323,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="relative overflow-hidden bg-gradient-to-br from-secondary via-secondary/95 to-secondary/80 shadow-xl">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_hsl(155_65%_70%_/_0.15),_transparent_60%)]" />
+      <header className="relative overflow-hidden bg-gradient-to-br from-purple-700 via-purple-600 to-violet-500 shadow-xl">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_hsl(285_95%_85%_/_0.22),_transparent_60%)]" />
         <div className="container mx-auto px-4 py-7 relative z-10 text-left">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-primary-foreground tracking-tight mb-1">
             Retirement Drawdown Planner
