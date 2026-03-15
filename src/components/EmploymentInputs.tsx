@@ -204,7 +204,7 @@ function PensionInputs({
             max="99"
             placeholder="65"
             value={pension.startAge || ''}
-            onChange={(value) => onChange({ ...pension, startAge: parseInt(value) || 65 })}
+            onChange={(value) => onChange({ ...pension, startAge: Math.min(Math.max(parseInt(value) || 65, 50), 99) })}
           />
         </div>
         <div className="space-y-2">
