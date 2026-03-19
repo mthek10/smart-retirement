@@ -114,13 +114,10 @@ export function LifeEventsEditor({ events, onChange, spouse1Age }: LifeEventsEdi
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Spouse 1 Age</Label>
-                <Input
-                  type="number"
+                <EventAgeInput
                   value={event.age}
                   min={spouse1Age}
-                  max={100}
-                  onChange={(e) => updateEvent(event.id, { age: Math.min(100, Math.max(spouse1Age, parseInt(e.target.value) || spouse1Age)) })}
-                  className="h-8 text-sm"
+                  onChange={(val) => updateEvent(event.id, { age: val })}
                 />
               </div>
             </div>
