@@ -496,6 +496,15 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
           </div>
         </div>
 
+        {/* Life Events */}
+        <div className="pt-4 border-t">
+          <LifeEventsEditor
+            events={(taxSettings as any).lifeEvents || []}
+            onChange={(events: LifeEvent[]) => onChange({ ...taxSettings, lifeEvents: events })}
+            spouse1Age={taxSettings.spouse1Age}
+          />
+        </div>
+
         {taxSettings.filingStatus === 'married' && (
           <>
             <Separator />
