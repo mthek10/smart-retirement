@@ -48,13 +48,14 @@ interface ProjectionTableProps {
   projections: YearProjection[];
 }
 
-type ColumnGroup = "balances" | "income" | "taxes" | "healthcare";
+type ColumnGroup = "balances" | "income" | "taxes" | "healthcare" | "lifeEvents";
 
 const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] = [
   { id: "balances", label: "Balances", description: "Account balances and withdrawals" },
   { id: "income", label: "Income", description: "Wages, SS, conversions, and RMDs" },
   { id: "taxes", label: "Tax Details", description: "Individual tax breakdowns" },
   { id: "healthcare", label: "Healthcare", description: "Medicare, IRMAA, and ACA details" },
+  { id: "lifeEvents", label: "Life Events", description: "One-time expenses and income events" },
 ];
 
 export function ProjectionTable({ projections }: ProjectionTableProps) {
