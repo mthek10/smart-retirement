@@ -84,6 +84,15 @@ export interface StateRelocationSettings {
   relocationAge: number;
 }
 
+export interface LifeEvent {
+  id: string;
+  label: string;
+  type: "expense" | "income";
+  amount: number;
+  age: number; // spouse1's age when it occurs
+  taxable: boolean; // for income: is it taxable? for expense: ignored
+}
+
 export interface TaxSettings {
   filingStatus: string;
   state: string;
@@ -100,6 +109,7 @@ export interface TaxSettings {
   spouse2Employment: EmploymentSettings;
   survivorSettings: SurvivorSettings;
   stateRelocation?: StateRelocationSettings;
+  lifeEvents?: LifeEvent[];
 }
 
 export interface ProjectionRow {
