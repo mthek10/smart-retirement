@@ -100,6 +100,7 @@ const DEFAULT_TAX_SETTINGS = {
     targetState: "FL",
     relocationAge: 65,
   },
+  lifeEvents: [] as import("@/hooks/useProjections").LifeEvent[],
 };
 
 type AccountsState = typeof DEFAULT_ACCOUNTS;

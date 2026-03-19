@@ -10,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { AlertTriangle } from "lucide-react";
 import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
+import { LifeEventsEditor } from "@/components/LifeEventsEditor";
+import type { LifeEvent } from "@/hooks/useProjections";
 
 interface TaxSettingsProps {
   taxSettings: {
