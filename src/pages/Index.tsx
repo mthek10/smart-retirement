@@ -152,6 +152,12 @@ function mergeWithDefaults<T extends Record<string, unknown>>(defaults: T, candi
 
     if (typeof defaultValue === "boolean") {
       merged[key] = (typeof candidateValue === "boolean" ? candidateValue : defaultValue) as T[keyof T];
+      continue;
+    }
+
+    // Arrays (e.g., lifeEvents): use candidate if it's an array, otherwise default
+    if (Array.isArray(defaultValue)) {
+      merged[key] = (Array.isArray(candidateValue) ? candidateValue : defaultValue) as T[keyof T];
     }
   }
 

@@ -145,6 +145,8 @@ const PROJECTION_COLUMNS: { key: keyof ProjectionRow; header: string }[] = [
   { key: "ordinaryIncome", header: "Ordinary Income" },
   { key: "conversionExcessReinvested", header: "Conversion Excess Reinvested" },
   { key: "isSurvivorYear", header: "Survivor Year" },
+  { key: "lifeEventExpense", header: "Life Event Expense" },
+  { key: "lifeEventIncome", header: "Life Event Income" },
 ];
 
 /**
