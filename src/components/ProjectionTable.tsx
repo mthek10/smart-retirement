@@ -209,6 +209,12 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Healthcare Cost</th>
                     </>
                   )}
+                  {show("lifeEvents") && (
+                    <>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Life Event Expense</th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Life Event Income</th>
+                    </>
+                  )}
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Total Taxes</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Take Home</th>
                 </tr>
