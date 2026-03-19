@@ -42,6 +42,8 @@ interface YearProjection {
   totalIncome: number;
   rothConversion?: number;
   marginalBracket?: number;
+  lifeEventExpense?: number;
+  lifeEventIncome?: number;
 }
 
 interface ProjectionTableProps {
