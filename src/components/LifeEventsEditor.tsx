@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,28 @@ const PRESETS: { label: string; type: "expense" | "income"; amount: number; taxa
   { label: "Inheritance", type: "income", amount: 500000, taxable: false },
   { label: "Home Renovation", type: "expense", amount: 75000, taxable: false },
 ];
+
+function EventAgeInput({ value, min, onChange }: { value: number; min: number; onChange: (val: number) => void }) {
+  const [local, setLocal] = useState(String(value));
+
+  useEffect(() => { setLocal(String(value)); }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 3);
+    setLocal(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= min && num <= 100) onChange(num);
+  };
+
+  const handleBlur = () => {
+    const num = parseInt(local, 10);
+    if (isNaN(num) || num < min) { setLocal(String(value)); }
+    else if (num > 100) { setLocal('100'); onChange(100); }
+    else { setLocal(String(num)); onChange(num); }
+  };
+
+  return <Input type="text" inputMode="numeric" maxLength={3} value={local} onChange={handleChange} onBlur={handleBlur} className="h-8 text-sm" />;
+}
 
 interface LifeEventsEditorProps {
   events: LifeEvent[];
@@ -114,13 +136,10 @@ export function LifeEventsEditor({ events, onChange, spouse1Age }: LifeEventsEdi
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Spouse 1 Age</Label>
-                <Input
-                  type="number"
+                <EventAgeInput
                   value={event.age}
                   min={spouse1Age}
-                  max={100}
-                  onChange={(e) => updateEvent(event.id, { age: Math.min(100, Math.max(spouse1Age, parseInt(e.target.value) || spouse1Age)) })}
-                  className="h-8 text-sm"
+                  onChange={(val) => updateEvent(event.id, { age: val })}
                 />
               </div>
             </div>
