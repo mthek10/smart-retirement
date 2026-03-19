@@ -397,6 +397,24 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                         </td>
                       </>
                     )}
+                    {show("lifeEvents") && (
+                      <>
+                        <td className="p-4 align-middle text-right">
+                          {(projection as any).lifeEventExpense && (projection as any).lifeEventExpense > 0 ? (
+                            <span className="text-destructive font-medium">
+                              -{formatCurrency((projection as any).lifeEventExpense)}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className="p-4 align-middle text-right">
+                          {(projection as any).lifeEventIncome && (projection as any).lifeEventIncome > 0 ? (
+                            <span className="text-primary font-medium">
+                              +{formatCurrency((projection as any).lifeEventIncome)}
+                            </span>
+                          ) : '-'}
+                        </td>
+                      </>
+                    )}
                     <td className="p-4 align-middle text-right font-bold text-destructive">
                       {formatCurrency(projection.totalTaxes)}
                     </td>
