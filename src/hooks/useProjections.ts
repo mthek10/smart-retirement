@@ -1071,6 +1071,8 @@ export function calculateProjections(
       marginalBracket,
       conversionExcessReinvested,
       isSurvivorYear,
+      lifeEventExpense: yearExpenses,
+      lifeEventIncome: totalLifeEventIncome,
     });
   }
 
