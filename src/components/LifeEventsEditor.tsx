@@ -19,6 +19,28 @@ const PRESETS: { label: string; type: "expense" | "income"; amount: number; taxa
   { label: "Home Renovation", type: "expense", amount: 75000, taxable: false },
 ];
 
+function EventAgeInput({ value, min, onChange }: { value: number; min: number; onChange: (val: number) => void }) {
+  const [local, setLocal] = useState(String(value));
+
+  useEffect(() => { setLocal(String(value)); }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 3);
+    setLocal(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= min && num <= 100) onChange(num);
+  };
+
+  const handleBlur = () => {
+    const num = parseInt(local, 10);
+    if (isNaN(num) || num < min) { setLocal(String(value)); }
+    else if (num > 100) { setLocal('100'); onChange(100); }
+    else { setLocal(String(num)); onChange(num); }
+  };
+
+  return <Input type="text" inputMode="numeric" maxLength={3} value={local} onChange={handleChange} onBlur={handleBlur} className="h-8 text-sm" />;
+}
+
 interface LifeEventsEditorProps {
   events: LifeEvent[];
   onChange: (events: LifeEvent[]) => void;
