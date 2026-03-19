@@ -149,6 +149,8 @@ export interface ProjectionRow {
   marginalBracket: number;
   conversionExcessReinvested: number;
   isSurvivorYear: boolean;
+  lifeEventExpense: number;
+  lifeEventIncome: number;
 }
 
 /**
