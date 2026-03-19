@@ -652,8 +652,29 @@ export function calculateProjections(
       ? baseTargetTakeHome * (survivorSpendingPercent / 100)
       : baseTargetTakeHome;
     
+    // Life events for this year (based on spouse1's age)
+    const lifeEvents = taxSettings.lifeEvents || [];
+    const yearExpenses = lifeEvents
+      .filter(e => e.type === 'expense' && e.age === spouse1CurrentAge)
+      .reduce((sum, e) => sum + e.amount, 0);
+    const yearTaxableIncome = lifeEvents
+      .filter(e => e.type === 'income' && e.taxable && e.age === spouse1CurrentAge)
+      .reduce((sum, e) => sum + e.amount, 0);
+    const yearNontaxableIncome = lifeEvents
+      .filter(e => e.type === 'income' && !e.taxable && e.age === spouse1CurrentAge)
+      .reduce((sum, e) => sum + e.amount, 0);
+    const totalLifeEventIncome = yearTaxableIncome + yearNontaxableIncome;
+
     // Remove income sources that are already available outside the withdrawal solver.
-    const adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages - totalPensionIncome);
+    let adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages - totalPensionIncome);
+
+    // Add life event expenses to the withdrawal target
+    adjustedTargetTakeHome += yearExpenses;
+
+    // Non-taxable income reduces what we need to withdraw
+    adjustedTargetTakeHome = Math.max(0, adjustedTargetTakeHome - yearNontaxableIncome);
+    // Deposit non-taxable income into brokerage
+    taxableBalance += yearNontaxableIncome;
     
     // Compute ACA enrollee ages for the solver
     const solverEnrolleeAges: number[] = [];
