@@ -888,7 +888,7 @@ export function calculateProjections(
     }
 
     const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
-    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome;
+    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome;
     
     const taxableSSIncome = calculateTaxableSocialSecurity(
       ssAnnual, 
