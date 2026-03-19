@@ -42,19 +42,22 @@ interface YearProjection {
   totalIncome: number;
   rothConversion?: number;
   marginalBracket?: number;
+  lifeEventExpense?: number;
+  lifeEventIncome?: number;
 }
 
 interface ProjectionTableProps {
   projections: YearProjection[];
 }
 
-type ColumnGroup = "balances" | "income" | "taxes" | "healthcare";
+type ColumnGroup = "balances" | "income" | "taxes" | "healthcare" | "lifeEvents";
 
 const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] = [
   { id: "balances", label: "Balances", description: "Account balances and withdrawals" },
   { id: "income", label: "Income", description: "Wages, SS, conversions, and RMDs" },
   { id: "taxes", label: "Tax Details", description: "Individual tax breakdowns" },
   { id: "healthcare", label: "Healthcare", description: "Medicare, IRMAA, and ACA details" },
+  { id: "lifeEvents", label: "Life Events", description: "One-time expenses and income events" },
 ];
 
 export function ProjectionTable({ projections }: ProjectionTableProps) {
@@ -206,6 +209,12 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Medicare B & D</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">ACA Subsidy</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Healthcare Cost</th>
+                    </>
+                  )}
+                  {show("lifeEvents") && (
+                    <>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Life Event Expense</th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Life Event Income</th>
                     </>
                   )}
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Total Taxes</th>
@@ -387,6 +396,24 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                           ) : (
                             '-'
                           )}
+                        </td>
+                      </>
+                    )}
+                    {show("lifeEvents") && (
+                      <>
+                        <td className="p-4 align-middle text-right">
+                          {projection.lifeEventExpense && projection.lifeEventExpense > 0 ? (
+                            <span className="text-destructive font-medium">
+                              -{formatCurrency(projection.lifeEventExpense)}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className="p-4 align-middle text-right">
+                          {projection.lifeEventIncome && projection.lifeEventIncome > 0 ? (
+                            <span className="text-primary font-medium">
+                              +{formatCurrency(projection.lifeEventIncome)}
+                            </span>
+                          ) : '-'}
                         </td>
                       </>
                     )}
