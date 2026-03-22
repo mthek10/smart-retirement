@@ -905,7 +905,20 @@ export function calculateProjections(
           spouse1TradBalance -= rothConversion * s1Ratio;
           spouse2TradBalance -= rothConversion * (1 - s1Ratio);
         }
-        rothBalance += rothConversion;
+        
+        // When paying taxes from the conversion itself, reduce the amount landing in Roth
+        if (taxSettings.rothConversionTaxSource === "conversion") {
+          const marginalRate = getMarginalTaxBracket(
+            totalOrdinaryIncomePreConversion + rothConversion,
+            effectiveFilingStatus,
+            i,
+            taxSettings.inflationRate / 100
+          );
+          const conversionTaxFromFunds = rothConversion * marginalRate;
+          rothBalance += rothConversion - conversionTaxFromFunds;
+        } else {
+          rothBalance += rothConversion;
+        }
       }
     }
 

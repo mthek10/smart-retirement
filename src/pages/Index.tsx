@@ -64,6 +64,7 @@ const DEFAULT_TAX_SETTINGS = {
   inflationRate: 2.5,
   rothConversionStrategy: "none",
   rothConversionCustom: 94300,
+  rothConversionTaxSource: "brokerage" as "brokerage" | "conversion",
   acaSettings: {
     enabled: true,
     householdSize: 2,
