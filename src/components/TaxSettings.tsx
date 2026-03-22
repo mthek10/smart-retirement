@@ -460,6 +460,32 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
               </p>
             </div>
           )}
+
+          {taxSettings.rothConversionStrategy !== 'none' && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="rothConversionTaxSource">Pay Conversion Taxes From</Label>
+                <InfoTooltip text="Brokerage: full conversion amount goes to Roth, taxes are paid from withdrawals (current behavior). Converted Funds: taxes are withheld from the conversion, so only the after-tax portion lands in the Roth." />
+              </div>
+              <Select
+                value={(taxSettings as any).rothConversionTaxSource || 'brokerage'}
+                onValueChange={(value) => handleChange('rothConversionTaxSource', value)}
+              >
+                <SelectTrigger id="rothConversionTaxSource">
+                  <SelectValue placeholder="Select tax source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="brokerage">Brokerage Account (Default)</SelectItem>
+                  <SelectItem value="conversion">Converted Funds</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {(taxSettings as any).rothConversionTaxSource === 'conversion'
+                  ? 'Taxes are withheld from the conversion — only the after-tax portion lands in Roth.'
+                  : 'Full conversion goes to Roth. Taxes increase your withdrawal target for the year.'}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="pt-4 border-t space-y-4">
