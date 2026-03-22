@@ -103,6 +103,7 @@ export interface TaxSettings {
   inflationRate: number;
   rothConversionStrategy: string;
   rothConversionCustom: number;
+  rothConversionTaxSource?: "brokerage" | "conversion";
   preSurvivorStrategy?: string;
   acaSettings: ACASettings;
   spouse1Employment: EmploymentSettings;
