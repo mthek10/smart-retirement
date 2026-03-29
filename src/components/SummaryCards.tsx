@@ -60,6 +60,14 @@ interface SummaryCardsProps {
   finalAge?: number;
   onNavigateToSetup?: (stepIndex: number) => void;
   children?: React.ReactNode;
+  accountReturns?: {
+    traditionalReturn: number;
+    rothReturn: number;
+    taxableReturn: number;
+  };
+  isMarried?: boolean;
+  onAccountReturnsChange?: (field: string, value: number) => void;
+  onRecalculate?: () => void;
 }
 
 interface CardData {
