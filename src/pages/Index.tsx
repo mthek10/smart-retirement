@@ -237,14 +237,16 @@ const Index = () => {
 
   // Sync Monte Carlo expected return with Roth IRA return when it changes
   const handleAccountsChange = useCallback((newAccounts: typeof accounts) => {
-    setAccounts(newAccounts);
-    if (newAccounts.rothReturn !== accounts.rothReturn) {
-      setMonteCarloSettings(prev => ({
-        ...prev,
-        returnMean: newAccounts.rothReturn / 100,
-      }));
-    }
-  }, [accounts.rothReturn]);
+    setAccounts(prev => {
+      if (newAccounts.rothReturn !== prev.rothReturn) {
+        setMonteCarloSettings(mc => ({
+          ...mc,
+          returnMean: newAccounts.rothReturn / 100,
+        }));
+      }
+      return newAccounts;
+    });
+  }, []);
 
   const hasProgress = useMemo(
     () =>
