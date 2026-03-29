@@ -488,6 +488,7 @@ export function SummaryCards({
                   step={0.1}
                   value={[accountReturns.rothReturn || 0]}
                   onValueChange={([v]) => onAccountReturnsChange?.('rothReturn', v)}
+                  onValueCommit={([v]) => onAccountReturnsCommit?.('rothReturn', v)}
                   className="py-1"
                 />
               </div>
