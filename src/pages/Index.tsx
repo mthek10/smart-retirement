@@ -692,6 +692,11 @@ const Index = () => {
               onAccountReturnsChange={(field, value) => {
                 handleAccountsChange({ ...accounts, [field]: value });
               }}
+              onAccountReturnsCommit={(field, value) => {
+                if (field === 'rothReturn') {
+                  setMonteCarloSettings(mc => ({ ...mc, returnMean: value / 100 }));
+                }
+              }}
               onRecalculate={() => {
                 commitInputs();
               }}

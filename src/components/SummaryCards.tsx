@@ -68,6 +68,7 @@ interface SummaryCardsProps {
   };
   isMarried?: boolean;
   onAccountReturnsChange?: (field: string, value: number) => void;
+  onAccountReturnsCommit?: (field: string, value: number) => void;
   onRecalculate?: () => void;
 }
 
