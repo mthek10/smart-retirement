@@ -207,6 +207,7 @@ export function SummaryCards({
   accountReturns,
   isMarried,
   onAccountReturnsChange,
+  onAccountReturnsCommit,
   onRecalculate,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
