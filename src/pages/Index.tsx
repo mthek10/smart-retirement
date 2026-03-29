@@ -240,15 +240,6 @@ const Index = () => {
     setAccounts(newAccounts);
   }, []);
 
-  // Sync Monte Carlo expected return whenever rothReturn changes
-  const currentRothReturn = accounts.rothReturn;
-  useEffect(() => {
-    setMonteCarloSettings(mc => ({
-      ...mc,
-      returnMean: currentRothReturn / 100,
-    }));
-  }, [currentRothReturn]);
-
   const hasProgress = useMemo(
     () =>
       currentStep > 0 ||
