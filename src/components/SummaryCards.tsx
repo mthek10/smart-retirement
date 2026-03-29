@@ -1,6 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { DebouncedInput } from "@/components/ui/DebouncedInput";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   DollarSign,
   TrendingDown,
@@ -15,6 +18,7 @@ import {
   Receipt,
   BarChart3,
   Pencil,
+  RefreshCw,
 } from "lucide-react";
 import type { BracketAnalysis } from "@/lib/taxCalculations";
 import { formatCurrency } from "@/lib/utils";
