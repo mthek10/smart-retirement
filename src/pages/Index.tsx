@@ -686,7 +686,22 @@ const Index = () => {
               <IncomeAlertsBanner alerts={incomeAlerts} />
             )}
 
-            <SummaryCards {...summary} onNavigateToSetup={navigateToSetupStep}>
+            <SummaryCards
+              {...summary}
+              onNavigateToSetup={navigateToSetupStep}
+              accountReturns={{
+                traditionalReturn: accounts.traditionalReturn,
+                rothReturn: accounts.rothReturn,
+                taxableReturn: accounts.taxableReturn,
+              }}
+              isMarried={taxSettings.filingStatus === 'married'}
+              onAccountReturnsChange={(field, value) => {
+                handleAccountsChange({ ...accounts, [field]: value });
+              }}
+              onRecalculate={() => {
+                commitInputs();
+              }}
+            >
               {/* Action Items */}
               <ActionItems
                 projections={projections}
