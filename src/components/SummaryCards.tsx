@@ -202,6 +202,10 @@ export function SummaryCards({
   finalAge = 100,
   onNavigateToSetup,
   children,
+  accountReturns,
+  isMarried,
+  onAccountReturnsChange,
+  onRecalculate,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
   const accountCards: CardData[] = [
