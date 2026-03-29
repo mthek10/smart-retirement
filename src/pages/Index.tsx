@@ -240,15 +240,6 @@ const Index = () => {
     setAccounts(newAccounts);
   }, []);
 
-  // Sync Monte Carlo expected return whenever rothReturn changes
-  const currentRothReturn = accounts.rothReturn;
-  useEffect(() => {
-    setMonteCarloSettings(mc => ({
-      ...mc,
-      returnMean: currentRothReturn / 100,
-    }));
-  }, [currentRothReturn]);
-
   const hasProgress = useMemo(
     () =>
       currentStep > 0 ||
@@ -700,6 +691,11 @@ const Index = () => {
               isMarried={taxSettings.filingStatus === 'married'}
               onAccountReturnsChange={(field, value) => {
                 handleAccountsChange({ ...accounts, [field]: value });
+              }}
+              onAccountReturnsCommit={(field, value) => {
+                if (field === 'rothReturn') {
+                  setMonteCarloSettings(mc => ({ ...mc, returnMean: value / 100 }));
+                }
               }}
               onRecalculate={() => {
                 commitInputs();

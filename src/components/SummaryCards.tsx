@@ -68,6 +68,7 @@ interface SummaryCardsProps {
   };
   isMarried?: boolean;
   onAccountReturnsChange?: (field: string, value: number) => void;
+  onAccountReturnsCommit?: (field: string, value: number) => void;
   onRecalculate?: () => void;
 }
 
@@ -206,6 +207,7 @@ export function SummaryCards({
   accountReturns,
   isMarried,
   onAccountReturnsChange,
+  onAccountReturnsCommit,
   onRecalculate,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
@@ -486,6 +488,7 @@ export function SummaryCards({
                   step={0.1}
                   value={[accountReturns.rothReturn || 0]}
                   onValueChange={([v]) => onAccountReturnsChange?.('rothReturn', v)}
+                  onValueCommit={([v]) => onAccountReturnsCommit?.('rothReturn', v)}
                   className="py-1"
                 />
               </div>
