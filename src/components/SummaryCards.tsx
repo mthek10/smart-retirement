@@ -423,6 +423,11 @@ export function SummaryCards({
     });
   }
 
+  const handleReturnChange = (field: string, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    onAccountReturnsChange?.(field, numValue);
+  };
+
   return (
     <div className="space-y-4">
       {/* Hero: Account Depletion */}
@@ -437,6 +442,91 @@ export function SummaryCards({
           <SummaryCard key={card.title} card={card} />
         ))}
       </div>
+
+      {/* Annual Return Rates */}
+      {accountReturns && onAccountReturnsChange && (
+        <Card className="border-dashed">
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-muted-foreground">Annual Returns (%)</span>
+              {onRecalculate && (
+                <Button size="sm" variant="outline" onClick={onRecalculate} className="gap-1.5">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Recalculate
+                </Button>
+              )}
+            </div>
+            <div className={cn("grid gap-4", isMarried ? "grid-cols-2 md:grid-cols-4" : "grid-cols-3")}>
+              <div className="space-y-1">
+                <Label htmlFor="dash-tradReturn" className="text-xs">
+                  {isMarried ? "Spouse 1 401(k)" : "Traditional IRA/401(k)"}
+                </Label>
+                <DebouncedInput
+                  id="dash-tradReturn"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="15"
+                  placeholder="3.0"
+                  value={accountReturns.traditionalReturn || ''}
+                  onChange={(value) => handleReturnChange('traditionalReturn', value)}
+                  debounceMs={400}
+                  className="h-8 text-sm"
+                />
+              </div>
+              {isMarried && (
+                <div className="space-y-1">
+                  <Label htmlFor="dash-tradReturn2" className="text-xs">
+                    Spouse 2 401(k)
+                  </Label>
+                  <DebouncedInput
+                    id="dash-tradReturn2"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="15"
+                    placeholder="3.0"
+                    value={accountReturns.traditionalReturn || ''}
+                    onChange={(value) => handleReturnChange('traditionalReturn', value)}
+                    debounceMs={400}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              )}
+              <div className="space-y-1">
+                <Label htmlFor="dash-rothReturn" className="text-xs">Roth IRA</Label>
+                <DebouncedInput
+                  id="dash-rothReturn"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="15"
+                  placeholder="3.0"
+                  value={accountReturns.rothReturn || ''}
+                  onChange={(value) => handleReturnChange('rothReturn', value)}
+                  debounceMs={400}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dash-taxReturn" className="text-xs">Brokerage</Label>
+                <DebouncedInput
+                  id="dash-taxReturn"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="15"
+                  placeholder="3.0"
+                  value={accountReturns.taxableReturn || ''}
+                  onChange={(value) => handleReturnChange('taxableReturn', value)}
+                  debounceMs={400}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {children}
 
