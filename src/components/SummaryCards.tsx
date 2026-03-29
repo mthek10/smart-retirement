@@ -448,7 +448,10 @@ export function SummaryCards({
         <Card className="border-dashed">
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-muted-foreground">Annual Returns (%)</span>
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Annual Returns (%)</span>
+                <p className="text-xs text-muted-foreground mt-0.5">Adjust expected growth rates for each account type, then click Recalculate to update all projections.</p>
+              </div>
               {onRecalculate && (
                 <Button size="sm" variant="outline" onClick={onRecalculate} className="gap-1.5">
                   <RefreshCw className="h-3.5 w-3.5" />
