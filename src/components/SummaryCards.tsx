@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
+import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -459,52 +460,47 @@ export function SummaryCards({
                 </Button>
               )}
             </div>
-            <div className="grid gap-4 grid-cols-3">
-              <div className="space-y-1">
-                <Label htmlFor="dash-tradReturn" className="text-xs">
-                  Traditional IRA/401(k)
-                </Label>
-                <DebouncedInput
-                  id="dash-tradReturn"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="15"
-                  placeholder="3.0"
-                  value={accountReturns.traditionalReturn || ''}
-                  onChange={(value) => handleReturnChange('traditionalReturn', value)}
-                  debounceMs={400}
-                  className="h-8 text-sm"
+            <div className="grid gap-6 grid-cols-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Traditional IRA/401(k)</Label>
+                  <span className="text-xs font-semibold text-muted-foreground">{(accountReturns.traditionalReturn || 0).toFixed(1)}%</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={15}
+                  step={0.1}
+                  value={[accountReturns.traditionalReturn || 0]}
+                  onValueChange={([v]) => onAccountReturnsChange?.('traditionalReturn', v)}
+                  className="py-1"
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="dash-rothReturn" className="text-xs">Roth IRA</Label>
-                <DebouncedInput
-                  id="dash-rothReturn"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="15"
-                  placeholder="3.0"
-                  value={accountReturns.rothReturn || ''}
-                  onChange={(value) => handleReturnChange('rothReturn', value)}
-                  debounceMs={400}
-                  className="h-8 text-sm"
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Roth IRA</Label>
+                  <span className="text-xs font-semibold text-muted-foreground">{(accountReturns.rothReturn || 0).toFixed(1)}%</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={15}
+                  step={0.1}
+                  value={[accountReturns.rothReturn || 0]}
+                  onValueChange={([v]) => onAccountReturnsChange?.('rothReturn', v)}
+                  className="py-1"
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="dash-taxReturn" className="text-xs">Brokerage</Label>
-                <DebouncedInput
-                  id="dash-taxReturn"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="15"
-                  placeholder="3.0"
-                  value={accountReturns.taxableReturn || ''}
-                  onChange={(value) => handleReturnChange('taxableReturn', value)}
-                  debounceMs={400}
-                  className="h-8 text-sm"
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Brokerage</Label>
+                  <span className="text-xs font-semibold text-muted-foreground">{(accountReturns.taxableReturn || 0).toFixed(1)}%</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={15}
+                  step={0.1}
+                  value={[accountReturns.taxableReturn || 0]}
+                  onValueChange={([v]) => onAccountReturnsChange?.('taxableReturn', v)}
+                  className="py-1"
                 />
               </div>
             </div>
