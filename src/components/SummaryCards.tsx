@@ -456,10 +456,10 @@ export function SummaryCards({
                 </Button>
               )}
             </div>
-            <div className={cn("grid gap-4", isMarried ? "grid-cols-2 md:grid-cols-4" : "grid-cols-3")}>
+            <div className="grid gap-4 grid-cols-3">
               <div className="space-y-1">
                 <Label htmlFor="dash-tradReturn" className="text-xs">
-                  {isMarried ? "Spouse 1 401(k)" : "Traditional IRA/401(k)"}
+                  Traditional IRA/401(k)
                 </Label>
                 <DebouncedInput
                   id="dash-tradReturn"
@@ -474,25 +474,6 @@ export function SummaryCards({
                   className="h-8 text-sm"
                 />
               </div>
-              {isMarried && (
-                <div className="space-y-1">
-                  <Label htmlFor="dash-tradReturn2" className="text-xs">
-                    Spouse 2 401(k)
-                  </Label>
-                  <DebouncedInput
-                    id="dash-tradReturn2"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="15"
-                    placeholder="3.0"
-                    value={accountReturns.traditionalReturn || ''}
-                    onChange={(value) => handleReturnChange('traditionalReturn', value)}
-                    debounceMs={400}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              )}
               <div className="space-y-1">
                 <Label htmlFor="dash-rothReturn" className="text-xs">Roth IRA</Label>
                 <DebouncedInput
