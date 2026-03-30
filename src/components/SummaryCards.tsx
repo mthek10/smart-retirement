@@ -24,7 +24,7 @@ import {
 import type { BracketAnalysis } from "@/lib/taxCalculations";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 
 interface SurvivorAnalysis {
   peakBracket: number;
