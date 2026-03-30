@@ -114,6 +114,99 @@ const SummaryCard = memo(function SummaryCard({ card }: { card: CardData }) {
       </CardContent>
     </Card>
   );
+});
+
+function ReturnRateSliders({
+  accountReturns,
+  onAccountReturnsChange,
+  onAccountReturnsCommit,
+  onRecalculate,
+}: {
+  accountReturns: { traditionalReturn: number; rothReturn: number; taxableReturn: number };
+  onAccountReturnsChange?: (field: string, value: number) => void;
+  onAccountReturnsCommit?: (field: string, value: number) => void;
+  onRecalculate?: () => void;
+}) {
+  const [localReturns, setLocalReturns] = useState(accountReturns);
+  const [dirty, setDirty] = useState(false);
+
+  const handleChange = useCallback((field: string, value: number) => {
+    setLocalReturns(prev => ({ ...prev, [field]: value }));
+    setDirty(true);
+  }, []);
+
+  const handleRecalculate = useCallback(() => {
+    onAccountReturnsChange?.('traditionalReturn', localReturns.traditionalReturn);
+    onAccountReturnsChange?.('rothReturn', localReturns.rothReturn);
+    onAccountReturnsChange?.('taxableReturn', localReturns.taxableReturn);
+    onAccountReturnsCommit?.('rothReturn', localReturns.rothReturn);
+    setDirty(false);
+    // Defer recalculate to next tick so state settles
+    setTimeout(() => onRecalculate?.(), 0);
+  }, [localReturns, onAccountReturnsChange, onAccountReturnsCommit, onRecalculate]);
+
+  return (
+    <Card className="border-dashed">
+      <CardContent className="pt-4 pb-3">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="text-sm font-medium text-muted-foreground">Annual Returns (%)</span>
+            <p className="text-xs text-muted-foreground mt-0.5">Adjust expected growth rates for each account type, then click Recalculate to update all projections.</p>
+          </div>
+          {onRecalculate && (
+            <Button size="sm" variant={dirty ? "default" : "outline"} onClick={handleRecalculate} className="gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Recalculate
+            </Button>
+          )}
+        </div>
+        <div className="grid gap-6 grid-cols-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Traditional IRA/401(k)</Label>
+              <span className="text-xs font-semibold text-muted-foreground">{(localReturns.traditionalReturn || 0).toFixed(1)}%</span>
+            </div>
+            <Slider
+              min={0}
+              max={15}
+              step={0.1}
+              value={[localReturns.traditionalReturn || 0]}
+              onValueChange={([v]) => handleChange('traditionalReturn', v)}
+              className="py-1"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Roth IRA</Label>
+              <span className="text-xs font-semibold text-muted-foreground">{(localReturns.rothReturn || 0).toFixed(1)}%</span>
+            </div>
+            <Slider
+              min={0}
+              max={15}
+              step={0.1}
+              value={[localReturns.rothReturn || 0]}
+              onValueChange={([v]) => handleChange('rothReturn', v)}
+              className="py-1"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Brokerage</Label>
+              <span className="text-xs font-semibold text-muted-foreground">{(localReturns.taxableReturn || 0).toFixed(1)}%</span>
+            </div>
+            <Slider
+              min={0}
+              max={15}
+              step={0.1}
+              value={[localReturns.taxableReturn || 0]}
+              onValueChange={([v]) => handleChange('taxableReturn', v)}
+              className="py-1"
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function EditLink({ onClick, label }: { onClick: () => void; label: string }) {
