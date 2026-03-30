@@ -699,14 +699,8 @@ const Index = () => {
                 taxableReturn: accounts.taxableReturn,
               }}
               isMarried={taxSettings.filingStatus === 'married'}
-              onAccountReturnsChange={useCallback((field: string, value: number) => {
-                setAccounts(prev => ({ ...prev, [field]: value }));
-              }, [])}
-              onAccountReturnsCommit={useCallback((field: string, value: number) => {
-                if (field === 'rothReturn') {
-                  setMonteCarloSettings(mc => ({ ...mc, returnMean: value / 100 }));
-                }
-              }, [])}
+              onAccountReturnsChange={handleReturnFieldChange}
+              onAccountReturnsCommit={handleReturnFieldCommit}
               onRecalculate={commitInputs}
             >
               {/* Action Items */}
