@@ -16,6 +16,7 @@ import { ActionItems } from "@/components/ActionItems";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { RMDPlanner } from "@/components/RMDPlanner";
+import { TaxLossHarvestingTracker } from "@/components/TaxLossHarvestingTracker";
 import { useTwoPassProjections, findDepletionAges } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
