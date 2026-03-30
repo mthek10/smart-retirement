@@ -136,13 +136,15 @@ function ReturnRateSliders({
   }, []);
 
   const handleRecalculate = useCallback(() => {
+    // Push all three fields, then commit, then fire roth commit — all synchronously
+    // so the parent can batch them in one render cycle.
     onAccountReturnsChange?.('traditionalReturn', localReturns.traditionalReturn);
     onAccountReturnsChange?.('rothReturn', localReturns.rothReturn);
     onAccountReturnsChange?.('taxableReturn', localReturns.taxableReturn);
     onAccountReturnsCommit?.('rothReturn', localReturns.rothReturn);
     setDirty(false);
-    // Defer recalculate to next tick so state settles
-    setTimeout(() => onRecalculate?.(), 0);
+    // Use a microtask so React flushes the state updates above before commitInputs reads them
+    Promise.resolve().then(() => onRecalculate?.());
   }, [localReturns, onAccountReturnsChange, onAccountReturnsCommit, onRecalculate]);
 
   return (

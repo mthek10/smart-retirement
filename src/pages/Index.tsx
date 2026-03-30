@@ -222,15 +222,24 @@ const Index = () => {
 
   const commitInputs = useCallback(() => {
     setIsRecalculating(true);
-    // Defer state commits so the "recalculating" UI renders first
+    // Use functional updaters to read the latest state values,
+    // avoiding stale closure issues when called after batched setState calls.
     setTimeout(() => {
-      setCommittedAccounts(accounts);
-      setCommittedSSData(ssData);
-      setCommittedTaxSettings(taxSettings);
-      // Clear indicator after the sync useMemo finishes on next render
+      setAccounts(latestAccounts => {
+        setCommittedAccounts(latestAccounts);
+        return latestAccounts;
+      });
+      setSsData(latestSS => {
+        setCommittedSSData(latestSS);
+        return latestSS;
+      });
+      setTaxSettings(latestTax => {
+        setCommittedTaxSettings(latestTax);
+        return latestTax;
+      });
       requestAnimationFrame(() => setIsRecalculating(false));
     }, 50);
-  }, [accounts, ssData, taxSettings]);
+  }, []);
 
   // Use projections from the two-pass hook (reads committed snapshots only)
   const twoPassResults = useTwoPassProjections(committedAccounts, committedSSData, committedTaxSettings);
