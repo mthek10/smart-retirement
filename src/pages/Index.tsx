@@ -229,7 +229,7 @@ const Index = () => {
         setCommittedAccounts(latestAccounts);
         return latestAccounts;
       });
-      setSSData(latestSS => {
+      setSsData(latestSS => {
         setCommittedSSData(latestSS);
         return latestSS;
       });
