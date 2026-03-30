@@ -83,7 +83,7 @@ interface CardData {
   isPercent?: boolean;
 }
 
-function SummaryCard({ card }: { card: CardData }) {
+const SummaryCard = memo(function SummaryCard({ card }: { card: CardData }) {
   const Icon = card.icon;
   const borderColor = card.color.includes("destructive") ? "border-l-destructive" 
     : card.color.includes("green") ? "border-l-success" 
