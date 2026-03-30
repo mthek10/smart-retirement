@@ -240,6 +240,16 @@ const Index = () => {
     setAccounts(newAccounts);
   }, []);
 
+  const handleReturnFieldChange = useCallback((field: string, value: number) => {
+    setAccounts(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleReturnFieldCommit = useCallback((field: string, value: number) => {
+    if (field === 'rothReturn') {
+      setMonteCarloSettings(mc => ({ ...mc, returnMean: value / 100 }));
+    }
+  }, []);
+
   const hasProgress = useMemo(
     () =>
       currentStep > 0 ||
@@ -689,17 +699,9 @@ const Index = () => {
                 taxableReturn: accounts.taxableReturn,
               }}
               isMarried={taxSettings.filingStatus === 'married'}
-              onAccountReturnsChange={(field, value) => {
-                handleAccountsChange({ ...accounts, [field]: value });
-              }}
-              onAccountReturnsCommit={(field, value) => {
-                if (field === 'rothReturn') {
-                  setMonteCarloSettings(mc => ({ ...mc, returnMean: value / 100 }));
-                }
-              }}
-              onRecalculate={() => {
-                commitInputs();
-              }}
+              onAccountReturnsChange={handleReturnFieldChange}
+              onAccountReturnsCommit={handleReturnFieldCommit}
+              onRecalculate={commitInputs}
             >
               {/* Action Items */}
               <ActionItems
