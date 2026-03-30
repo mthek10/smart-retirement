@@ -240,7 +240,7 @@ export function TaxLossHarvestingTracker({
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                 <ArrowRightLeft className="h-3.5 w-3.5" />
                 Projected Gains
-                <InfoTooltip content="Total capital gains expected from brokerage withdrawals over the projection period" />
+                <InfoTooltip text="Total capital gains expected from brokerage withdrawals over the projection period" />
               </div>
               <div className="text-xl font-bold">{formatCurrency(totalProjectedGains)}</div>
               <div className="text-xs text-muted-foreground mt-0.5">
