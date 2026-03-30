@@ -218,10 +218,18 @@ const Index = () => {
   const [committedSSData, setCommittedSSData] = useState<SSDataState>(DEFAULT_SS_DATA);
   const [committedTaxSettings, setCommittedTaxSettings] = useState<TaxSettingsState>(DEFAULT_TAX_SETTINGS);
 
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
   const commitInputs = useCallback(() => {
-    setCommittedAccounts(accounts);
-    setCommittedSSData(ssData);
-    setCommittedTaxSettings(taxSettings);
+    setIsRecalculating(true);
+    // Defer state commits so the "recalculating" UI renders first
+    setTimeout(() => {
+      setCommittedAccounts(accounts);
+      setCommittedSSData(ssData);
+      setCommittedTaxSettings(taxSettings);
+      // Clear indicator after the sync useMemo finishes on next render
+      requestAnimationFrame(() => setIsRecalculating(false));
+    }, 50);
   }, [accounts, ssData, taxSettings]);
 
   // Use projections from the two-pass hook (reads committed snapshots only)
