@@ -240,6 +240,16 @@ const Index = () => {
     setAccounts(newAccounts);
   }, []);
 
+  const handleReturnFieldChange = useCallback((field: string, value: number) => {
+    setAccounts(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleReturnFieldCommit = useCallback((field: string, value: number) => {
+    if (field === 'rothReturn') {
+      setMonteCarloSettings(mc => ({ ...mc, returnMean: value / 100 }));
+    }
+  }, []);
+
   const hasProgress = useMemo(
     () =>
       currentStep > 0 ||
