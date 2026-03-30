@@ -16,6 +16,7 @@ import { ActionItems } from "@/components/ActionItems";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { RMDPlanner } from "@/components/RMDPlanner";
+import { TaxLossHarvestingTracker } from "@/components/TaxLossHarvestingTracker";
 import { useTwoPassProjections, findDepletionAges } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
@@ -823,6 +824,15 @@ const Index = () => {
               inflationRate={committedTaxSettings.inflationRate}
               otherIncome={committedSSData.spouse1.estimatedBenefit * 12 + (committedTaxSettings.filingStatus === 'married' ? committedSSData.spouse2.estimatedBenefit * 12 : 0)}
               visibleTabs={['strategies']}
+            />
+
+            <TaxLossHarvestingTracker
+              projections={projections}
+              taxableBalance={committedAccounts.taxable}
+              costBasisPercent={committedAccounts.taxableCostBasisPercent}
+              taxableReturn={committedAccounts.taxableReturn}
+              filingStatus={committedTaxSettings.filingStatus}
+              spouse1Age={committedTaxSettings.spouse1Age}
             />
 
             <div className="flex justify-end pt-2">
