@@ -186,7 +186,7 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
               debounceMs={400}
             />
             <p className="text-sm text-muted-foreground">
-              Percentage of brokerage account that is cost basis (default: 50%)
+              Cost basis: {formatCurrency(accounts.taxable * (accounts.taxableCostBasisPercent || 50) / 100)} · Unrealized gains: {formatCurrency(accounts.taxable - accounts.taxable * (accounts.taxableCostBasisPercent || 50) / 100)}
             </p>
           </div>
         </div>
