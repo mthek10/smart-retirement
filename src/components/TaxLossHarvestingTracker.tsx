@@ -254,7 +254,7 @@ export function TaxLossHarvestingTracker({
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                 Annual Income Offset
-                <InfoTooltip content="Net capital losses can offset up to $3,000 of ordinary income per year, with unlimited carryforward" />
+                <InfoTooltip text="Net capital losses can offset up to $3,000 of ordinary income per year, with unlimited carryforward" />
               </div>
               <div className="text-xl font-bold">{formatCurrency(ORDINARY_INCOME_LOSS_CAP)}/yr</div>
               <div className="text-xs text-muted-foreground mt-0.5">
