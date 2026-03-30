@@ -400,7 +400,7 @@ export function TaxLossHarvestingTracker({
           <div>
             <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
               Projected Capital Gains by Year
-              <InfoTooltip content="Years where your brokerage withdrawals generate taxable capital gains. Harvested losses from a downturn could offset these gains dollar-for-dollar." />
+              <InfoTooltip text="Years where your brokerage withdrawals generate taxable capital gains. Harvested losses from a downturn could offset these gains dollar-for-dollar." />
             </h3>
             <div className="rounded-md border overflow-x-auto">
               <Table>
