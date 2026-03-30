@@ -218,10 +218,18 @@ const Index = () => {
   const [committedSSData, setCommittedSSData] = useState<SSDataState>(DEFAULT_SS_DATA);
   const [committedTaxSettings, setCommittedTaxSettings] = useState<TaxSettingsState>(DEFAULT_TAX_SETTINGS);
 
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
   const commitInputs = useCallback(() => {
-    setCommittedAccounts(accounts);
-    setCommittedSSData(ssData);
-    setCommittedTaxSettings(taxSettings);
+    setIsRecalculating(true);
+    // Defer state commits so the "recalculating" UI renders first
+    setTimeout(() => {
+      setCommittedAccounts(accounts);
+      setCommittedSSData(ssData);
+      setCommittedTaxSettings(taxSettings);
+      // Clear indicator after the sync useMemo finishes on next render
+      requestAnimationFrame(() => setIsRecalculating(false));
+    }, 50);
   }, [accounts, ssData, taxSettings]);
 
   // Use projections from the two-pass hook (reads committed snapshots only)
@@ -684,7 +692,13 @@ const Index = () => {
             />
           </TabsContent>
 
-          <TabsContent value="dashboard" className="space-y-6 mt-6">
+          <TabsContent value="dashboard" className="space-y-6 mt-6 relative">
+            {isRecalculating && (
+              <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full shadow-lg animate-pulse">
+                <div className="h-4 w-4 rounded-full border-2 border-primary-foreground border-t-transparent animate-spin" />
+                <span className="text-sm font-medium">Recalculating…</span>
+              </div>
+            )}
             {/* Income Alerts Banner */}
             {incomeAlerts.length > 0 && (
               <IncomeAlertsBanner alerts={incomeAlerts} />
