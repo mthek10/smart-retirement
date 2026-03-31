@@ -580,6 +580,8 @@ export function SummaryCards({
           onAccountReturnsChange={onAccountReturnsChange}
           onAccountReturnsCommit={onAccountReturnsCommit}
           onRecalculate={onRecalculate}
+          targetTakeHome={targetTakeHome}
+          onTargetTakeHomeChange={onTargetTakeHomeChange}
         />
       )}
 
