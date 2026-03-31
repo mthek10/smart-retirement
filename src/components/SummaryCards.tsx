@@ -220,6 +220,23 @@ function ReturnRateSliders({
             />
           </div>
         </div>
+        {targetTakeHome !== undefined && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center gap-3">
+              <Label className="text-xs whitespace-nowrap">Annual Take Home</Label>
+              <div className="relative max-w-[180px]">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                <Input
+                  type="text"
+                  value={localTakeHome.toLocaleString()}
+                  onChange={handleTakeHomeChange}
+                  className="pl-6 h-8 text-sm"
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">after all taxes (Year 1)</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
