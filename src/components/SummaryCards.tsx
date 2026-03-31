@@ -3,6 +3,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,6 +71,8 @@ interface SummaryCardsProps {
   onAccountReturnsChange?: (field: string, value: number) => void;
   onAccountReturnsCommit?: (field: string, value: number) => void;
   onRecalculate?: () => void;
+  targetTakeHome?: number;
+  onTargetTakeHomeChange?: (value: number) => void;
 }
 
 interface CardData {
@@ -121,13 +124,18 @@ function ReturnRateSliders({
   onAccountReturnsChange,
   onAccountReturnsCommit,
   onRecalculate,
+  targetTakeHome,
+  onTargetTakeHomeChange,
 }: {
   accountReturns: { traditionalReturn: number; rothReturn: number; taxableReturn: number };
   onAccountReturnsChange?: (field: string, value: number) => void;
   onAccountReturnsCommit?: (field: string, value: number) => void;
   onRecalculate?: () => void;
+  targetTakeHome?: number;
+  onTargetTakeHomeChange?: (value: number) => void;
 }) {
   const [localReturns, setLocalReturns] = useState(accountReturns);
+  const [localTakeHome, setLocalTakeHome] = useState(targetTakeHome || 0);
   const [dirty, setDirty] = useState(false);
 
   const handleChange = useCallback((field: string, value: number) => {
@@ -135,17 +143,24 @@ function ReturnRateSliders({
     setDirty(true);
   }, []);
 
+  const handleTakeHomeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    const num = parseInt(raw, 10);
+    setLocalTakeHome(isNaN(num) ? 0 : num);
+    setDirty(true);
+  }, []);
+
   const handleRecalculate = useCallback(() => {
-    // Push all three fields, then commit, then fire roth commit — all synchronously
-    // so the parent can batch them in one render cycle.
     onAccountReturnsChange?.('traditionalReturn', localReturns.traditionalReturn);
     onAccountReturnsChange?.('rothReturn', localReturns.rothReturn);
     onAccountReturnsChange?.('taxableReturn', localReturns.taxableReturn);
     onAccountReturnsCommit?.('rothReturn', localReturns.rothReturn);
+    if (onTargetTakeHomeChange && localTakeHome !== targetTakeHome) {
+      onTargetTakeHomeChange(localTakeHome);
+    }
     setDirty(false);
-    // Use a microtask so React flushes the state updates above before commitInputs reads them
     Promise.resolve().then(() => onRecalculate?.());
-  }, [localReturns, onAccountReturnsChange, onAccountReturnsCommit, onRecalculate]);
+  }, [localReturns, localTakeHome, targetTakeHome, onAccountReturnsChange, onAccountReturnsCommit, onTargetTakeHomeChange, onRecalculate]);
 
   return (
     <Card className="border-dashed">
@@ -206,6 +221,23 @@ function ReturnRateSliders({
             />
           </div>
         </div>
+        {targetTakeHome !== undefined && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center gap-3">
+              <Label className="text-xs whitespace-nowrap">Annual Take Home</Label>
+              <div className="relative max-w-[180px]">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                <Input
+                  type="text"
+                  value={localTakeHome.toLocaleString()}
+                  onChange={handleTakeHomeChange}
+                  className="pl-6 h-8 text-sm"
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">after all taxes (Year 1)</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -304,6 +336,8 @@ export function SummaryCards({
   onAccountReturnsChange,
   onAccountReturnsCommit,
   onRecalculate,
+  targetTakeHome,
+  onTargetTakeHomeChange,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
   const accountCards: CardData[] = [
@@ -548,6 +582,8 @@ export function SummaryCards({
           onAccountReturnsChange={onAccountReturnsChange}
           onAccountReturnsCommit={onAccountReturnsCommit}
           onRecalculate={onRecalculate}
+          targetTakeHome={targetTakeHome}
+          onTargetTakeHomeChange={onTargetTakeHomeChange}
         />
       )}
 
