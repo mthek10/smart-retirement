@@ -229,7 +229,7 @@ export function ActionItems({
       priority: 'low',
       category: 'roth',
       title: 'Roth Strategy Active — Year-by-Year Capacity',
-      description: `Your current strategy is filling the ${rothSchedule[0].bracket}% bracket. Here's the remaining room each year:`,
+      description: `Your current strategy is filling the ${rothConversionStrategy.startsWith('fill_') ? rothConversionStrategy.replace('fill_', '') : rothSchedule[0].bracket}% bracket. Here's the remaining room each year:`,
       impact: `${scheduleLines.join('\n')}`,
       icon: <CheckCircle2 className="h-5 w-5 text-success" />,
     });
