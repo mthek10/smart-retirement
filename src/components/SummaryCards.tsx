@@ -123,13 +123,18 @@ function ReturnRateSliders({
   onAccountReturnsChange,
   onAccountReturnsCommit,
   onRecalculate,
+  targetTakeHome,
+  onTargetTakeHomeChange,
 }: {
   accountReturns: { traditionalReturn: number; rothReturn: number; taxableReturn: number };
   onAccountReturnsChange?: (field: string, value: number) => void;
   onAccountReturnsCommit?: (field: string, value: number) => void;
   onRecalculate?: () => void;
+  targetTakeHome?: number;
+  onTargetTakeHomeChange?: (value: number) => void;
 }) {
   const [localReturns, setLocalReturns] = useState(accountReturns);
+  const [localTakeHome, setLocalTakeHome] = useState(targetTakeHome || 0);
   const [dirty, setDirty] = useState(false);
 
   const handleChange = useCallback((field: string, value: number) => {
