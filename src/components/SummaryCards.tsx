@@ -336,6 +336,8 @@ export function SummaryCards({
   onAccountReturnsChange,
   onAccountReturnsCommit,
   onRecalculate,
+  targetTakeHome,
+  onTargetTakeHomeChange,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
   const accountCards: CardData[] = [
