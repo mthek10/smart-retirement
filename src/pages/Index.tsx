@@ -726,6 +726,8 @@ const Index = () => {
               onAccountReturnsChange={handleReturnFieldChange}
               onAccountReturnsCommit={handleReturnFieldCommit}
               onRecalculate={commitInputs}
+              targetTakeHome={taxSettings.targetTakeHome}
+              onTargetTakeHomeChange={(value: number) => setTaxSettings(prev => ({ ...prev, targetTakeHome: value }))}
             >
               {/* Action Items */}
               <ActionItems
