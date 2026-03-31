@@ -153,7 +153,7 @@ function Spouse401kInputs({
           type="number"
           step="1000"
           min="0"
-          placeholder="10000"
+          placeholder="0"
           value={employment.employerMatchAmount || ''}
           onChange={(value) => onChange('employerMatchAmount', parseFloat(value) || 0)}
         />
