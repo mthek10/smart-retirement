@@ -70,6 +70,8 @@ interface SummaryCardsProps {
   onAccountReturnsChange?: (field: string, value: number) => void;
   onAccountReturnsCommit?: (field: string, value: number) => void;
   onRecalculate?: () => void;
+  targetTakeHome?: number;
+  onTargetTakeHomeChange?: (value: number) => void;
 }
 
 interface CardData {
