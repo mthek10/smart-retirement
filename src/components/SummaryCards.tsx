@@ -3,6 +3,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
