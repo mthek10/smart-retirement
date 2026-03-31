@@ -168,7 +168,7 @@ function ReturnRateSliders({
         <div className="flex items-center justify-between mb-3">
           <div>
             <span className="text-sm font-medium text-muted-foreground">Annual Returns (%)</span>
-            <p className="text-xs text-muted-foreground mt-0.5">Adjust expected growth rates for each account type, then click Recalculate to update all projections.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">EASY UPDATE - Adjust expected growth rates for each account type and Annual Take Home, then click Recalculate to easily update all projections.</p>
           </div>
           {onRecalculate && (
             <Button size="sm" variant={dirty ? "default" : "outline"} onClick={handleRecalculate} className="gap-1.5">
