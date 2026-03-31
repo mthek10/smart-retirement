@@ -142,17 +142,24 @@ function ReturnRateSliders({
     setDirty(true);
   }, []);
 
+  const handleTakeHomeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    const num = parseInt(raw, 10);
+    setLocalTakeHome(isNaN(num) ? 0 : num);
+    setDirty(true);
+  }, []);
+
   const handleRecalculate = useCallback(() => {
-    // Push all three fields, then commit, then fire roth commit — all synchronously
-    // so the parent can batch them in one render cycle.
     onAccountReturnsChange?.('traditionalReturn', localReturns.traditionalReturn);
     onAccountReturnsChange?.('rothReturn', localReturns.rothReturn);
     onAccountReturnsChange?.('taxableReturn', localReturns.taxableReturn);
     onAccountReturnsCommit?.('rothReturn', localReturns.rothReturn);
+    if (onTargetTakeHomeChange && localTakeHome !== targetTakeHome) {
+      onTargetTakeHomeChange(localTakeHome);
+    }
     setDirty(false);
-    // Use a microtask so React flushes the state updates above before commitInputs reads them
     Promise.resolve().then(() => onRecalculate?.());
-  }, [localReturns, onAccountReturnsChange, onAccountReturnsCommit, onRecalculate]);
+  }, [localReturns, localTakeHome, targetTakeHome, onAccountReturnsChange, onAccountReturnsCommit, onTargetTakeHomeChange, onRecalculate]);
 
   return (
     <Card className="border-dashed">
