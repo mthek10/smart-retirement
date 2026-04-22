@@ -31,8 +31,13 @@ export interface Accounts {
   taxable: number;
   traditionalReturn: number;
   rothReturn: number;
+  /** Price appreciation portion of brokerage return (% per year). Unrealized until sale. */
   taxableReturn: number;
   taxableCostBasisPercent: number;
+  /** Annual qualified dividend yield (%). Taxed at LTCG rates; reinvested into brokerage. */
+  qualifiedDividendYield?: number;
+  /** Annual ordinary (non-qualified) dividend yield (%). Taxed as ordinary income; reinvested into brokerage. */
+  ordinaryDividendYield?: number;
 }
 
 export interface SSData {
@@ -152,6 +157,8 @@ export interface ProjectionRow {
   isSurvivorYear: boolean;
   lifeEventExpense: number;
   lifeEventIncome: number;
+  qualifiedDividends: number;
+  ordinaryDividends: number;
 }
 
 /**
@@ -246,6 +253,8 @@ function solveRequiredWithdrawal(
   stateRate: number,
   acaSettings?: ACASettings,
   acaEnrolleeAges?: number[],
+  qualifiedDividends: number = 0,
+  ordinaryDividends: number = 0,
 ): number {
   let low = Math.max(0, currentRMD);
   let high = Math.max(
@@ -303,10 +312,10 @@ function solveRequiredWithdrawal(
     );
     if (targetIncomeLimit > 0 && testTrad > 0) {
       // Match main loop's Roth conversion room calculation exactly
-      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome;
+      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome + ordinaryDividends;
       const taxableSSPreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
-        ordinaryIncomePreConversion + capitalGainsRealized,
+        ordinaryIncomePreConversion + capitalGainsRealized + qualifiedDividends,
         effectiveFilingStatus
       );
       const totalOrdinaryPreConversion = ordinaryIncomePreConversion + taxableSSPreConversion;
@@ -314,32 +323,33 @@ function solveRequiredWithdrawal(
       rothConversion = Math.min(conversionRoom, testTrad);
     }
     
-    const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages + pensionIncome;
-    const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGainsRealized, effectiveFilingStatus);
+    const totalCapitalGains = capitalGainsRealized + qualifiedDividends;
+    const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages + pensionIncome + ordinaryDividends;
+    const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + totalCapitalGains, effectiveFilingStatus);
     const totalOrdinaryIncome = ordinaryIncome + taxableSS;
     
     const federalTax = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, yearIndex, inflationFraction);
-    const federalCapitalGainsTax = calculateCapitalGainsTax(capitalGainsRealized, totalOrdinaryIncome, effectiveFilingStatus, yearIndex, inflationFraction);
+    const federalCapitalGainsTax = calculateCapitalGainsTax(totalCapitalGains, totalOrdinaryIncome, effectiveFilingStatus, yearIndex, inflationFraction);
     
     let stateTax = 0;
     let stateCapitalGainsTax = 0;
     
     if (state === 'other') {
       stateTax = totalOrdinaryIncome * (stateRate / 100);
-      stateCapitalGainsTax = capitalGainsRealized * (stateRate / 100);
+      stateCapitalGainsTax = totalCapitalGains * (stateRate / 100);
     } else if (state && state !== 'none') {
-      const agi = totalOrdinaryIncome + capitalGainsRealized;
+      const agi = totalOrdinaryIncome + totalCapitalGains;
       const olderLivingSpouseAge = spouse1Alive && spouse2Alive
         ? Math.max(spouse1Age, spouse2Age)
         : (spouse1Alive ? spouse1Age : spouse2Age);
       const stateSSTax = calculateStateSocialSecurityTax(ssAnnual, agi, effectiveFilingStatus, state, olderLivingSpouseAge);
       const nonSSIncome = ordinaryIncome;
       const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, state, effectiveFilingStatus);
-      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGainsRealized, nonSSIncome, state, effectiveFilingStatus);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(totalCapitalGains, nonSSIncome, state, effectiveFilingStatus);
       stateTax = stateSSTax + stateIncomeTax;
     }
     
-    const magi = totalOrdinaryIncome + capitalGainsRealized;
+    const magi = totalOrdinaryIncome + totalCapitalGains;
     let irmaa = 0;
     if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
       irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
@@ -356,8 +366,8 @@ function solveRequiredWithdrawal(
       medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
     }
     
-    const niit = calculateNIIT(capitalGainsRealized, magi, effectiveFilingStatus, yearIndex, inflationFraction);
-    const amt = calculateAMT(totalOrdinaryIncome, capitalGainsRealized, effectiveFilingStatus, yearIndex, inflationFraction);
+    const niit = calculateNIIT(totalCapitalGains, magi, effectiveFilingStatus, yearIndex, inflationFraction);
+    const amt = calculateAMT(totalOrdinaryIncome, totalCapitalGains, effectiveFilingStatus, yearIndex, inflationFraction);
     
     // ACA cost calculation
     let netAcaCost = 0;
@@ -421,6 +431,10 @@ export function calculateProjections(
   let spouse2TradBalance = isMarried ? accounts.spouse2Traditional : 0;
   let rothBalance = accounts.roth;
   let taxableBalance = accounts.taxable;
+  // Track brokerage cost basis in dollars for accurate dividend reinvestment & gain calc
+  let costBasisDollars = accounts.taxable * (accounts.taxableCostBasisPercent / 100);
+  const qualifiedDividendYield = accounts.qualifiedDividendYield ?? 0;
+  const ordinaryDividendYield = accounts.ordinaryDividendYield ?? 0;
 
   const maxYears = isMarried
     ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
@@ -674,8 +688,22 @@ export function calculateProjections(
 
     // Non-taxable income reduces what we need to withdraw
     adjustedTargetTakeHome = Math.max(0, adjustedTargetTakeHome - yearNontaxableIncome);
-    // Deposit non-taxable income into brokerage
+    // Deposit non-taxable income into brokerage (and treat as basis - it's after-tax)
     taxableBalance += yearNontaxableIncome;
+    costBasisDollars += yearNontaxableIncome;
+
+    // Brokerage dividends: paid annually, taxed, then reinvested (increases basis)
+    const qualifiedDividends = taxableBalance * (qualifiedDividendYield / 100);
+    const ordinaryDividends = taxableBalance * (ordinaryDividendYield / 100);
+    const totalDividends = qualifiedDividends + ordinaryDividends;
+    if (totalDividends > 0) {
+      taxableBalance += totalDividends;
+      costBasisDollars += totalDividends;
+    }
+    // Current cost basis percent (used by withdrawal/conversion gain calculations)
+    const currentCostBasisPercent = taxableBalance > 0
+      ? Math.min(100, Math.max(0, (costBasisDollars / taxableBalance) * 100))
+      : accounts.taxableCostBasisPercent;
     
     // Compute ACA enrollee ages for the solver
     const solverEnrolleeAges: number[] = [];
@@ -718,7 +746,7 @@ export function calculateProjections(
       taxableWages,
       totalPensionIncome,
       effectiveFilingStatus,
-      accounts.taxableCostBasisPercent,
+      currentCostBasisPercent,
       solverConversionStrategy,
       taxSettings.inflationRate,
       taxSettings.rothConversionCustom,
@@ -726,6 +754,8 @@ export function calculateProjections(
       taxSettings.stateRate,
       taxSettings.acaSettings,
       solverEnrolleeAges,
+      qualifiedDividends,
+      ordinaryDividends,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
@@ -760,6 +790,9 @@ export function calculateProjections(
 
     if (withdrawalAmount > 0 && taxableBalance > 0) {
       taxableWithdrawal = Math.min(withdrawalAmount, taxableBalance);
+      // Reduce basis proportionally to withdrawal (FIFO/avg-cost simplification)
+      const basisRatio = taxableBalance > 0 ? costBasisDollars / taxableBalance : 0;
+      costBasisDollars = Math.max(0, costBasisDollars - taxableWithdrawal * basisRatio);
       withdrawalAmount -= taxableWithdrawal;
       taxableBalance -= taxableWithdrawal;
     }
@@ -814,8 +847,9 @@ export function calculateProjections(
     const remainingTradForConversion = spouse1TradBalance + spouse2TradBalance;
     
     if (targetIncomeLimit > 0 && remainingTradForConversion > 0) {
-      const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
-      const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages + totalPensionIncome;
+      const realizedGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
+      const capitalGains = realizedGains + qualifiedDividends;
+      const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages + totalPensionIncome + ordinaryDividends;
       const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
         ordinaryIncomePreConversion + capitalGains,
@@ -922,8 +956,9 @@ export function calculateProjections(
       }
     }
 
-    const capitalGains = taxableWithdrawal * ((100 - accounts.taxableCostBasisPercent) / 100);
-    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome;
+    const realizedCapitalGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
+    const capitalGains = realizedCapitalGains + qualifiedDividends;
+    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends;
     
     const taxableSSIncome = calculateTaxableSocialSecurity(
       ssAnnual, 
@@ -1035,11 +1070,14 @@ export function calculateProjections(
     
     if (totalExcess > 0) {
       taxableBalance += totalExcess;
+      // After-tax excess reinvested → adds to cost basis (no future double-tax)
+      costBasisDollars += totalExcess;
     }
 
     spouse1TradBalance *= (1 + accounts.traditionalReturn / 100);
     spouse2TradBalance *= (1 + accounts.traditionalReturn / 100);
     rothBalance *= (1 + accounts.rothReturn / 100);
+    // Brokerage: only price appreciation here (dividends were paid+reinvested above)
     taxableBalance *= (1 + accounts.taxableReturn / 100);
     
     const endingTradBalance = spouse1TradBalance + spouse2TradBalance;
@@ -1087,6 +1125,8 @@ export function calculateProjections(
       isSurvivorYear,
       lifeEventExpense: yearExpenses,
       lifeEventIncome: totalLifeEventIncome,
+      qualifiedDividends,
+      ordinaryDividends,
     });
   }
 
