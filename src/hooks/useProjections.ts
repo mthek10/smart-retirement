@@ -96,6 +96,16 @@ export interface LifeEvent {
   amount: number;
   age: number; // spouse1's age when it occurs
   taxable: boolean; // for income: is it taxable? for expense: ignored
+  /** Optional subtype for specialized tax handling. Currently supports "home_sale" (IRS §121 exclusion). */
+  subtype?: "home_sale";
+  /** Home sale: gross sale price */
+  salePrice?: number;
+  /** Home sale: original purchase price + capital improvements */
+  costBasis?: number;
+  /** Home sale: agent commissions, closing costs that reduce realized gain */
+  sellingCosts?: number;
+  /** Home sale: whether the sale qualifies for the §121 primary residence exclusion */
+  qualifiesForSection121?: boolean;
 }
 
 export interface TaxSettings {
