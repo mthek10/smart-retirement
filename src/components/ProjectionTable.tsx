@@ -293,6 +293,19 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                           )}
                         </td>
                         <td className="p-4 align-middle text-right">
+                          {(() => {
+                            const div = (projection.qualifiedDividends ?? 0) + (projection.ordinaryDividends ?? 0);
+                            return div > 0 ? (
+                              <span
+                                className="text-amber-600 dark:text-amber-400 font-medium"
+                                title={`Qualified: ${formatCurrency(projection.qualifiedDividends ?? 0)} · Ordinary: ${formatCurrency(projection.ordinaryDividends ?? 0)}`}
+                              >
+                                {formatCurrency(div)}
+                              </span>
+                            ) : '-';
+                          })()}
+                        </td>
+                        <td className="p-4 align-middle text-right">
                           {projection.excessSavings && projection.excessSavings > 0 ? (
                             <span className="text-green-600 dark:text-green-400 font-medium">
                               +{formatCurrency(projection.excessSavings)}
