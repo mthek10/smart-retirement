@@ -14,7 +14,7 @@ interface BracketFillGaugeProps {
   projectedFutureBracket?: number;
 }
 
-export function BracketFillGauge({
+export const BracketFillGauge = memo(function BracketFillGauge({
   grossIncome,
   filingStatus,
   yearIndex = 0,
@@ -158,4 +158,4 @@ export function BracketFillGauge({
       </CardContent>
     </Card>
   );
-}
+});
