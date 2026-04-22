@@ -31,8 +31,13 @@ export interface Accounts {
   taxable: number;
   traditionalReturn: number;
   rothReturn: number;
+  /** Price appreciation portion of brokerage return (% per year). Unrealized until sale. */
   taxableReturn: number;
   taxableCostBasisPercent: number;
+  /** Annual qualified dividend yield (%). Taxed at LTCG rates; reinvested into brokerage. */
+  qualifiedDividendYield?: number;
+  /** Annual ordinary (non-qualified) dividend yield (%). Taxed as ordinary income; reinvested into brokerage. */
+  ordinaryDividendYield?: number;
 }
 
 export interface SSData {
