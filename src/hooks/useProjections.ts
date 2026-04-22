@@ -1205,7 +1205,9 @@ export function calculateProjections(
     const amt = calculateAMT(totalOrdinaryIncome, capitalGains, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
 
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
+    // Cash charitable donations come out of take-home; appreciated shares come from brokerage (already subtracted above);
+    // QCD comes from Trad IRA (already subtracted above). Only cash reduces calculated take-home here.
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost - charitableCashDeduction;
     
     // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
     let totalExcess = 0;
