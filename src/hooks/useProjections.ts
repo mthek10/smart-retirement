@@ -269,6 +269,7 @@ function solveRequiredWithdrawal(
   acaEnrolleeAges?: number[],
   qualifiedDividends: number = 0,
   ordinaryDividends: number = 0,
+  extraCapitalGains: number = 0,
 ): number {
   let low = Math.max(0, currentRMD);
   let high = Math.max(
