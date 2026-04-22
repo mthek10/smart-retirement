@@ -149,6 +149,8 @@ const PROJECTION_COLUMNS: { key: keyof ProjectionRow; header: string }[] = [
   { key: "lifeEventIncome", header: "Life Event Income" },
   { key: "qualifiedDividends", header: "Qualified Dividends" },
   { key: "ordinaryDividends", header: "Ordinary Dividends" },
+  { key: "homeSaleTaxableGain", header: "Home Sale Taxable Gain" },
+  { key: "homeSaleNetProceeds", header: "Home Sale Net Proceeds" },
 ];
 
 /**

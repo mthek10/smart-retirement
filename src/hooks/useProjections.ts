@@ -96,6 +96,16 @@ export interface LifeEvent {
   amount: number;
   age: number; // spouse1's age when it occurs
   taxable: boolean; // for income: is it taxable? for expense: ignored
+  /** Optional subtype for specialized tax handling. Currently supports "home_sale" (IRS §121 exclusion). */
+  subtype?: "home_sale";
+  /** Home sale: gross sale price */
+  salePrice?: number;
+  /** Home sale: original purchase price + capital improvements */
+  costBasis?: number;
+  /** Home sale: agent commissions, closing costs that reduce realized gain */
+  sellingCosts?: number;
+  /** Home sale: whether the sale qualifies for the §121 primary residence exclusion */
+  qualifiesForSection121?: boolean;
 }
 
 export interface TaxSettings {
@@ -159,6 +169,10 @@ export interface ProjectionRow {
   lifeEventIncome: number;
   qualifiedDividends: number;
   ordinaryDividends: number;
+  /** Taxable LTCG portion from §121-qualified home sales this year (sale price - basis - selling costs - exclusion). */
+  homeSaleTaxableGain: number;
+  /** Net cash proceeds from home sales reinvested into brokerage this year. */
+  homeSaleNetProceeds: number;
 }
 
 /**
@@ -255,6 +269,7 @@ function solveRequiredWithdrawal(
   acaEnrolleeAges?: number[],
   qualifiedDividends: number = 0,
   ordinaryDividends: number = 0,
+  extraCapitalGains: number = 0,
 ): number {
   let low = Math.max(0, currentRMD);
   let high = Math.max(
@@ -315,7 +330,7 @@ function solveRequiredWithdrawal(
       const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome + ordinaryDividends;
       const taxableSSPreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
-        ordinaryIncomePreConversion + capitalGainsRealized + qualifiedDividends,
+        ordinaryIncomePreConversion + capitalGainsRealized + qualifiedDividends + extraCapitalGains,
         effectiveFilingStatus
       );
       const totalOrdinaryPreConversion = ordinaryIncomePreConversion + taxableSSPreConversion;
@@ -323,7 +338,7 @@ function solveRequiredWithdrawal(
       rothConversion = Math.min(conversionRoom, testTrad);
     }
     
-    const totalCapitalGains = capitalGainsRealized + qualifiedDividends;
+    const totalCapitalGains = capitalGainsRealized + qualifiedDividends + extraCapitalGains;
     const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages + pensionIncome + ordinaryDividends;
     const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + totalCapitalGains, effectiveFilingStatus);
     const totalOrdinaryIncome = ordinaryIncome + taxableSS;
@@ -669,16 +684,41 @@ export function calculateProjections(
     
     // Life events for this year (based on spouse1's age)
     const lifeEvents = taxSettings.lifeEvents || [];
-    const yearExpenses = lifeEvents
-      .filter(e => e.type === 'expense' && e.age === spouse1CurrentAge)
+    const yearEvents = lifeEvents.filter(e => e.age === spouse1CurrentAge);
+
+    // Home sale events (§121 exclusion). Treated separately from generic income:
+    //   - taxable_gain → long-term capital gain (NOT ordinary income)
+    //   - net_proceeds → reinvested into brokerage with full basis
+    let homeSaleTaxableGain = 0;
+    let homeSaleNetProceeds = 0;
+    for (const ev of yearEvents) {
+      if (ev.subtype !== 'home_sale') continue;
+      const salePrice = ev.salePrice ?? ev.amount ?? 0;
+      const basis = ev.costBasis ?? 0;
+      const sellingCosts = ev.sellingCosts ?? 0;
+      const realizedGain = Math.max(0, salePrice - basis - sellingCosts);
+      const qualifies = ev.qualifiesForSection121 !== false;
+      // Married couple still alive → $500k; otherwise $250k. Loss not deductible.
+      const exclusionCap = qualifies
+        ? (effectiveFilingStatus === 'married' ? 500_000 : 250_000)
+        : 0;
+      const taxableGain = Math.max(0, realizedGain - exclusionCap);
+      const netProceeds = Math.max(0, salePrice - sellingCosts);
+      homeSaleTaxableGain += taxableGain;
+      homeSaleNetProceeds += netProceeds;
+    }
+
+    const yearExpenses = yearEvents
+      .filter(e => e.type === 'expense' && e.subtype !== 'home_sale')
       .reduce((sum, e) => sum + e.amount, 0);
-    const yearTaxableIncome = lifeEvents
-      .filter(e => e.type === 'income' && e.taxable && e.age === spouse1CurrentAge)
+    const yearTaxableIncome = yearEvents
+      .filter(e => e.type === 'income' && e.taxable && e.subtype !== 'home_sale')
       .reduce((sum, e) => sum + e.amount, 0);
-    const yearNontaxableIncome = lifeEvents
-      .filter(e => e.type === 'income' && !e.taxable && e.age === spouse1CurrentAge)
+    const yearNontaxableIncome = yearEvents
+      .filter(e => e.type === 'income' && !e.taxable && e.subtype !== 'home_sale')
       .reduce((sum, e) => sum + e.amount, 0);
-    const totalLifeEventIncome = yearTaxableIncome + yearNontaxableIncome;
+    // Surface home sale proceeds in the "lifeEventIncome" total for display
+    const totalLifeEventIncome = yearTaxableIncome + yearNontaxableIncome + homeSaleNetProceeds;
 
     // Remove income sources that are already available outside the withdrawal solver.
     let adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages - totalPensionIncome);
@@ -691,6 +731,16 @@ export function calculateProjections(
     // Deposit non-taxable income into brokerage (and treat as basis - it's after-tax)
     taxableBalance += yearNontaxableIncome;
     costBasisDollars += yearNontaxableIncome;
+
+    // Home sale proceeds: reinvest gross net proceeds into brokerage with FULL basis
+    // (the taxable_gain is taxed via the LTCG path below; future withdrawals must not double-tax).
+    if (homeSaleNetProceeds > 0) {
+      taxableBalance += homeSaleNetProceeds;
+      costBasisDollars += homeSaleNetProceeds;
+      // Home sale proceeds count as available cash → reduce required withdrawal target.
+      adjustedTargetTakeHome = Math.max(0, adjustedTargetTakeHome - homeSaleNetProceeds);
+    }
+
 
     // Brokerage dividends: paid annually, taxed, then reinvested (increases basis)
     const qualifiedDividends = taxableBalance * (qualifiedDividendYield / 100);
@@ -756,6 +806,7 @@ export function calculateProjections(
       solverEnrolleeAges,
       qualifiedDividends,
       ordinaryDividends,
+      homeSaleTaxableGain,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
@@ -848,7 +899,7 @@ export function calculateProjections(
     
     if (targetIncomeLimit > 0 && remainingTradForConversion > 0) {
       const realizedGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
-      const capitalGains = realizedGains + qualifiedDividends;
+      const capitalGains = realizedGains + qualifiedDividends + homeSaleTaxableGain;
       const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages + totalPensionIncome + ordinaryDividends;
       const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
@@ -957,7 +1008,7 @@ export function calculateProjections(
     }
 
     const realizedCapitalGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
-    const capitalGains = realizedCapitalGains + qualifiedDividends;
+    const capitalGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain;
     const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends;
     
     const taxableSSIncome = calculateTaxableSocialSecurity(
@@ -1127,6 +1178,8 @@ export function calculateProjections(
       lifeEventIncome: totalLifeEventIncome,
       qualifiedDividends,
       ordinaryDividends,
+      homeSaleTaxableGain,
+      homeSaleNetProceeds,
     });
   }
 
