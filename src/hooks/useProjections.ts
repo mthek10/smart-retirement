@@ -1125,6 +1125,8 @@ export function calculateProjections(
       isSurvivorYear,
       lifeEventExpense: yearExpenses,
       lifeEventIncome: totalLifeEventIncome,
+      qualifiedDividends,
+      ordinaryDividends,
     });
   }
 
