@@ -151,6 +151,9 @@ const PROJECTION_COLUMNS: { key: keyof ProjectionRow; header: string }[] = [
   { key: "ordinaryDividends", header: "Ordinary Dividends" },
   { key: "homeSaleTaxableGain", header: "Home Sale Taxable Gain" },
   { key: "homeSaleNetProceeds", header: "Home Sale Net Proceeds" },
+  { key: "charitableDonation", header: "Charitable Donation" },
+  { key: "qcdAmount", header: "QCD Amount" },
+  { key: "itemizedDeduction", header: "Itemized Deduction" },
 ];
 
 /**
