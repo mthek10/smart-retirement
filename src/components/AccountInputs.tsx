@@ -154,19 +154,72 @@ export function AccountInputs({ accounts, onChange, filingStatus }: AccountInput
               Current: {formatCurrency(accounts.taxable)}
             </p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="taxableReturn">Annual Return (%)</Label>
-            <DebouncedInput
-              id="taxableReturn"
-              type="number"
-              step="0.1"
-              min="0"
-              max="15"
-              placeholder="3.0"
-              value={accounts.taxableReturn || ''}
-              onChange={(value) => handleChange('taxableReturn', value)}
-              debounceMs={400}
-            />
+        </div>
+
+        {/* Brokerage Annual Return Breakdown */}
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+          <div className="flex items-center gap-1.5">
+            <Label className="text-sm font-semibold">Brokerage Annual Return Breakdown</Label>
+            <InfoTooltip text="Splits brokerage return into price appreciation (unrealized), qualified dividends (taxed at LTCG rates), and ordinary dividends (taxed as ordinary income). Dividends are assumed reinvested and increase your cost basis each year." />
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="taxableReturn" className="text-xs">Price appreciation %</Label>
+                <InfoTooltip text="Unrealized capital growth — taxed only when shares are sold." />
+              </div>
+              <DebouncedInput
+                id="taxableReturn"
+                type="number"
+                step="0.1"
+                min="0"
+                max="15"
+                placeholder="4.0"
+                value={accounts.taxableReturn || ''}
+                onChange={(value) => handleChange('taxableReturn', value)}
+                debounceMs={400}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="qualifiedDividendYield" className="text-xs">Qualified dividend %</Label>
+                <InfoTooltip text="Taxed at long-term capital gains rates. Most broad index ETFs ≈ 1.3–1.8%." />
+              </div>
+              <DebouncedInput
+                id="qualifiedDividendYield"
+                type="number"
+                step="0.1"
+                min="0"
+                max="15"
+                placeholder="1.5"
+                value={accounts.qualifiedDividendYield ?? ''}
+                onChange={(value) => handleChange('qualifiedDividendYield', value)}
+                debounceMs={400}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="ordinaryDividendYield" className="text-xs">Ordinary dividend %</Label>
+                <InfoTooltip text="Taxed as ordinary income — bond funds and REITs typically pay these." />
+              </div>
+              <DebouncedInput
+                id="ordinaryDividendYield"
+                type="number"
+                step="0.1"
+                min="0"
+                max="15"
+                placeholder="0.0"
+                value={accounts.ordinaryDividendYield ?? ''}
+                onChange={(value) => handleChange('ordinaryDividendYield', value)}
+                debounceMs={400}
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between pt-1 border-t border-border/50">
+            <span className="text-xs text-muted-foreground">Dividends are assumed reinvested and increase your cost basis.</span>
+            <span className="text-sm font-semibold">
+              Total: {((accounts.taxableReturn || 0) + (accounts.qualifiedDividendYield || 0) + (accounts.ordinaryDividendYield || 0)).toFixed(1)}%
+            </span>
           </div>
         </div>
 
