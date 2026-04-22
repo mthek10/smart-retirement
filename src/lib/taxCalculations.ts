@@ -664,7 +664,8 @@ export function calculateCapitalGainsTax(
   ordinaryIncome: number,
   filingStatus: string,
   yearIndex: number = 0,
-  inflationRate: number = 0
+  inflationRate: number = 0,
+  extraDeduction: number = 0
 ): number {
   const brackets = capitalGainsBrackets2024[filingStatus] || capitalGainsBrackets2024.single;
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
@@ -675,7 +676,7 @@ export function calculateCapitalGainsTax(
   const standardDeduction = baseDeduction * inflationMultiplier;
   
   // Capital gains are taxed based on total taxable income (ordinary + capital gains)
-  const taxableOrdinaryIncome = Math.max(0, ordinaryIncome - standardDeduction);
+  const taxableOrdinaryIncome = Math.max(0, ordinaryIncome - standardDeduction - Math.max(0, extraDeduction));
   const totalIncome = taxableOrdinaryIncome + capitalGains;
   
   let tax = 0;
