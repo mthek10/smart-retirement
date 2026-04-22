@@ -899,7 +899,7 @@ export function calculateProjections(
     
     if (targetIncomeLimit > 0 && remainingTradForConversion > 0) {
       const realizedGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
-      const capitalGains = realizedGains + qualifiedDividends;
+      const capitalGains = realizedGains + qualifiedDividends + homeSaleTaxableGain;
       const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages + totalPensionIncome + ordinaryDividends;
       const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
