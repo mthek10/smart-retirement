@@ -44,6 +44,8 @@ interface YearProjection {
   marginalBracket?: number;
   lifeEventExpense?: number;
   lifeEventIncome?: number;
+  qualifiedDividends?: number;
+  ordinaryDividends?: number;
 }
 
 interface ProjectionTableProps {
