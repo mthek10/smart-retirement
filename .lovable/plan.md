@@ -1,84 +1,72 @@
 
 
-## Add Brokerage Dividend Yield to the Tax Model
+## Add §121 Primary Home Sale Exclusion to Life Events
 
-### Problem
-Brokerage holdings (mutual funds, ETFs) often pay **qualified and ordinary (non-qualified) dividends every year**, even when nothing is sold. Today the model only realizes taxes on the brokerage when funds are *withdrawn* (cost-basis based capital gains). That understates yearly tax drag and can hide bracket/IRMAA/ACA cliff impacts.
+### Background: IRS §121 Exclusion
+When selling a primary residence (owned + used as main home for 2 of last 5 years), the IRS allows excluding capital gain from taxable income:
+- **$250,000** for single filers
+- **$500,000** for married filing jointly
 
-### Recommended Approach
-Split the brokerage's annual return into three components the user can tune, and feed dividends through the existing tax engine each year:
+Only the **gain above the exclusion** is taxed (as long-term capital gains). Today, a "Home Sale" preset adds the **entire sale price** as taxable ordinary income — which dramatically overstates tax, often pushing users into top brackets, NIIT, IRMAA, and ACA cliffs incorrectly.
 
-1. **Qualified dividend yield (%)** → taxed at long-term capital gains rates (same bracket as realized LTCG; also counted in NIIT MAGI).
-2. **Ordinary (non-qualified) dividend yield (%)** → taxed as ordinary income (impacts federal/state brackets, taxable Social Security, IRMAA, ACA MAGI).
-3. **Price appreciation (%)** → unrealized growth, taxed only when sold (current behavior).
+### Proposed Approach
 
-The existing "Annual Return %" becomes the **sum** of these three, so existing scenarios stay backward compatible.
+Introduce a new life event **subtype** `"home_sale"` that captures the inputs needed to compute the taxable portion correctly, then feeds only the post-exclusion gain (as long-term capital gain, not ordinary income) into the tax engine.
 
-### Behavioral Details
-- Dividends are assumed **paid out and reinvested** (typical for mutual funds). Reinvestment **increases cost basis** by the dividend amount each year — this prevents future double-taxation when shares are sold.
-- Dividend income flows into the projection row alongside withdrawals, so it shows up in:
-  - Federal ordinary income tax (non-qualified portion)
-  - Federal capital gains tax (qualified portion)
-  - State income tax / state cap gains tax
-  - Taxable Social Security calculation
-  - IRMAA MAGI, ACA MAGI/subsidy, NIIT
-  - Tax bracket fill gauge & marginal bracket display
-- The withdrawal solver accounts for the tax on dividends so target take-home is still hit.
-- Roth conversion "headroom to bracket top" correctly subtracts dividend ordinary income.
+#### New fields on a Home Sale event
+| Field | Purpose |
+|---|---|
+| Sale price | Gross proceeds |
+| Cost basis | Original purchase price + capital improvements |
+| Selling costs (optional) | Agent commission, closing — reduces gain |
+| Filing status auto-detected | Married → $500k exclusion, Single/Survivor → $250k |
+| "Qualifies for §121 exclusion" toggle | Default ON; off for vacation/rental homes |
 
-### UI Changes
-In **Setup → Accounts → Brokerage** section, replace the single "Annual Return (%)" input with a small grouped block:
-
+**Computation each year the event fires:**
 ```text
-Brokerage Annual Return Breakdown
-  Price appreciation %     [ 4.0 ]   ← unrealized growth
-  Qualified dividend %     [ 1.5 ]   ← taxed at LTCG rates
-  Ordinary dividend %      [ 0.0 ]   ← taxed as ordinary income
-  ─────────────────────────────
-  Total annual return:      5.5%      (auto-calculated)
+realized_gain   = max(0, salePrice − costBasis − sellingCosts)
+exclusion_cap   = (married && qualifies) ? 500,000 : (qualifies ? 250,000 : 0)
+taxable_gain    = max(0, realized_gain − exclusion_cap)
+net_proceeds    = salePrice − sellingCosts        // cash to the household
 ```
 
-Tooltips explain each field with a brief example (e.g., "Most broad index ETFs ≈ 1.3–1.8% qualified dividend yield; bond funds & REITs typically pay ordinary dividends").
+#### Tax engine wiring (`useProjections.ts`)
+- `taxable_gain` flows into the existing **capital gains realized** bucket (same path as `qualifiedDividends`) → taxed at LTCG rates, included in NIIT MAGI, IRMAA MAGI, ACA MAGI, and taxable-SS calc.
+- `net_proceeds − taxable_gain_tax` (or simply `net_proceeds`, with tax handled via the bracket math) is added to the **brokerage taxable balance** as new principal, with cost basis equal to `net_proceeds` (so future withdrawals don't double-tax).
+- Nothing is added to ordinary income.
 
-A small note: *"Dividends are assumed reinvested and increase your cost basis each year."*
+#### UI changes (`LifeEventsEditor.tsx`)
+- Add a new event "type" option: **Home Sale (§121)** alongside Expense / Income.
+- When selected, the panel swaps to show: Sale Price, Cost Basis, Selling Costs, "Primary residence (qualifies for §121)" switch.
+- Show a live computed preview:
+  > Realized gain: $650,000 — Exclusion: $500,000 (MFJ) = **Taxable LTCG: $150,000**  
+  > Net proceeds reinvested into brokerage: $740,000
+- Update the **"Home Sale"** preset to use the new type with sensible defaults (price $750k, basis $250k, qualifies = true).
+- Remove the misleading current behavior where Home Sale dumps the full price as taxable income.
 
-### Defaults (backward-compatible)
-- Existing users: migrate `taxableReturn` → `priceAppreciation = taxableReturn`, `qualifiedDividendYield = 0`, `ordinaryDividendYield = 0`. No change in their results.
-- New users: default `priceAppreciation = 4.0`, `qualifiedDividendYield = 1.5`, `ordinaryDividendYield = 0.0` (≈ broad-market ETF profile).
+#### Display surfaces
+- `ProjectionTable` Life Events column tooltip shows the breakdown (gain / exclusion / taxable portion) on hover.
+- Existing "Dividends" + capital gains columns automatically reflect the new LTCG.
 
-### Technical Changes
+#### Backward compatibility
+- Existing `LifeEvent` records keep working (`type: "expense" | "income"`).
+- New optional fields (`subtype`, `salePrice`, `costBasis`, `sellingCosts`, `qualifiesForSection121`) default to undefined; only used when `subtype === "home_sale"`.
+- Old "Home Sale" preset entries already saved by users continue to behave as before until the user re-adds the preset.
 
-**Data model** (`src/hooks/useProjections.ts`)
-- Extend `Accounts` with `qualifiedDividendYield: number` and `ordinaryDividendYield: number`. Keep `taxableReturn` as the **price appreciation** component (rename internally to `taxablePriceReturn` with a back-compat shim during load).
-- Extend `ProjectionRow` with `qualifiedDividends: number` and `ordinaryDividends: number`.
+#### Edge cases handled
+- **Survivor year**: if spouse died in current/prior year, the $500k exclusion still applies for sales in the year of death (filing MFJ) and for up to 2 years after if not remarried — flag with a tooltip; default to $500k if survivor toggle is on within that window, else $250k.
+- **Loss on sale**: personal-residence losses are non-deductible → clamp `taxable_gain` to ≥ 0 and don't create a capital loss.
+- **Non-qualifying sale** (toggle off): full realized gain is taxed as LTCG (no exclusion).
+- **State tax**: taxable gain flows through state cap-gains/income calc the same way other LTCG does (most states conform to federal §121, which the model already approximates by using federal taxable amount).
 
-**Projection loop** (`src/hooks/useProjections.ts`)
-- Each year, before withdrawal logic:
-  - `qualDiv = taxableBalance * qualifiedDividendYield/100`
-  - `ordDiv  = taxableBalance * ordinaryDividendYield/100`
-  - Add `ordDiv` into `ordinaryIncome` (alongside trad withdrawals, wages, pension).
-  - Add `qualDiv` into `capitalGainsRealized` for tax purposes.
-  - Reinvest both into `taxableBalance` and add to cost basis: new cost basis $ = old cost basis $ + qualDiv + ordDiv. Recompute `costBasisPercent` from updated $ each year (track basis in dollars internally for accuracy).
-- Then apply price appreciation: `taxableBalance *= (1 + priceAppreciation/100)`.
-- Pass updated MAGI (now including dividends) to IRMAA, NIIT, ACA, taxable SS.
+### Out of Scope (follow-ups)
+- Partial exclusion for hardship moves (job change, health) — IRS prorated rule.
+- Depreciation recapture for prior rental use (§1250 unrecaptured gain at 25%).
+- Tracking multiple primary residences over time / 2-of-5-year lookback enforcement.
 
-**Solver** (`solveRequiredWithdrawal`)
-- Accept dividend amounts as inputs and include them in the same tax calculations so the solved withdrawal produces correct take-home.
-
-**UI** (`src/components/AccountInputs.tsx`)
-- Replace single brokerage return input with the 3-field block + auto-summed total + tooltips.
-
-**Storage / import-export** (`src/lib/exportUtils.ts`, scenarios, localStorage draft)
-- Add the two new fields to CSV export/import and scenario serialization with safe defaults on load.
-
-**Display surfaces** (optional polish, same task)
-- `ProjectionTable` / `ProjectionChart`: add a "Dividends" line item (qualified + ordinary) so users can see the annual tax drag.
-- `BracketFillGauge`: dividends already fold in via `ordinaryIncome` and `capitalGainsIncome` — verify both are used.
-- `TaxSettings` "Annual Take Home" target unchanged.
-
-### Out of Scope (can be follow-ups)
-- Per-account dividend yields (e.g., separate yields for different lots/funds).
-- Modeling capital gain distributions from mutual funds separately from dividends.
-- Foreign tax credit on international fund dividends.
-- Section 199A REIT dividend deduction.
+### Files to Modify
+- `src/hooks/useProjections.ts` — extend `LifeEvent` type; new branch in life-events aggregation that pushes `taxable_gain` into `capitalGainsRealized` and `net_proceeds` into brokerage balance + cost basis.
+- `src/components/LifeEventsEditor.tsx` — new subtype UI, preset rewrite, live preview.
+- `src/components/ProjectionTable.tsx` — tooltip breakdown on Life Event Income cell.
+- `src/lib/exportUtils.ts` — add `Home Sale Taxable Gain` column.
 
