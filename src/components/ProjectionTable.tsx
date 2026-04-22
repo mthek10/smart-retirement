@@ -453,8 +453,43 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                         </td>
                       </>
                     )}
-                    <td className="p-4 align-middle text-right font-bold text-destructive">
-                      {formatCurrency(projection.totalTaxes)}
+                    {show("charitable") && (
+                      <td className="p-4 align-middle text-right">
+                        {(() => {
+                          const total = projection.charitableDonation ?? 0;
+                          if (total <= 0) return '-';
+                          const qcd = projection.qcdAmount ?? 0;
+                          const itemized = projection.itemizedDeduction ?? 0;
+                          const shares = Math.max(0, total - qcd - (total - qcd - (total - qcd))); // placeholder, computed below
+                          // Determine cash vs shares: shares portion = total - qcd - cash. We don't have cash split directly,
+                          // but itemizedDeduction reflects (cash + shares) deductible portion. Approximate breakdown:
+                          // If qcd > 0 → remainder is cash. Otherwise itemized portion likely == shares OR cash.
+                          const nonQcd = total - qcd;
+                          const marginal = projection.marginalBracket ?? 0;
+                          const taxSavings = itemized * marginal + qcd * marginal;
+                          const tipLines = [
+                            `Total donation: ${formatCurrency(total)}`,
+                            qcd > 0 ? `• QCD (from Trad IRA): ${formatCurrency(qcd)} — excluded from AGI` : null,
+                            nonQcd > 0 ? `• Cash / Appreciated shares: ${formatCurrency(nonQcd)}` : null,
+                            itemized > 0
+                              ? `Itemized deduction used: ${formatCurrency(itemized)}`
+                              : `Standard deduction was higher (no itemized benefit)`,
+                            `Est. federal tax savings: ${formatCurrency(taxSavings)}`,
+                          ].filter(Boolean).join('\n');
+                          return (
+                            <span
+                              className="text-primary font-medium"
+                              title={tipLines}
+                            >
+                              {formatCurrency(total)}
+                              {qcd > 0 && (
+                                <Badge variant="secondary" className="ml-2 text-[10px]">QCD</Badge>
+                              )}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    )}
                     </td>
                     <td className="p-4 align-middle text-right font-semibold text-primary">
                       {formatCurrency(projection.takeHome)}
