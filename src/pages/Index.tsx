@@ -40,6 +40,8 @@ const DEFAULT_ACCOUNTS = {
   rothReturn: 3,
   taxableReturn: 3,
   taxableCostBasisPercent: 33,
+  qualifiedDividendYield: 1.5,
+  ordinaryDividendYield: 0,
 };
 
 const DEFAULT_SS_DATA = {
