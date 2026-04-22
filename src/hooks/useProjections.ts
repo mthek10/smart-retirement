@@ -169,6 +169,10 @@ export interface ProjectionRow {
   lifeEventIncome: number;
   qualifiedDividends: number;
   ordinaryDividends: number;
+  /** Taxable LTCG portion from §121-qualified home sales this year (sale price - basis - selling costs - exclusion). */
+  homeSaleTaxableGain: number;
+  /** Net cash proceeds from home sales reinvested into brokerage this year. */
+  homeSaleNetProceeds: number;
 }
 
 /**
