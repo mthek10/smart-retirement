@@ -1101,7 +1101,9 @@ export function calculateProjections(
 
     const realizedCapitalGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
     const capitalGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain;
-    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends;
+    // QCD is excluded from AGI: subtract qcdAmount from ordinary income (capped at traditionalWithdrawal so we don't go negative)
+    const qcdExclusion = Math.min(qcdAmount, traditionalWithdrawal);
+    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends - qcdExclusion;
     
     const taxableSSIncome = calculateTaxableSocialSecurity(
       ssAnnual, 
@@ -1112,11 +1114,11 @@ export function calculateProjections(
     const totalOrdinaryIncome = ordinaryIncome + taxableSSIncome;
 
     const inflationFraction = taxSettings.inflationRate / 100;
-    const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
-    const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
+    const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction, extraDeduction);
+    const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction, extraDeduction);
     const federalTax = federalTaxOrdinary + federalTaxCapitalGains;
     
-    const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
+    const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction, extraDeduction);
     
     const agi = totalOrdinaryIncome + capitalGains;
     
