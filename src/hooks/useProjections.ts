@@ -746,7 +746,7 @@ export function calculateProjections(
       taxableWages,
       totalPensionIncome,
       effectiveFilingStatus,
-      accounts.taxableCostBasisPercent,
+      currentCostBasisPercent,
       solverConversionStrategy,
       taxSettings.inflationRate,
       taxSettings.rothConversionCustom,
@@ -754,6 +754,8 @@ export function calculateProjections(
       taxSettings.stateRate,
       taxSettings.acaSettings,
       solverEnrolleeAges,
+      qualifiedDividends,
+      ordinaryDividends,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
