@@ -46,6 +46,8 @@ interface YearProjection {
   lifeEventIncome?: number;
   qualifiedDividends?: number;
   ordinaryDividends?: number;
+  homeSaleTaxableGain?: number;
+  homeSaleNetProceeds?: number;
 }
 
 interface ProjectionTableProps {
