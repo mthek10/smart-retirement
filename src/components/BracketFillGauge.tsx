@@ -1,8 +1,10 @@
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, TrendingUp, DollarSign } from "lucide-react";
 import { getBracketRoom, type BracketRoomInfo } from "@/lib/incomeAlerts";
+import { formatCurrency } from "@/lib/utils";
 
 interface BracketFillGaugeProps {
   grossIncome: number;
@@ -12,15 +14,7 @@ interface BracketFillGaugeProps {
   projectedFutureBracket?: number;
 }
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-};
-
-export function BracketFillGauge({
+export const BracketFillGauge = memo(function BracketFillGauge({
   grossIncome,
   filingStatus,
   yearIndex = 0,
@@ -164,4 +158,4 @@ export function BracketFillGauge({
       </CardContent>
     </Card>
   );
-}
+});

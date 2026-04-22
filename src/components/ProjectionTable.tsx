@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { memo, useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] =
   { id: "charitable", label: "Charitable", description: "Annual donations, QCDs, and itemized deductions" },
 ];
 
-export function ProjectionTable({ projections }: ProjectionTableProps) {
+export const ProjectionTable = memo(function ProjectionTable({ projections }: ProjectionTableProps) {
   const [activeGroups, setActiveGroups] = useState<Set<ColumnGroup>>(
     new Set(["balances", "income"])
   );
@@ -460,13 +460,12 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                           if (total <= 0) return '-';
                           const qcd = projection.qcdAmount ?? 0;
                           const itemized = projection.itemizedDeduction ?? 0;
-                          const shares = Math.max(0, total - qcd - (total - qcd - (total - qcd))); // placeholder, computed below
-                          // Determine cash vs shares: shares portion = total - qcd - cash. We don't have cash split directly,
-                          // but itemizedDeduction reflects (cash + shares) deductible portion. Approximate breakdown:
-                          // If qcd > 0 → remainder is cash. Otherwise itemized portion likely == shares OR cash.
+                          // Breakdown: QCD portion is exact; remainder is cash or appreciated shares
+                          // (we don't currently split those further in the projection row).
                           const nonQcd = total - qcd;
                           const marginal = projection.marginalBracket ?? 0;
-                          const taxSavings = itemized * marginal + qcd * marginal;
+                          // Both QCD exclusion and itemized deduction reduce taxable ordinary income.
+                          const taxSavings = (itemized + qcd) * marginal;
                           const tipLines = [
                             `Total donation: ${formatCurrency(total)}`,
                             qcd > 0 ? `• QCD (from Trad IRA): ${formatCurrency(qcd)} — excluded from AGI` : null,
@@ -521,4 +520,4 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
       </CardContent>
     </Card>
   );
-}
+});

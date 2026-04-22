@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatCurrency } from "@/lib/utils";
@@ -51,7 +52,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export function TaxChart({ data }: TaxChartProps) {
+export const TaxChart = memo(function TaxChart({ data }: TaxChartProps) {
   return (
     <Card>
       <CardHeader>
@@ -133,4 +134,4 @@ export function TaxChart({ data }: TaxChartProps) {
       </CardContent>
     </Card>
   );
-}
+});

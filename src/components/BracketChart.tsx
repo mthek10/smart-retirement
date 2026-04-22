@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 interface BracketChartProps {
   data: Array<{
@@ -24,7 +24,7 @@ function getBracketColor(rate: number): string {
   return bracketColors[rate]?.color ?? "hsl(var(--muted))";
 }
 
-export function BracketChart({ data }: BracketChartProps) {
+export const BracketChart = memo(function BracketChart({ data }: BracketChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -111,4 +111,4 @@ export function BracketChart({ data }: BracketChartProps) {
       </CardContent>
     </Card>
   );
-}
+});
