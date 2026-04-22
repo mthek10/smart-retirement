@@ -688,8 +688,22 @@ export function calculateProjections(
 
     // Non-taxable income reduces what we need to withdraw
     adjustedTargetTakeHome = Math.max(0, adjustedTargetTakeHome - yearNontaxableIncome);
-    // Deposit non-taxable income into brokerage
+    // Deposit non-taxable income into brokerage (and treat as basis - it's after-tax)
     taxableBalance += yearNontaxableIncome;
+    costBasisDollars += yearNontaxableIncome;
+
+    // Brokerage dividends: paid annually, taxed, then reinvested (increases basis)
+    const qualifiedDividends = taxableBalance * (qualifiedDividendYield / 100);
+    const ordinaryDividends = taxableBalance * (ordinaryDividendYield / 100);
+    const totalDividends = qualifiedDividends + ordinaryDividends;
+    if (totalDividends > 0) {
+      taxableBalance += totalDividends;
+      costBasisDollars += totalDividends;
+    }
+    // Current cost basis percent (used by withdrawal/conversion gain calculations)
+    const currentCostBasisPercent = taxableBalance > 0
+      ? Math.min(100, Math.max(0, (costBasisDollars / taxableBalance) * 100))
+      : accounts.taxableCostBasisPercent;
     
     // Compute ACA enrollee ages for the solver
     const solverEnrolleeAges: number[] = [];
