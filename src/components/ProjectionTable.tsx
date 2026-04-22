@@ -48,13 +48,16 @@ interface YearProjection {
   ordinaryDividends?: number;
   homeSaleTaxableGain?: number;
   homeSaleNetProceeds?: number;
+  charitableDonation?: number;
+  qcdAmount?: number;
+  itemizedDeduction?: number;
 }
 
 interface ProjectionTableProps {
   projections: YearProjection[];
 }
 
-type ColumnGroup = "balances" | "income" | "taxes" | "healthcare" | "lifeEvents";
+type ColumnGroup = "balances" | "income" | "taxes" | "healthcare" | "lifeEvents" | "charitable";
 
 const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] = [
   { id: "balances", label: "Balances", description: "Account balances and withdrawals" },
@@ -62,6 +65,7 @@ const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] =
   { id: "taxes", label: "Tax Details", description: "Individual tax breakdowns" },
   { id: "healthcare", label: "Healthcare", description: "Medicare, IRMAA, and ACA details" },
   { id: "lifeEvents", label: "Life Events", description: "One-time expenses and income events" },
+  { id: "charitable", label: "Charitable", description: "Annual donations, QCDs, and itemized deductions" },
 ];
 
 export function ProjectionTable({ projections }: ProjectionTableProps) {
@@ -223,6 +227,11 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Life Event Expense</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Life Event Income</th>
                     </>
+                  )}
+                  {show("charitable") && (
+                    <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                      <span className="inline-flex items-center gap-1">Charitable <InfoTooltip text="Annual charitable donations. Hover a value to see funding source (cash / QCD / appreciated shares), itemized deduction used, and estimated federal tax savings." /></span>
+                    </th>
                   )}
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Total Taxes</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Take Home</th>
