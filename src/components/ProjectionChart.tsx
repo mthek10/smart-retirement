@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatCurrency } from "@/lib/utils";
@@ -58,7 +59,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export function ProjectionChart({ data }: ProjectionChartProps) {
+export const ProjectionChart = memo(function ProjectionChart({ data }: ProjectionChartProps) {
   return (
     <Card>
       <CardHeader>
@@ -166,4 +167,4 @@ export function ProjectionChart({ data }: ProjectionChartProps) {
       </CardContent>
     </Card>
   );
-}
+});
