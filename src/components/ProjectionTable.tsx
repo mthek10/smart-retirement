@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { memo, useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] =
   { id: "charitable", label: "Charitable", description: "Annual donations, QCDs, and itemized deductions" },
 ];
 
-export function ProjectionTable({ projections }: ProjectionTableProps) {
+export const ProjectionTable = memo(function ProjectionTable({ projections }: ProjectionTableProps) {
   const [activeGroups, setActiveGroups] = useState<Set<ColumnGroup>>(
     new Set(["balances", "income"])
   );
