@@ -1070,11 +1070,14 @@ export function calculateProjections(
     
     if (totalExcess > 0) {
       taxableBalance += totalExcess;
+      // After-tax excess reinvested → adds to cost basis (no future double-tax)
+      costBasisDollars += totalExcess;
     }
 
     spouse1TradBalance *= (1 + accounts.traditionalReturn / 100);
     spouse2TradBalance *= (1 + accounts.traditionalReturn / 100);
     rothBalance *= (1 + accounts.rothReturn / 100);
+    // Brokerage: only price appreciation here (dividends were paid+reinvested above)
     taxableBalance *= (1 + accounts.taxableReturn / 100);
     
     const endingTradBalance = spouse1TradBalance + spouse2TradBalance;
