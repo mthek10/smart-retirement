@@ -806,6 +806,7 @@ export function calculateProjections(
       solverEnrolleeAges,
       qualifiedDividends,
       ordinaryDividends,
+      homeSaleTaxableGain,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
