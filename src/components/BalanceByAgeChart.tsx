@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatCurrency } from "@/lib/utils";
@@ -12,7 +12,7 @@ interface BalanceByAgeChartProps {
   }>;
 }
 
-export function BalanceByAgeChart({ projections }: BalanceByAgeChartProps) {
+export const BalanceByAgeChart = memo(function BalanceByAgeChart({ projections }: BalanceByAgeChartProps) {
   const chartData = useMemo(() => {
     return projections.map(p => ({
       age: p.age,
@@ -82,4 +82,4 @@ export function BalanceByAgeChart({ projections }: BalanceByAgeChartProps) {
       </CardContent>
     </Card>
   );
-}
+});
