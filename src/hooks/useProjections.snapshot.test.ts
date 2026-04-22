@@ -127,7 +127,7 @@ test("snapshot: single filer, no conversions, baseline drawdown", () => {
   // Lock baseline. Update only after deliberate, reviewed math change.
   assert.ok(actual[0].takeHome > 0, "age 60 take-home positive");
   assert.ok(actual[1].takeHome > 0, "age 67 take-home positive");
-  assert.ok(actual[2].rmd === undefined || actual[2], "age 73 row exists");
+  assert.ok(actual[2], "age 73 row exists");
   // Monotonic non-negative taxes
   for (const f of actual) {
     assert.ok(f.totalTaxes >= 0, `age ${f.age}: taxes non-negative`);
