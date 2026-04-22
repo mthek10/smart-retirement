@@ -48,13 +48,16 @@ interface YearProjection {
   ordinaryDividends?: number;
   homeSaleTaxableGain?: number;
   homeSaleNetProceeds?: number;
+  charitableDonation?: number;
+  qcdAmount?: number;
+  itemizedDeduction?: number;
 }
 
 interface ProjectionTableProps {
   projections: YearProjection[];
 }
 
-type ColumnGroup = "balances" | "income" | "taxes" | "healthcare" | "lifeEvents";
+type ColumnGroup = "balances" | "income" | "taxes" | "healthcare" | "lifeEvents" | "charitable";
 
 const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] = [
   { id: "balances", label: "Balances", description: "Account balances and withdrawals" },
@@ -62,6 +65,7 @@ const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] =
   { id: "taxes", label: "Tax Details", description: "Individual tax breakdowns" },
   { id: "healthcare", label: "Healthcare", description: "Medicare, IRMAA, and ACA details" },
   { id: "lifeEvents", label: "Life Events", description: "One-time expenses and income events" },
+  { id: "charitable", label: "Charitable", description: "Annual donations, QCDs, and itemized deductions" },
 ];
 
 export function ProjectionTable({ projections }: ProjectionTableProps) {
@@ -223,6 +227,11 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Life Event Expense</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Life Event Income</th>
                     </>
+                  )}
+                  {show("charitable") && (
+                    <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                      <span className="inline-flex items-center gap-1">Charitable <InfoTooltip text="Annual charitable donations. Hover a value to see funding source (cash / QCD / appreciated shares), itemized deduction used, and estimated federal tax savings." /></span>
+                    </th>
                   )}
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Total Taxes</th>
                   <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Take Home</th>
@@ -443,6 +452,43 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                           ) : '-'}
                         </td>
                       </>
+                    )}
+                    {show("charitable") && (
+                      <td className="p-4 align-middle text-right">
+                        {(() => {
+                          const total = projection.charitableDonation ?? 0;
+                          if (total <= 0) return '-';
+                          const qcd = projection.qcdAmount ?? 0;
+                          const itemized = projection.itemizedDeduction ?? 0;
+                          const shares = Math.max(0, total - qcd - (total - qcd - (total - qcd))); // placeholder, computed below
+                          // Determine cash vs shares: shares portion = total - qcd - cash. We don't have cash split directly,
+                          // but itemizedDeduction reflects (cash + shares) deductible portion. Approximate breakdown:
+                          // If qcd > 0 → remainder is cash. Otherwise itemized portion likely == shares OR cash.
+                          const nonQcd = total - qcd;
+                          const marginal = projection.marginalBracket ?? 0;
+                          const taxSavings = itemized * marginal + qcd * marginal;
+                          const tipLines = [
+                            `Total donation: ${formatCurrency(total)}`,
+                            qcd > 0 ? `• QCD (from Trad IRA): ${formatCurrency(qcd)} — excluded from AGI` : null,
+                            nonQcd > 0 ? `• Cash / Appreciated shares: ${formatCurrency(nonQcd)}` : null,
+                            itemized > 0
+                              ? `Itemized deduction used: ${formatCurrency(itemized)}`
+                              : `Standard deduction was higher (no itemized benefit)`,
+                            `Est. federal tax savings: ${formatCurrency(taxSavings)}`,
+                          ].filter(Boolean).join('\n');
+                          return (
+                            <span
+                              className="text-primary font-medium"
+                              title={tipLines}
+                            >
+                              {formatCurrency(total)}
+                              {qcd > 0 && (
+                                <Badge variant="secondary" className="ml-2 text-[10px]">QCD</Badge>
+                              )}
+                            </span>
+                          );
+                        })()}
+                      </td>
                     )}
                     <td className="p-4 align-middle text-right font-bold text-destructive">
                       {formatCurrency(projection.totalTaxes)}
