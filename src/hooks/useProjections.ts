@@ -764,6 +764,76 @@ export function calculateProjections(
     }
 
 
+    // ============================================================
+    // CHARITABLE GIVING (annual, inflation-adjusted)
+    // Three funding sources:
+    //   - cash: itemized deduction; reduces take-home (we let excess flow naturally)
+    //   - qcd: at age 70.5+, donate from Traditional IRA — excludes from AGI, satisfies RMD
+    //   - appreciated_shares: donate brokerage at FMV; itemized deduction; skips cap gains
+    // ============================================================
+    const giving = taxSettings.charitableGiving;
+    let charitableDonation = 0;
+    let qcdAmount = 0;
+    let charitableCashDeduction = 0;
+    let charitableSharesDeduction = 0;
+    let qcdRMDOffset = 0;
+    let appreciatedSharesFMV = 0;
+    if (
+      giving?.enabled &&
+      giving.annualAmount > 0 &&
+      spouse1CurrentAge >= giving.startAge &&
+      spouse1CurrentAge <= giving.endAge
+    ) {
+      const desired = giving.annualAmount * inflationMultiplier;
+      const inflationFraction = taxSettings.inflationRate / 100;
+      const qcdLimit = 105_000 * Math.pow(1 + inflationFraction, i);
+
+      if (giving.fundingSource === "qcd" && spouse1CurrentAge >= 70.5) {
+        const tradTotal = spouse1TradBalance + spouse2TradBalance;
+        qcdAmount = Math.min(desired, qcdLimit, tradTotal);
+        if (qcdAmount > 0) {
+          if (tradTotal > 0) {
+            const s1Ratio = spouse1TradBalance / tradTotal;
+            spouse1TradBalance -= qcdAmount * s1Ratio;
+            spouse2TradBalance -= qcdAmount * (1 - s1Ratio);
+          }
+          qcdRMDOffset = Math.min(qcdAmount, rmd);
+          charitableDonation += qcdAmount;
+        }
+        const remainingCash = Math.max(0, desired - qcdAmount);
+        if (remainingCash > 0) {
+          charitableCashDeduction = remainingCash;
+          charitableDonation += remainingCash;
+        }
+      } else if (giving.fundingSource === "appreciated_shares") {
+        appreciatedSharesFMV = Math.min(desired, taxableBalance);
+        if (appreciatedSharesFMV > 0) {
+          const basisRatio = taxableBalance > 0 ? costBasisDollars / taxableBalance : 0;
+          taxableBalance -= appreciatedSharesFMV;
+          costBasisDollars = Math.max(0, costBasisDollars - appreciatedSharesFMV * basisRatio);
+          charitableSharesDeduction = appreciatedSharesFMV;
+          charitableDonation += appreciatedSharesFMV;
+        }
+        const remainingCash = Math.max(0, desired - appreciatedSharesFMV);
+        if (remainingCash > 0) {
+          charitableCashDeduction = remainingCash;
+          charitableDonation += remainingCash;
+        }
+      } else {
+        charitableCashDeduction = desired;
+        charitableDonation = desired;
+      }
+    }
+
+    const otherItemized = giving?.enabled ? (giving.otherItemizedDeductions || 0) : 0;
+    const itemizedTotal = charitableCashDeduction + charitableSharesDeduction + otherItemized;
+    const extraDeduction = (() => {
+      if (itemizedTotal <= 0) return 0;
+      const baseStd = effectiveFilingStatus === 'married' ? 29200 : effectiveFilingStatus === 'hoh' ? 21900 : 14600;
+      const stdInflated = baseStd * Math.pow(1 + taxSettings.inflationRate / 100, i);
+      return Math.max(0, itemizedTotal - stdInflated);
+    })();
+
     // Brokerage dividends: paid annually, taxed, then reinvested (increases basis)
     const qualifiedDividends = taxableBalance * (qualifiedDividendYield / 100);
     const ordinaryDividends = taxableBalance * (ordinaryDividendYield / 100);
