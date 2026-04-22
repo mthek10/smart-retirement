@@ -157,6 +157,8 @@ export interface ProjectionRow {
   isSurvivorYear: boolean;
   lifeEventExpense: number;
   lifeEventIncome: number;
+  qualifiedDividends: number;
+  ordinaryDividends: number;
 }
 
 /**
