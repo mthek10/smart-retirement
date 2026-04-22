@@ -431,6 +431,10 @@ export function calculateProjections(
   let spouse2TradBalance = isMarried ? accounts.spouse2Traditional : 0;
   let rothBalance = accounts.roth;
   let taxableBalance = accounts.taxable;
+  // Track brokerage cost basis in dollars for accurate dividend reinvestment & gain calc
+  let costBasisDollars = accounts.taxable * (accounts.taxableCostBasisPercent / 100);
+  const qualifiedDividendYield = accounts.qualifiedDividendYield ?? 0;
+  const ordinaryDividendYield = accounts.ordinaryDividendYield ?? 0;
 
   const maxYears = isMarried
     ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
