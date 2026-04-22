@@ -241,6 +241,27 @@ export const contribution401kLimit2024 = 23000;
 export const contribution401kCatchup2024 = 7500; // Age 50+
 export const contribution401kSuperCatchup2024 = 11250; // SECURE 2.0: Age 60-63
 
+// Annual QCD (Qualified Charitable Distribution) limit (2024 base, inflation-adj per SECURE 2.0)
+export const qcdAnnualLimit2024 = 105_000;
+
+/**
+ * Returns the EXTRA deduction beyond the inflated standard deduction when itemizing
+ * exceeds the standard deduction. Otherwise returns 0 (use standard deduction).
+ * Pass this `extraDeduction` to calculateFederalTax / calculateCapitalGainsTax /
+ * getMarginalTaxBracket to model itemized deductions (charitable giving, SALT, mortgage).
+ */
+export function computeExtraDeduction(
+  itemizedTotal: number,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
+  const standardDeduction = baseDeduction * inflationMultiplier;
+  return Math.max(0, itemizedTotal - standardDeduction);
+}
+
 // State tax data is imported from ./stateTaxData
 
 // State tax data re-exported from ./stateTaxData
@@ -249,7 +270,8 @@ export function calculateFederalTax(
   income: number,
   filingStatus: string,
   yearIndex: number = 0,
-  inflationRate: number = 0
+  inflationRate: number = 0,
+  extraDeduction: number = 0
 ): number {
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
@@ -259,7 +281,7 @@ export function calculateFederalTax(
   const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   
-  const taxableIncome = Math.max(0, income - standardDeduction);
+  const taxableIncome = Math.max(0, income - standardDeduction - Math.max(0, extraDeduction));
   let tax = 0;
 
   for (const bracket of brackets) {
@@ -642,7 +664,8 @@ export function calculateCapitalGainsTax(
   ordinaryIncome: number,
   filingStatus: string,
   yearIndex: number = 0,
-  inflationRate: number = 0
+  inflationRate: number = 0,
+  extraDeduction: number = 0
 ): number {
   const brackets = capitalGainsBrackets2024[filingStatus] || capitalGainsBrackets2024.single;
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
@@ -653,7 +676,7 @@ export function calculateCapitalGainsTax(
   const standardDeduction = baseDeduction * inflationMultiplier;
   
   // Capital gains are taxed based on total taxable income (ordinary + capital gains)
-  const taxableOrdinaryIncome = Math.max(0, ordinaryIncome - standardDeduction);
+  const taxableOrdinaryIncome = Math.max(0, ordinaryIncome - standardDeduction - Math.max(0, extraDeduction));
   const totalIncome = taxableOrdinaryIncome + capitalGains;
   
   let tax = 0;
@@ -746,7 +769,8 @@ export function getMarginalTaxBracket(
   income: number,
   filingStatus: string,
   yearIndex: number = 0,
-  inflationRate: number = 0
+  inflationRate: number = 0,
+  extraDeduction: number = 0
 ): number {
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
   const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
@@ -756,7 +780,7 @@ export function getMarginalTaxBracket(
   const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   
-  const taxableIncome = Math.max(0, income - standardDeduction);
+  const taxableIncome = Math.max(0, income - standardDeduction - Math.max(0, extraDeduction));
   
   // Find the bracket that the taxable income falls into
   for (let i = brackets.length - 1; i >= 0; i--) {

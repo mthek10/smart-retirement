@@ -108,6 +108,21 @@ export interface LifeEvent {
   qualifiesForSection121?: boolean;
 }
 
+export interface CharitableGivingSettings {
+  /** Enable charitable giving modeling. When false, all giving logic is skipped. */
+  enabled: boolean;
+  /** Annual donation amount in today's dollars. Inflated each year. */
+  annualAmount: number;
+  /** Spouse 1 age at which giving begins. */
+  startAge: number;
+  /** Spouse 1 age at which giving ends (inclusive). */
+  endAge: number;
+  /** Funding source: cash from withdrawals, QCD from Trad IRA (70.5+), or appreciated brokerage shares. */
+  fundingSource: "cash" | "qcd" | "appreciated_shares";
+  /** Other annual itemized deductions (SALT cap, mortgage interest, medical) — used to decide standard vs. itemized. */
+  otherItemizedDeductions: number;
+}
+
 export interface TaxSettings {
   filingStatus: string;
   state: string;
@@ -126,6 +141,7 @@ export interface TaxSettings {
   survivorSettings: SurvivorSettings;
   stateRelocation?: StateRelocationSettings;
   lifeEvents?: LifeEvent[];
+  charitableGiving?: CharitableGivingSettings;
 }
 
 export interface ProjectionRow {
@@ -173,6 +189,12 @@ export interface ProjectionRow {
   homeSaleTaxableGain: number;
   /** Net cash proceeds from home sales reinvested into brokerage this year. */
   homeSaleNetProceeds: number;
+  /** Total charitable donation this year (inflation-adjusted). */
+  charitableDonation: number;
+  /** Portion of charitable donation funded via QCD (excluded from AGI, counts toward RMD). */
+  qcdAmount: number;
+  /** Itemized deduction used this year (0 if standard deduction was higher). */
+  itemizedDeduction: number;
 }
 
 /**
@@ -742,6 +764,76 @@ export function calculateProjections(
     }
 
 
+    // ============================================================
+    // CHARITABLE GIVING (annual, inflation-adjusted)
+    // Three funding sources:
+    //   - cash: itemized deduction; reduces take-home (we let excess flow naturally)
+    //   - qcd: at age 70.5+, donate from Traditional IRA — excludes from AGI, satisfies RMD
+    //   - appreciated_shares: donate brokerage at FMV; itemized deduction; skips cap gains
+    // ============================================================
+    const giving = taxSettings.charitableGiving;
+    let charitableDonation = 0;
+    let qcdAmount = 0;
+    let charitableCashDeduction = 0;
+    let charitableSharesDeduction = 0;
+    let qcdRMDOffset = 0;
+    let appreciatedSharesFMV = 0;
+    if (
+      giving?.enabled &&
+      giving.annualAmount > 0 &&
+      spouse1CurrentAge >= giving.startAge &&
+      spouse1CurrentAge <= giving.endAge
+    ) {
+      const desired = giving.annualAmount * inflationMultiplier;
+      const inflationFraction = taxSettings.inflationRate / 100;
+      const qcdLimit = 105_000 * Math.pow(1 + inflationFraction, i);
+
+      if (giving.fundingSource === "qcd" && spouse1CurrentAge >= 70.5) {
+        const tradTotal = spouse1TradBalance + spouse2TradBalance;
+        qcdAmount = Math.min(desired, qcdLimit, tradTotal);
+        if (qcdAmount > 0) {
+          if (tradTotal > 0) {
+            const s1Ratio = spouse1TradBalance / tradTotal;
+            spouse1TradBalance -= qcdAmount * s1Ratio;
+            spouse2TradBalance -= qcdAmount * (1 - s1Ratio);
+          }
+          qcdRMDOffset = Math.min(qcdAmount, rmd);
+          charitableDonation += qcdAmount;
+        }
+        const remainingCash = Math.max(0, desired - qcdAmount);
+        if (remainingCash > 0) {
+          charitableCashDeduction = remainingCash;
+          charitableDonation += remainingCash;
+        }
+      } else if (giving.fundingSource === "appreciated_shares") {
+        appreciatedSharesFMV = Math.min(desired, taxableBalance);
+        if (appreciatedSharesFMV > 0) {
+          const basisRatio = taxableBalance > 0 ? costBasisDollars / taxableBalance : 0;
+          taxableBalance -= appreciatedSharesFMV;
+          costBasisDollars = Math.max(0, costBasisDollars - appreciatedSharesFMV * basisRatio);
+          charitableSharesDeduction = appreciatedSharesFMV;
+          charitableDonation += appreciatedSharesFMV;
+        }
+        const remainingCash = Math.max(0, desired - appreciatedSharesFMV);
+        if (remainingCash > 0) {
+          charitableCashDeduction = remainingCash;
+          charitableDonation += remainingCash;
+        }
+      } else {
+        charitableCashDeduction = desired;
+        charitableDonation = desired;
+      }
+    }
+
+    const otherItemized = giving?.enabled ? (giving.otherItemizedDeductions || 0) : 0;
+    const itemizedTotal = charitableCashDeduction + charitableSharesDeduction + otherItemized;
+    const extraDeduction = (() => {
+      if (itemizedTotal <= 0) return 0;
+      const baseStd = effectiveFilingStatus === 'married' ? 29200 : effectiveFilingStatus === 'hoh' ? 21900 : 14600;
+      const stdInflated = baseStd * Math.pow(1 + taxSettings.inflationRate / 100, i);
+      return Math.max(0, itemizedTotal - stdInflated);
+    })();
+
     // Brokerage dividends: paid annually, taxed, then reinvested (increases basis)
     const qualifiedDividends = taxableBalance * (qualifiedDividendYield / 100);
     const ordinaryDividends = taxableBalance * (ordinaryDividendYield / 100);
@@ -1009,7 +1101,9 @@ export function calculateProjections(
 
     const realizedCapitalGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
     const capitalGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain;
-    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends;
+    // QCD is excluded from AGI: subtract qcdAmount from ordinary income (capped at traditionalWithdrawal so we don't go negative)
+    const qcdExclusion = Math.min(qcdAmount, traditionalWithdrawal);
+    const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends - qcdExclusion;
     
     const taxableSSIncome = calculateTaxableSocialSecurity(
       ssAnnual, 
@@ -1020,11 +1114,11 @@ export function calculateProjections(
     const totalOrdinaryIncome = ordinaryIncome + taxableSSIncome;
 
     const inflationFraction = taxSettings.inflationRate / 100;
-    const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
-    const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
+    const federalTaxOrdinary = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction, extraDeduction);
+    const federalTaxCapitalGains = calculateCapitalGainsTax(capitalGains, totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction, extraDeduction);
     const federalTax = federalTaxOrdinary + federalTaxCapitalGains;
     
-    const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction);
+    const marginalBracket = getMarginalTaxBracket(totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction, extraDeduction);
     
     const agi = totalOrdinaryIncome + capitalGains;
     
@@ -1111,7 +1205,9 @@ export function calculateProjections(
     const amt = calculateAMT(totalOrdinaryIncome, capitalGains, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
 
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost;
+    // Cash charitable donations come out of take-home; appreciated shares come from brokerage (already subtracted above);
+    // QCD comes from Trad IRA (already subtracted above). Only cash reduces calculated take-home here.
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost - charitableCashDeduction;
     
     // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
     let totalExcess = 0;
@@ -1180,6 +1276,9 @@ export function calculateProjections(
       ordinaryDividends,
       homeSaleTaxableGain,
       homeSaleNetProceeds,
+      charitableDonation,
+      qcdAmount,
+      itemizedDeduction: extraDeduction > 0 ? itemizedTotal : 0,
     });
   }
 

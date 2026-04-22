@@ -105,6 +105,14 @@ const DEFAULT_TAX_SETTINGS = {
     relocationAge: 65,
   },
   lifeEvents: [] as import("@/hooks/useProjections").LifeEvent[],
+  charitableGiving: {
+    enabled: false,
+    annualAmount: 0,
+    startAge: 65,
+    endAge: 95,
+    fundingSource: "cash" as "cash" | "qcd" | "appreciated_shares",
+    otherItemizedDeductions: 10000,
+  },
 };
 
 type AccountsState = typeof DEFAULT_ACCOUNTS;
