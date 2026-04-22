@@ -430,7 +430,14 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                         </td>
                         <td className="p-4 align-middle text-right">
                           {projection.lifeEventIncome && projection.lifeEventIncome > 0 ? (
-                            <span className="text-primary font-medium">
+                            <span
+                              className="text-primary font-medium"
+                              title={
+                                (projection.homeSaleNetProceeds ?? 0) > 0
+                                  ? `Includes home sale net proceeds ${formatCurrency(projection.homeSaleNetProceeds ?? 0)}\nTaxable LTCG (after §121 exclusion): ${formatCurrency(projection.homeSaleTaxableGain ?? 0)}`
+                                  : undefined
+                              }
+                            >
                               +{formatCurrency(projection.lifeEventIncome)}
                             </span>
                           ) : '-'}
