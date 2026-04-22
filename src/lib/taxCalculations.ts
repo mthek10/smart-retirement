@@ -241,6 +241,27 @@ export const contribution401kLimit2024 = 23000;
 export const contribution401kCatchup2024 = 7500; // Age 50+
 export const contribution401kSuperCatchup2024 = 11250; // SECURE 2.0: Age 60-63
 
+// Annual QCD (Qualified Charitable Distribution) limit (2024 base, inflation-adj per SECURE 2.0)
+export const qcdAnnualLimit2024 = 105_000;
+
+/**
+ * Returns the EXTRA deduction beyond the inflated standard deduction when itemizing
+ * exceeds the standard deduction. Otherwise returns 0 (use standard deduction).
+ * Pass this `extraDeduction` to calculateFederalTax / calculateCapitalGainsTax /
+ * getMarginalTaxBracket to model itemized deductions (charitable giving, SALT, mortgage).
+ */
+export function computeExtraDeduction(
+  itemizedTotal: number,
+  filingStatus: string,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const baseDeduction = standardDeductions2024[filingStatus] || standardDeductions2024.single;
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
+  const standardDeduction = baseDeduction * inflationMultiplier;
+  return Math.max(0, itemizedTotal - standardDeduction);
+}
+
 // State tax data is imported from ./stateTaxData
 
 // State tax data re-exported from ./stateTaxData
