@@ -1178,6 +1178,8 @@ export function calculateProjections(
       lifeEventIncome: totalLifeEventIncome,
       qualifiedDividends,
       ordinaryDividends,
+      homeSaleTaxableGain,
+      homeSaleNetProceeds,
     });
   }
 
