@@ -522,6 +522,104 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
           </div>
         </div>
 
+        {/* Charitable Giving */}
+        <div className="pt-4 border-t space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="charitableEnabled" className="text-base font-medium">Charitable Giving</Label>
+              <InfoTooltip text="Model annual donations. Cash → itemized deduction. QCD (age 70½+) → excluded from AGI and counts toward RMD. Appreciated shares → skips capital gains and gives FMV deduction." />
+            </div>
+            <Switch
+              id="charitableEnabled"
+              checked={(taxSettings as any).charitableGiving?.enabled || false}
+              onCheckedChange={(checked) => {
+                const current = (taxSettings as any).charitableGiving || { enabled: false, annualAmount: 0, startAge: 65, endAge: 95, fundingSource: "cash", otherItemizedDeductions: 10000 };
+                onChange({ ...taxSettings, charitableGiving: { ...current, enabled: checked } });
+              }}
+            />
+          </div>
+
+          {(taxSettings as any).charitableGiving?.enabled && (
+            <div className="space-y-4 pl-4 border-l-2 border-muted">
+              <div className="space-y-2">
+                <Label>Annual Donation Amount</Label>
+                <CurrencyInput
+                  id="charAmount"
+                  value={(taxSettings as any).charitableGiving?.annualAmount || 0}
+                  onChange={(val) => {
+                    const current = (taxSettings as any).charitableGiving;
+                    onChange({ ...taxSettings, charitableGiving: { ...current, annualAmount: val } });
+                  }}
+                  placeholder="$20,000"
+                />
+                <p className="text-xs text-muted-foreground">In today's dollars. Inflated each year.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Start Age</Label>
+                  <DebouncedInput
+                    type="number" min={50} max={100}
+                    value={(taxSettings as any).charitableGiving?.startAge || 65}
+                    onChange={(value) => {
+                      const current = (taxSettings as any).charitableGiving;
+                      onChange({ ...taxSettings, charitableGiving: { ...current, startAge: parseInt(value) || 65 } });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Age</Label>
+                  <DebouncedInput
+                    type="number" min={50} max={100}
+                    value={(taxSettings as any).charitableGiving?.endAge || 95}
+                    onChange={(value) => {
+                      const current = (taxSettings as any).charitableGiving;
+                      onChange({ ...taxSettings, charitableGiving: { ...current, endAge: parseInt(value) || 95 } });
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Label>Funding Source</Label>
+                  <InfoTooltip text="QCD requires age 70½+ — donations come directly from Traditional IRA, excluded from AGI. Appreciated Shares come from brokerage and avoid capital gains." />
+                </div>
+                <Select
+                  value={(taxSettings as any).charitableGiving?.fundingSource || "cash"}
+                  onValueChange={(value) => {
+                    const current = (taxSettings as any).charitableGiving;
+                    onChange({ ...taxSettings, charitableGiving: { ...current, fundingSource: value } });
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash (from take-home)</SelectItem>
+                    <SelectItem value="qcd">QCD from Traditional IRA (age 70½+)</SelectItem>
+                    <SelectItem value="appreciated_shares">Appreciated Brokerage Shares</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Label>Other Itemized Deductions (Annual)</Label>
+                  <InfoTooltip text="SALT cap, mortgage interest, large medical expenses. Used to determine when itemizing beats the standard deduction." />
+                </div>
+                <CurrencyInput
+                  id="otherItemized"
+                  value={(taxSettings as any).charitableGiving?.otherItemizedDeductions || 0}
+                  onChange={(val) => {
+                    const current = (taxSettings as any).charitableGiving;
+                    onChange({ ...taxSettings, charitableGiving: { ...current, otherItemizedDeductions: val } });
+                  }}
+                  placeholder="$10,000"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Life Events */}
         <div className="pt-4 border-t">
           <LifeEventsEditor
