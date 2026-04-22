@@ -1276,6 +1276,9 @@ export function calculateProjections(
       ordinaryDividends,
       homeSaleTaxableGain,
       homeSaleNetProceeds,
+      charitableDonation,
+      qcdAmount,
+      itemizedDeduction: extraDeduction > 0 ? itemizedTotal : 0,
     });
   }
 
