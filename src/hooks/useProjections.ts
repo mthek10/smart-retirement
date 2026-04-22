@@ -684,16 +684,41 @@ export function calculateProjections(
     
     // Life events for this year (based on spouse1's age)
     const lifeEvents = taxSettings.lifeEvents || [];
-    const yearExpenses = lifeEvents
-      .filter(e => e.type === 'expense' && e.age === spouse1CurrentAge)
+    const yearEvents = lifeEvents.filter(e => e.age === spouse1CurrentAge);
+
+    // Home sale events (§121 exclusion). Treated separately from generic income:
+    //   - taxable_gain → long-term capital gain (NOT ordinary income)
+    //   - net_proceeds → reinvested into brokerage with full basis
+    let homeSaleTaxableGain = 0;
+    let homeSaleNetProceeds = 0;
+    for (const ev of yearEvents) {
+      if (ev.subtype !== 'home_sale') continue;
+      const salePrice = ev.salePrice ?? ev.amount ?? 0;
+      const basis = ev.costBasis ?? 0;
+      const sellingCosts = ev.sellingCosts ?? 0;
+      const realizedGain = Math.max(0, salePrice - basis - sellingCosts);
+      const qualifies = ev.qualifiesForSection121 !== false;
+      // Married couple still alive → $500k; otherwise $250k. Loss not deductible.
+      const exclusionCap = qualifies
+        ? (effectiveFilingStatus === 'married' ? 500_000 : 250_000)
+        : 0;
+      const taxableGain = Math.max(0, realizedGain - exclusionCap);
+      const netProceeds = Math.max(0, salePrice - sellingCosts);
+      homeSaleTaxableGain += taxableGain;
+      homeSaleNetProceeds += netProceeds;
+    }
+
+    const yearExpenses = yearEvents
+      .filter(e => e.type === 'expense' && e.subtype !== 'home_sale')
       .reduce((sum, e) => sum + e.amount, 0);
-    const yearTaxableIncome = lifeEvents
-      .filter(e => e.type === 'income' && e.taxable && e.age === spouse1CurrentAge)
+    const yearTaxableIncome = yearEvents
+      .filter(e => e.type === 'income' && e.taxable && e.subtype !== 'home_sale')
       .reduce((sum, e) => sum + e.amount, 0);
-    const yearNontaxableIncome = lifeEvents
-      .filter(e => e.type === 'income' && !e.taxable && e.age === spouse1CurrentAge)
+    const yearNontaxableIncome = yearEvents
+      .filter(e => e.type === 'income' && !e.taxable && e.subtype !== 'home_sale')
       .reduce((sum, e) => sum + e.amount, 0);
-    const totalLifeEventIncome = yearTaxableIncome + yearNontaxableIncome;
+    // Surface home sale proceeds in the "lifeEventIncome" total for display
+    const totalLifeEventIncome = yearTaxableIncome + yearNontaxableIncome + homeSaleNetProceeds;
 
     // Remove income sources that are already available outside the withdrawal solver.
     let adjustedTargetTakeHome = Math.max(0, effectiveTargetTakeHome - netWages - totalPensionIncome);
@@ -706,6 +731,16 @@ export function calculateProjections(
     // Deposit non-taxable income into brokerage (and treat as basis - it's after-tax)
     taxableBalance += yearNontaxableIncome;
     costBasisDollars += yearNontaxableIncome;
+
+    // Home sale proceeds: reinvest gross net proceeds into brokerage with FULL basis
+    // (the taxable_gain is taxed via the LTCG path below; future withdrawals must not double-tax).
+    if (homeSaleNetProceeds > 0) {
+      taxableBalance += homeSaleNetProceeds;
+      costBasisDollars += homeSaleNetProceeds;
+      // Home sale proceeds count as available cash → reduce required withdrawal target.
+      adjustedTargetTakeHome = Math.max(0, adjustedTargetTakeHome - homeSaleNetProceeds);
+    }
+
 
     // Brokerage dividends: paid annually, taxed, then reinvested (increases basis)
     const qualifiedDividends = taxableBalance * (qualifiedDividendYield / 100);
