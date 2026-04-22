@@ -312,10 +312,10 @@ function solveRequiredWithdrawal(
     );
     if (targetIncomeLimit > 0 && testTrad > 0) {
       // Match main loop's Roth conversion room calculation exactly
-      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome;
+      const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome + ordinaryDividends;
       const taxableSSPreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
-        ordinaryIncomePreConversion + capitalGainsRealized,
+        ordinaryIncomePreConversion + capitalGainsRealized + qualifiedDividends,
         effectiveFilingStatus
       );
       const totalOrdinaryPreConversion = ordinaryIncomePreConversion + taxableSSPreConversion;
@@ -323,32 +323,33 @@ function solveRequiredWithdrawal(
       rothConversion = Math.min(conversionRoom, testTrad);
     }
     
-    const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages + pensionIncome;
-    const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + capitalGainsRealized, effectiveFilingStatus);
+    const totalCapitalGains = capitalGainsRealized + qualifiedDividends;
+    const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages + pensionIncome + ordinaryDividends;
+    const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + totalCapitalGains, effectiveFilingStatus);
     const totalOrdinaryIncome = ordinaryIncome + taxableSS;
     
     const federalTax = calculateFederalTax(totalOrdinaryIncome, effectiveFilingStatus, yearIndex, inflationFraction);
-    const federalCapitalGainsTax = calculateCapitalGainsTax(capitalGainsRealized, totalOrdinaryIncome, effectiveFilingStatus, yearIndex, inflationFraction);
+    const federalCapitalGainsTax = calculateCapitalGainsTax(totalCapitalGains, totalOrdinaryIncome, effectiveFilingStatus, yearIndex, inflationFraction);
     
     let stateTax = 0;
     let stateCapitalGainsTax = 0;
     
     if (state === 'other') {
       stateTax = totalOrdinaryIncome * (stateRate / 100);
-      stateCapitalGainsTax = capitalGainsRealized * (stateRate / 100);
+      stateCapitalGainsTax = totalCapitalGains * (stateRate / 100);
     } else if (state && state !== 'none') {
-      const agi = totalOrdinaryIncome + capitalGainsRealized;
+      const agi = totalOrdinaryIncome + totalCapitalGains;
       const olderLivingSpouseAge = spouse1Alive && spouse2Alive
         ? Math.max(spouse1Age, spouse2Age)
         : (spouse1Alive ? spouse1Age : spouse2Age);
       const stateSSTax = calculateStateSocialSecurityTax(ssAnnual, agi, effectiveFilingStatus, state, olderLivingSpouseAge);
       const nonSSIncome = ordinaryIncome;
       const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, state, effectiveFilingStatus);
-      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGainsRealized, nonSSIncome, state, effectiveFilingStatus);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(totalCapitalGains, nonSSIncome, state, effectiveFilingStatus);
       stateTax = stateSSTax + stateIncomeTax;
     }
     
-    const magi = totalOrdinaryIncome + capitalGainsRealized;
+    const magi = totalOrdinaryIncome + totalCapitalGains;
     let irmaa = 0;
     if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
       irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
@@ -365,8 +366,8 @@ function solveRequiredWithdrawal(
       medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
     }
     
-    const niit = calculateNIIT(capitalGainsRealized, magi, effectiveFilingStatus, yearIndex, inflationFraction);
-    const amt = calculateAMT(totalOrdinaryIncome, capitalGainsRealized, effectiveFilingStatus, yearIndex, inflationFraction);
+    const niit = calculateNIIT(totalCapitalGains, magi, effectiveFilingStatus, yearIndex, inflationFraction);
+    const amt = calculateAMT(totalOrdinaryIncome, totalCapitalGains, effectiveFilingStatus, yearIndex, inflationFraction);
     
     // ACA cost calculation
     let netAcaCost = 0;
