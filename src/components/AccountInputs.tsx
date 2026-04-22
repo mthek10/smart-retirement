@@ -14,6 +14,8 @@ interface AccountInputsProps {
     rothReturn: number;
     taxableReturn: number;
     taxableCostBasisPercent: number;
+    qualifiedDividendYield?: number;
+    ordinaryDividendYield?: number;
   };
   onChange: (accounts: any) => void;
   filingStatus: string;
