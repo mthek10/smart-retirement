@@ -790,6 +790,9 @@ export function calculateProjections(
 
     if (withdrawalAmount > 0 && taxableBalance > 0) {
       taxableWithdrawal = Math.min(withdrawalAmount, taxableBalance);
+      // Reduce basis proportionally to withdrawal (FIFO/avg-cost simplification)
+      const basisRatio = taxableBalance > 0 ? costBasisDollars / taxableBalance : 0;
+      costBasisDollars = Math.max(0, costBasisDollars - taxableWithdrawal * basisRatio);
       withdrawalAmount -= taxableWithdrawal;
       taxableBalance -= taxableWithdrawal;
     }
