@@ -108,6 +108,21 @@ export interface LifeEvent {
   qualifiesForSection121?: boolean;
 }
 
+export interface CharitableGivingSettings {
+  /** Enable charitable giving modeling. When false, all giving logic is skipped. */
+  enabled: boolean;
+  /** Annual donation amount in today's dollars. Inflated each year. */
+  annualAmount: number;
+  /** Spouse 1 age at which giving begins. */
+  startAge: number;
+  /** Spouse 1 age at which giving ends (inclusive). */
+  endAge: number;
+  /** Funding source: cash from withdrawals, QCD from Trad IRA (70.5+), or appreciated brokerage shares. */
+  fundingSource: "cash" | "qcd" | "appreciated_shares";
+  /** Other annual itemized deductions (SALT cap, mortgage interest, medical) — used to decide standard vs. itemized. */
+  otherItemizedDeductions: number;
+}
+
 export interface TaxSettings {
   filingStatus: string;
   state: string;
@@ -126,6 +141,7 @@ export interface TaxSettings {
   survivorSettings: SurvivorSettings;
   stateRelocation?: StateRelocationSettings;
   lifeEvents?: LifeEvent[];
+  charitableGiving?: CharitableGivingSettings;
 }
 
 export interface ProjectionRow {
@@ -173,6 +189,12 @@ export interface ProjectionRow {
   homeSaleTaxableGain: number;
   /** Net cash proceeds from home sales reinvested into brokerage this year. */
   homeSaleNetProceeds: number;
+  /** Total charitable donation this year (inflation-adjusted). */
+  charitableDonation: number;
+  /** Portion of charitable donation funded via QCD (excluded from AGI, counts toward RMD). */
+  qcdAmount: number;
+  /** Itemized deduction used this year (0 if standard deduction was higher). */
+  itemizedDeduction: number;
 }
 
 /**
