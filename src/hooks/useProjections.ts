@@ -330,7 +330,7 @@ function solveRequiredWithdrawal(
       const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome + ordinaryDividends;
       const taxableSSPreConversion = calculateTaxableSocialSecurity(
         ssAnnual,
-        ordinaryIncomePreConversion + capitalGainsRealized + qualifiedDividends,
+        ordinaryIncomePreConversion + capitalGainsRealized + qualifiedDividends + extraCapitalGains,
         effectiveFilingStatus
       );
       const totalOrdinaryPreConversion = ordinaryIncomePreConversion + taxableSSPreConversion;
@@ -338,7 +338,7 @@ function solveRequiredWithdrawal(
       rothConversion = Math.min(conversionRoom, testTrad);
     }
     
-    const totalCapitalGains = capitalGainsRealized + qualifiedDividends;
+    const totalCapitalGains = capitalGainsRealized + qualifiedDividends + extraCapitalGains;
     const ordinaryIncome = traditionalWithdrawn + rothConversion + taxableWages + pensionIncome + ordinaryDividends;
     const taxableSS = calculateTaxableSocialSecurity(ssAnnual, ordinaryIncome + totalCapitalGains, effectiveFilingStatus);
     const totalOrdinaryIncome = ordinaryIncome + taxableSS;
