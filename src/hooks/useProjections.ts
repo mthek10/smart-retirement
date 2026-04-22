@@ -1008,7 +1008,7 @@ export function calculateProjections(
     }
 
     const realizedCapitalGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
-    const capitalGains = realizedCapitalGains + qualifiedDividends;
+    const capitalGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain;
     const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends;
     
     const taxableSSIncome = calculateTaxableSocialSecurity(
