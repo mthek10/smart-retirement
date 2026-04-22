@@ -490,6 +490,8 @@ export function ProjectionTable({ projections }: ProjectionTableProps) {
                         })()}
                       </td>
                     )}
+                    <td className="p-4 align-middle text-right font-bold text-destructive">
+                      {formatCurrency(projection.totalTaxes)}
                     </td>
                     <td className="p-4 align-middle text-right font-semibold text-primary">
                       {formatCurrency(projection.takeHome)}
