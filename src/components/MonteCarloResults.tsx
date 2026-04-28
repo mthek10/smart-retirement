@@ -279,13 +279,6 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                     {formatCurrencyCompact(s.data.percentile10FinalBalance)} – {formatCurrencyCompact(s.data.percentile90FinalBalance)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground flex items-center gap-1">
-                    Avg Lifetime Tax
-                    <InfoTooltip text="The average total taxes paid over your lifetime across all simulated market scenarios." side="right" />
-                  </span>
-                  <span className="font-medium">{formatCurrency(s.data.avgLifetimeTax)}</span>
-                </div>
                 {s.data.medianDepletionAge && (
                   <div className="flex items-center justify-between text-amber-600 dark:text-amber-400">
                     <span className="text-sm flex items-center gap-1">
