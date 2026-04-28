@@ -73,14 +73,33 @@ function runSingleSimulation(
   const baselineProjections = calculateProjections(accounts, ssData, taxSettings, strategy);
   
   let depletionAge: number | null = null;
+  let tradDepletionAge: number | null = null;
+  let rothDepletionAge: number | null = null;
+  let taxableDepletionAge: number | null = null;
   let lifetimeTax = 0;
-  
+
+  // Track previous balances to detect threshold crossings
+  let prevTrad = traditionalBalance;
+  let prevRoth = rothBalance;
+  let prevTaxable = taxableBalance;
+
   // Simulate year by year with random returns
   for (let year = 0; year <= maxYears; year++) {
     const currentAge = taxSettings.spouse1Age + year;
     const totalBalance = traditionalBalance + rothBalance + taxableBalance;
-    
-    // Check for depletion before processing this year
+
+    // Per-account depletion crossings (matches findDepletionAges in useProjections)
+    if (tradDepletionAge === null && prevTrad >= DEPLETION_THRESHOLD && traditionalBalance < DEPLETION_THRESHOLD) {
+      tradDepletionAge = currentAge;
+    }
+    if (rothDepletionAge === null && prevRoth >= DEPLETION_THRESHOLD && rothBalance < DEPLETION_THRESHOLD) {
+      rothDepletionAge = currentAge;
+    }
+    if (taxableDepletionAge === null && prevTaxable >= DEPLETION_THRESHOLD && taxableBalance < DEPLETION_THRESHOLD) {
+      taxableDepletionAge = currentAge;
+    }
+
+    // Check for combined depletion before processing this year
     if (totalBalance < DEPLETION_THRESHOLD && depletionAge === null) {
       depletionAge = currentAge;
       break;
@@ -146,6 +165,11 @@ function runSingleSimulation(
     traditionalBalance = Math.max(0, traditionalBalance);
     rothBalance = Math.max(0, rothBalance);
     taxableBalance = Math.max(0, taxableBalance);
+
+    // Update prev trackers for next iteration's crossing detection
+    prevTrad = traditionalBalance;
+    prevRoth = rothBalance;
+    prevTaxable = taxableBalance;
   }
   
   const finalBalance = traditionalBalance + rothBalance + taxableBalance;
@@ -153,6 +177,9 @@ function runSingleSimulation(
   return {
     finalBalance,
     depletionAge,
+    tradDepletionAge,
+    rothDepletionAge,
+    taxableDepletionAge,
     lifetimeTax,
     success: depletionAge === null || depletionAge >= 100,
   };
