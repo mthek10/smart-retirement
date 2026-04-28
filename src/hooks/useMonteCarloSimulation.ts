@@ -212,16 +212,20 @@ function runStrategySimulation(
   const p10Index = Math.floor(sortedBalances.length * 0.1);
   const p90Index = Math.floor(sortedBalances.length * 0.9);
   
-  // Median depletion age (excluding nulls)
-  const depletionAges = outcomes
-    .map(o => o.depletionAge)
-    .filter((age): age is number => age !== null)
-    .sort((a, b) => a - b);
-  
-  const medianDepletionAge = depletionAges.length > 0 
-    ? depletionAges[Math.floor(depletionAges.length / 2)]
-    : null;
-  
+  // Median helper for nullable per-account depletion ages
+  const medianOf = (key: 'depletionAge' | 'tradDepletionAge' | 'rothDepletionAge' | 'taxableDepletionAge'): number | null => {
+    const ages = outcomes
+      .map(o => o[key])
+      .filter((age): age is number => age !== null)
+      .sort((a, b) => a - b);
+    return ages.length > 0 ? ages[Math.floor(ages.length / 2)] : null;
+  };
+
+  const medianDepletionAge = medianOf('depletionAge');
+  const medianTradDepletionAge = medianOf('tradDepletionAge');
+  const medianRothDepletionAge = medianOf('rothDepletionAge');
+  const medianTaxableDepletionAge = medianOf('taxableDepletionAge');
+
   const avgLifetimeTax = outcomes.reduce((sum, o) => sum + o.lifetimeTax, 0) / settings.numSimulations;
   
   return {
@@ -232,6 +236,9 @@ function runStrategySimulation(
     percentile10FinalBalance: sortedBalances[p10Index],
     percentile90FinalBalance: sortedBalances[p90Index],
     medianDepletionAge,
+    medianTradDepletionAge,
+    medianRothDepletionAge,
+    medianTaxableDepletionAge,
     avgLifetimeTax,
   };
 }
