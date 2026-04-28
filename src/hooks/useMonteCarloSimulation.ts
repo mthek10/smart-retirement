@@ -12,7 +12,9 @@ export interface MonteCarloSettings {
 // After-tax equivalent assumptions (used to convert nominal final balances into spendable wealth)
 // (Removed: FALLBACK_ORDINARY_RATE — the after-tax metric now uses a real bracket-walk lump-sum tax.)
 const ASSUMED_LTCG_RATE = 0.15;      // Long-term capital gains rate on taxable account gains
-const ASSUMED_GAIN_FRACTION = 0.5;   // Fraction of taxable balance assumed to be unrealized gains
+// Gain fraction is no longer a flat constant — it's computed dynamically per scenario as
+// 1 − b₀ / (1 + r)^t, where b₀ is the user's starting basis fraction and r is the taxable
+// growth rate. This corrects the prior over-credit on long-horizon brokerage balances.
 
 /** Approximate marginal rate implied by a Roth conversion strategy (used when crediting Roth net-of-tax). */
 function strategyConversionRate(strategy: string): number {
@@ -58,6 +60,7 @@ export interface StrategySimulationResults {
   medianTaxableDepletionAge: number | null;
   avgLifetimeTax: number;
   medianEffectiveTerminalRate: number; // Avg ordinary rate used in after-tax conversion
+  medianTaxableGainFraction: number;   // Dynamic gain fraction applied to terminal Taxable balance
   medianLifetimeNetWealth: number;     // After-tax equivalent minus average lifetime tax
 }
 
@@ -317,10 +320,25 @@ function runStrategySimulation(
   // per-outcome average rate.
   const medianEffectiveTerminalRate = effectiveLiquidationRate;
 
+  // ---- Dynamic Taxable gain fraction (basis decay over horizon) ----
+  // The user's starting basis fraction shrinks as a share of balance each year that
+  // the balance compounds, because basis dollars don't grow but the balance does.
+  // Formula: gainFraction(t) = 1 − b₀ / (1 + r)^t, floored at 0.
+  // This corrects the prior 50% flat assumption that systematically over-credited
+  // strategies preserving large terminal Taxable balances (e.g. No Conversions).
+  const startingBasisFraction =
+    (accounts.taxableCostBasisPercent > 0 && accounts.taxableCostBasisPercent <= 100)
+      ? accounts.taxableCostBasisPercent / 100
+      : 0.5;
+  const taxableGrowthRate = (accounts.taxableReturn || 0) / 100;
+  const compoundedBasisShare =
+    startingBasisFraction / Math.pow(1 + taxableGrowthRate, yearsToTerminal);
+  const medianTaxableGainFraction = Math.max(0, Math.min(1, 1 - compoundedBasisShare));
+
   const medianFinalAfterTax =
     (medianFinalTraditional - terminalLumpSumTax) +
     medianFinalRoth +
-    medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * ASSUMED_GAIN_FRACTION);
+    medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * medianTaxableGainFraction);
 
   // Lifetime Net Wealth: terminal after-tax value minus the average tax actually paid during life.
   // This is the only number that fairly captures the Roth-conversion tradeoff (pay tax now to avoid
@@ -344,6 +362,7 @@ function runStrategySimulation(
     medianTaxableDepletionAge,
     avgLifetimeTax,
     medianEffectiveTerminalRate,
+    medianTaxableGainFraction,
     medianLifetimeNetWealth,
   };
 }
