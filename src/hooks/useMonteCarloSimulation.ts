@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import type { Accounts, SSData, TaxSettings, ProjectionRow } from "./useProjections";
+import type { Accounts, SSData, TaxSettings } from "./useProjections";
 import { calculateProjections } from "./useProjections";
+import { calculateFederalTax } from "@/lib/taxCalculations";
 
 export interface MonteCarloSettings {
   numSimulations: number;
@@ -9,7 +10,7 @@ export interface MonteCarloSettings {
 }
 
 // After-tax equivalent assumptions (used to convert nominal final balances into spendable wealth)
-const FALLBACK_ORDINARY_RATE = 0.22; // Used only when the projection provides no usable rate signal
+// (Removed: FALLBACK_ORDINARY_RATE — the after-tax metric now uses a real bracket-walk lump-sum tax.)
 const ASSUMED_LTCG_RATE = 0.15;      // Long-term capital gains rate on taxable account gains
 const ASSUMED_GAIN_FRACTION = 0.5;   // Fraction of taxable balance assumed to be unrealized gains
 
@@ -146,43 +147,52 @@ function runSingleSimulation(
       baselineRow.withdrawals * Math.min(balanceRatio, 1.5),
       totalBalance * 0.5 // Safety cap: don't withdraw more than 50% in one year
     );
-    
-    lifetimeTax += baselineRow.totalTaxes;
-    
+
+    // Scale lifetime tax by the same ratio. The deterministic tax bill assumes
+    // deterministic balances; in down-market sims our actual ordinary income
+    // (Trad withdrawals + conversions) is proportionally smaller, so taxes are too.
+    // This gives conversion strategies proper credit when bad sequences shrink RMDs.
+    lifetimeTax += baselineRow.totalTaxes * Math.min(balanceRatio, 1.5);
+
     // Execute withdrawal from accounts (same order as main projection: traditional -> taxable -> roth)
     let remaining = targetWithdrawal;
-    
+
     // 1. From traditional (including RMD)
     if (remaining > 0 && traditionalBalance > 0) {
       const fromTrad = Math.min(remaining, traditionalBalance);
       traditionalBalance -= fromTrad;
       remaining -= fromTrad;
     }
-    
+
     // 2. From taxable
     if (remaining > 0 && taxableBalance > 0) {
       const fromTaxable = Math.min(remaining, taxableBalance);
       taxableBalance -= fromTaxable;
       remaining -= fromTaxable;
     }
-    
+
     // 3. From Roth
     if (remaining > 0 && rothBalance > 0) {
       const fromRoth = Math.min(remaining, rothBalance);
       rothBalance -= fromRoth;
       remaining -= fromRoth;
     }
-    
-    // Handle Roth conversions. The deterministic engine pre-funds the conversion tax either out
-    // of the brokerage withdrawal (already reflected in `withdrawals`) or out of the converted
-    // amount itself. Either way, the *spendable* dollars landing in Roth are net of tax — adding
-    // the gross amount here would over-credit conversion strategies in the after-tax comparison.
+
+    // Handle Roth conversions. Mirror the deterministic engine exactly:
+    //  - "brokerage" (default): conversion tax was already included in baselineRow.withdrawals
+    //    above, so the FULL gross conversion lands in Roth. Netting again here would
+    //    double-charge tax and systematically penalize conversion strategies.
+    //  - "conversion": tax is funded out of the converted amount itself, so Roth
+    //    receives the net.
     const rothConversion = (baselineRow.rothConversion || 0) * Math.min(balanceRatio, 1);
     if (rothConversion > 0 && traditionalBalance > 0) {
       const actualConversion = Math.min(rothConversion, traditionalBalance);
-      const conversionRate = strategyConversionRate(strategy);
       traditionalBalance -= actualConversion;
-      rothBalance += actualConversion * (1 - conversionRate);
+      if (taxSettings.rothConversionTaxSource === "conversion") {
+        rothBalance += actualConversion * (1 - strategyConversionRate(strategy));
+      } else {
+        rothBalance += actualConversion;
+      }
     }
     
     // Apply random return for this year (key for sequence-of-returns risk)
@@ -206,18 +216,12 @@ function runSingleSimulation(
   
   const finalBalance = traditionalBalance + rothBalance + taxableBalance;
 
-  // Effective terminal ordinary tax rate: average of the deterministic projection's last
-  // (up to) 5 years where ordinary income is meaningful. This captures the user's actual
-  // late-life bracket trajectory (RMDs, widow filing, etc.) instead of a flat 22%.
-  let effectiveTerminalRate = FALLBACK_ORDINARY_RATE;
-  const tail = baselineProjections.slice(-5).filter(r => r.ordinaryIncome > 1000);
-  if (tail.length > 0) {
-    // Approximate ordinary-tax share of totalTaxes by stripping the obvious non-ordinary pieces
-    // is overkill here; totalTaxes / ordinaryIncome is a conservative upper bound that still
-    // ranks strategies correctly because every strategy is measured the same way.
-    const rateSum = tail.reduce((s, r) => s + Math.min(0.40, r.totalTaxes / r.ordinaryIncome), 0);
-    effectiveTerminalRate = rateSum / tail.length;
-  }
+  // We no longer compute a per-outcome "effective terminal rate" here because
+  // an average rate (totalTaxes / ordinaryIncome) systematically under-taxes
+  // strategies with very large terminal Traditional balances (e.g. No Conversions).
+  // Terminal liquidation tax is now computed once per strategy via a real bracket
+  // walk on the median terminal Trad balance — see runStrategySimulation below.
+  const effectiveTerminalRate = 0; // Deprecated; preserved on the type for backwards compat.
 
   return {
     finalBalance,
@@ -286,13 +290,35 @@ function runStrategySimulation(
   const medianFinalRoth = medianNumeric('finalRoth');
   const medianFinalTaxable = medianNumeric('finalTaxable');
 
-  // Median effective ordinary rate across outcomes (per-outcome rate from late-life projection)
-  const sortedRates = outcomes.map(o => o.effectiveTerminalRate).sort((a, b) => a - b);
-  const medianEffectiveTerminalRate =
-    sortedRates.length > 0 ? sortedRates[Math.floor(sortedRates.length / 2)] : FALLBACK_ORDINARY_RATE;
+  // ---- Terminal lump-sum tax on remaining Traditional balance ----
+  // Compute the actual federal tax owed if the median Trad balance were liquidated
+  // in the terminal year using the user's filing status, with brackets inflated to
+  // that year. This is the correct treatment because:
+  //   1) Liquidating a large Trad pile pushes through multiple brackets — an
+  //      average rate would understate the tax on the No-Conversions strategy.
+  //   2) Strategies that successfully drained Trad (via conversions) get a small
+  //      bill; strategies that didn't get a much larger one. This is exactly the
+  //      asymmetry the after-tax metric should capture.
+  const yearsToTerminal = Math.max(
+    100 - taxSettings.spouse1Age,
+    100 - taxSettings.spouse2Age
+  );
+  const terminalLumpSumTax = calculateFederalTax(
+    medianFinalTraditional,
+    taxSettings.filingStatus,
+    yearsToTerminal,
+    taxSettings.inflationRate / 100
+  );
+  const effectiveLiquidationRate =
+    medianFinalTraditional > 0 ? terminalLumpSumTax / medianFinalTraditional : 0;
+
+  // Median effective rate is reported for the UI/tooltip. We surface the lump-sum
+  // liquidation rate (a real number derived from brackets), not the deprecated
+  // per-outcome average rate.
+  const medianEffectiveTerminalRate = effectiveLiquidationRate;
 
   const medianFinalAfterTax =
-    medianFinalTraditional * (1 - medianEffectiveTerminalRate) +
+    (medianFinalTraditional - terminalLumpSumTax) +
     medianFinalRoth +
     medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * ASSUMED_GAIN_FRACTION);
 

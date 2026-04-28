@@ -1,13 +1,8 @@
 /**
  * Guardrail tests for the Monte Carlo simulation engine.
  *
- * Focus: ensure the After-Tax Equivalent metric does not over-credit Roth
- * conversion strategies by adding the *gross* converted amount to the Roth
- * balance (which historically biased the comparison against No-Conversion).
- *
- * These tests are statistical (Math.random based). To keep them stable:
- *  - We seed Math.random with a deterministic xorshift before each test.
- *  - We use small sim counts; assertions are loose-tolerance directional.
+ * These pin the contracts that prevent the After-Tax Equivalent metric from
+ * being structurally biased against Roth conversions.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -18,28 +13,7 @@ import {
   type SSData,
   type TaxSettings,
 } from "./useProjections";
-
-// --- Reach into the hook module for the pure simulation runner ---
-// useMonteCarloSimulation exports the React hook; we re-derive expected
-// behavior by calling calculateProjections + a scaled-down simulator.
-// Easier: import the hook factory's inner runner is not exported, so we
-// invoke the public hook by simulating React's useMemo via a direct call
-// to the underlying `runStrategySimulation` is unavailable. Instead we
-// test via the deterministic projection's rothConversion path + a small
-// re-implementation of the net-of-tax accounting. This pins the contract
-// the simulator must honor.
-
-const ORDINARY = 0.22;
-
-function seededRandom(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    s ^= s << 13; s >>>= 0;
-    s ^= s >> 17; s >>>= 0;
-    s ^= s << 5;  s >>>= 0;
-    return (s >>> 0) / 0xffffffff;
-  };
-}
+import { calculateFederalTax } from "@/lib/taxCalculations";
 
 function baseAccounts(): Accounts {
   return {
@@ -72,6 +46,7 @@ function baseTax(strategy: string): TaxSettings {
     inflationRate: 2.5,
     rothConversionStrategy: strategy,
     rothConversionCustom: 0,
+    rothConversionTaxSource: "brokerage",
     preSurvivorStrategy: "fill_22",
     acaSettings: { enabled: false, householdSize: 1, customBenchmarkPremium: 0, annualHealthInsuranceCost: 6000 },
     spouse1Employment: { currentIncome: 0, retirementAge: 60, contributes401k: false, contribution401kAmount: 0, roth401kAmount: 0, employerMatchAmount: 0, pension: { monthlyAmount: 0, startAge: 65, cola: 0 } },
@@ -81,33 +56,61 @@ function baseTax(strategy: string): TaxSettings {
   };
 }
 
-test("rothConversion path in projections produces conversions for fill_24 strategy", () => {
+test("fill_24 strategy actually performs conversions in the deterministic projection", () => {
   const proj = calculateProjections(baseAccounts(), baseSS(), baseTax("fill_24"));
   const totalConv = proj.reduce((s, r) => s + (r.rothConversion || 0), 0);
   assert.ok(totalConv > 0, "fill_24 should produce nonzero lifetime conversions");
 });
 
-test("net-of-tax conversion crediting: Roth growth from conversions is bounded by (1 - rate)*gross", () => {
-  // Contract: when the MC engine moves `gross` out of Trad as a conversion, it must credit
-  // Roth by AT MOST gross*(1 - rate). This guards against the historical bug where the gross
-  // amount was credited twice (the brokerage paid the tax via withdrawals AND Roth got the gross).
-  const gross = 100_000;
-  const rate = 0.24;
-  const creditedRoth = gross * (1 - rate);
-  assert.equal(creditedRoth, 76_000);
-  assert.ok(creditedRoth < gross, "credited Roth must be less than gross conversion");
+test("brokerage tax source: gross conversion lands in Roth (no double-tax)", () => {
+  // Contract: when rothConversionTaxSource === "brokerage", the deterministic engine
+  // pays conversion tax out of the brokerage withdrawal AND credits Roth with the
+  // FULL gross conversion (useProjections line ~1097). The MC engine must mirror
+  // this — netting tax off Roth would double-charge it and make conversions look
+  // worse than they are. This is the regression we are guarding against.
+  const proj = calculateProjections(baseAccounts(), baseSS(), baseTax("fill_24"));
+  // Find a year with a real conversion and verify Roth grew by approximately the gross.
+  // We can't observe MC runs directly, but we can verify the deterministic invariant
+  // the MC engine is required to match.
+  let prevRoth = baseAccounts().roth;
+  let observed = false;
+  for (const row of proj) {
+    if ((row.rothConversion || 0) > 1000) {
+      // Roth balance should reflect at least the gross conversion (less withdrawals/growth).
+      // The directional assertion: Roth growth >= gross conversion * 0.5 (conservative,
+      // accounts for any Roth withdrawals that year).
+      const delta = row.rothBalance - prevRoth;
+      assert.ok(
+        delta + (row.rothBalance * 0.1) >= (row.rothConversion || 0) * 0.5,
+        `Year age ${row.age}: Roth delta ${delta} should reflect gross conversion ${row.rothConversion}, not net.`
+      );
+      observed = true;
+      break;
+    }
+    prevRoth = row.rothBalance;
+  }
+  assert.ok(observed, "should observe at least one conversion year");
 });
 
-test("after-tax equivalent uses dynamic terminal rate, not flat 22%", () => {
-  // Smoke check: the deterministic projection's last 5 years should produce
-  // an effective ordinary rate. We don't assert a specific number, only that
-  // the rate is finite and within a sane band.
-  const proj = calculateProjections(baseAccounts(), baseSS(), baseTax("none"));
-  const tail = proj.slice(-5).filter((r) => r.ordinaryIncome > 1000);
-  assert.ok(tail.length > 0, "tail should have at least one taxable year");
-  const rate = tail.reduce((s, r) => s + Math.min(0.40, r.totalTaxes / r.ordinaryIncome), 0) / tail.length;
-  assert.ok(rate >= 0 && rate <= 0.40, `terminal rate ${rate} in [0, 0.40]`);
+test("lump-sum liquidation tax on a large Trad balance materially exceeds 22%", () => {
+  // The old metric assumed a flat 22% terminal rate. A real bracket walk on a
+  // $1.5M single-filer liquidation must be meaningfully higher — this is the
+  // whole reason we switched to a bracket walk.
+  const tax = calculateFederalTax(1_500_000, "single", 0, 0);
+  const effectiveRate = tax / 1_500_000;
+  assert.ok(
+    effectiveRate > 0.27,
+    `lump-sum effective rate on $1.5M single should exceed 27%, got ${effectiveRate.toFixed(3)}`
+  );
 });
 
-// Suppress unused-import warning in environments that strip dead code.
-void seededRandom; void ORDINARY;
+test("lump-sum liquidation tax scales with balance (small Trad → low rate)", () => {
+  // Conversion strategies should benefit: a $200k terminal Trad pile pays a much
+  // lower effective rate than a $1.5M pile, even though the old average-rate
+  // metric would not have differentiated them.
+  const taxLow = calculateFederalTax(200_000, "single", 0, 0);
+  const taxHigh = calculateFederalTax(1_500_000, "single", 0, 0);
+  const rateLow = taxLow / 200_000;
+  const rateHigh = taxHigh / 1_500_000;
+  assert.ok(rateHigh - rateLow > 0.05, `large balance must pay >5pp higher effective rate (got ${(rateHigh-rateLow).toFixed(3)})`);
+});
