@@ -242,12 +242,29 @@ function runStrategySimulation(
   const medianTaxableDepletionAge = medianOf('taxableDepletionAge');
 
   const avgLifetimeTax = outcomes.reduce((sum, o) => sum + o.lifetimeTax, 0) / settings.numSimulations;
-  
+
+  // Per-account medians (independent sorts; sum will not equal medianFinalBalance)
+  const medianNumeric = (key: 'finalTraditional' | 'finalRoth' | 'finalTaxable'): number => {
+    const sorted = outcomes.map(o => o[key]).sort((a, b) => a - b);
+    return sorted.length > 0 ? sorted[Math.floor(sorted.length / 2)] : 0;
+  };
+  const medianFinalTraditional = medianNumeric('finalTraditional');
+  const medianFinalRoth = medianNumeric('finalRoth');
+  const medianFinalTaxable = medianNumeric('finalTaxable');
+  const medianFinalAfterTax =
+    medianFinalTraditional * (1 - ASSUMED_ORDINARY_RATE) +
+    medianFinalRoth +
+    medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * ASSUMED_GAIN_FRACTION);
+
   return {
     strategyName,
     outcomes,
     successRate,
     medianFinalBalance: sortedBalances[medianIndex],
+    medianFinalTraditional,
+    medianFinalRoth,
+    medianFinalTaxable,
+    medianFinalAfterTax,
     percentile10FinalBalance: sortedBalances[p10Index],
     percentile90FinalBalance: sortedBalances[p90Index],
     medianDepletionAge,
