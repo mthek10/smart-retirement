@@ -56,7 +56,8 @@ export interface StrategySimulationResults {
   medianRothDepletionAge: number | null;
   medianTaxableDepletionAge: number | null;
   avgLifetimeTax: number;
-}
+  medianEffectiveTerminalRate: number; // Avg ordinary rate used in after-tax conversion
+  medianLifetimeNetWealth: number;     // After-tax equivalent minus average lifetime tax
 
 export interface MonteCarloResult {
   baseline: StrategySimulationResults;
