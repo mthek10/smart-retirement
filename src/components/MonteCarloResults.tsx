@@ -234,7 +234,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                 <div className="flex items-center justify-between pt-1 border-t">
                   <span className="text-sm font-semibold text-foreground flex items-center gap-1">
                     After-Tax Equivalent
-                    <InfoTooltip text={`Estimated spendable wealth at end of plan: Trad − federal tax owed if liquidated as a lump sum (effective ${formatPercent(s.data.medianEffectiveTerminalRate)}, computed by walking the inflation-adjusted brackets for your filing status) + Roth + Taxable × (1 − 15% × 50% gains). State tax is not included.`} side="right" />
+                    <InfoTooltip text={`Estimated spendable wealth at end of plan: Trad − federal tax owed if liquidated as a lump sum (effective ${formatPercent(s.data.medianEffectiveTerminalRate)}, computed by walking inflation-adjusted brackets) + Roth + Taxable × (1 − 15% × ${formatPercent(s.data.medianTaxableGainFraction)} estimated unrealized gains). The gain fraction grows with horizon as compounding outpaces the original cost basis. State tax not included.`} side="right" />
                   </span>
                   <span className="font-bold text-foreground">{formatCurrency(s.data.medianFinalAfterTax)}</span>
                 </div>
