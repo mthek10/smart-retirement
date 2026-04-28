@@ -132,10 +132,11 @@ test("basis decay: long horizon at moderate growth pushes gain fraction near 90%
   assert.ok(gf > 0.5, "long-horizon gain fraction must exceed the old flat 50%");
 });
 
-test("basis decay: short horizon stays close to starting basis", () => {
-  // 67% basis, 5% growth, 1 year -> gain ~5-6%, NOT 50%.
+test("basis decay: short horizon stays near the starting gain fraction", () => {
+  // 67% basis means 33% of today's balance is already gains.
+  // After 1 year of 5% growth, gain fraction grows only modestly: ~36% (not 88%).
   const gf = gainFraction(0.67, 0.05, 1);
-  assert.ok(gf < 0.10, `1-year gain fraction should be small, got ${(gf*100).toFixed(1)}%`);
+  assert.ok(gf > 0.30 && gf < 0.42, `1-year gain fraction should be near starting gains, got ${(gf*100).toFixed(1)}%`);
 });
 
 test("basis decay: floors at zero when basis exceeds compounded balance", () => {
