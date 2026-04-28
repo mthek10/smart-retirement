@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Accounts, SSData, TaxSettings, ProjectionRow } from "./useProjections";
+import type { Accounts, SSData, TaxSettings } from "./useProjections";
 import { calculateProjections } from "./useProjections";
 import { calculateFederalTax } from "@/lib/taxCalculations";
 
@@ -10,7 +10,7 @@ export interface MonteCarloSettings {
 }
 
 // After-tax equivalent assumptions (used to convert nominal final balances into spendable wealth)
-const FALLBACK_ORDINARY_RATE = 0.22; // Used only when the projection provides no usable rate signal
+// (Removed: FALLBACK_ORDINARY_RATE — the after-tax metric now uses a real bracket-walk lump-sum tax.)
 const ASSUMED_LTCG_RATE = 0.15;      // Long-term capital gains rate on taxable account gains
 const ASSUMED_GAIN_FRACTION = 0.5;   // Fraction of taxable balance assumed to be unrealized gains
 
