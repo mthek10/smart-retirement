@@ -290,13 +290,35 @@ function runStrategySimulation(
   const medianFinalRoth = medianNumeric('finalRoth');
   const medianFinalTaxable = medianNumeric('finalTaxable');
 
-  // Median effective ordinary rate across outcomes (per-outcome rate from late-life projection)
-  const sortedRates = outcomes.map(o => o.effectiveTerminalRate).sort((a, b) => a - b);
-  const medianEffectiveTerminalRate =
-    sortedRates.length > 0 ? sortedRates[Math.floor(sortedRates.length / 2)] : FALLBACK_ORDINARY_RATE;
+  // ---- Terminal lump-sum tax on remaining Traditional balance ----
+  // Compute the actual federal tax owed if the median Trad balance were liquidated
+  // in the terminal year using the user's filing status, with brackets inflated to
+  // that year. This is the correct treatment because:
+  //   1) Liquidating a large Trad pile pushes through multiple brackets — an
+  //      average rate would understate the tax on the No-Conversions strategy.
+  //   2) Strategies that successfully drained Trad (via conversions) get a small
+  //      bill; strategies that didn't get a much larger one. This is exactly the
+  //      asymmetry the after-tax metric should capture.
+  const yearsToTerminal = Math.max(
+    100 - taxSettings.spouse1Age,
+    100 - taxSettings.spouse2Age
+  );
+  const terminalLumpSumTax = calculateFederalTax(
+    medianFinalTraditional,
+    taxSettings.filingStatus,
+    yearsToTerminal,
+    taxSettings.inflationRate / 100
+  );
+  const effectiveLiquidationRate =
+    medianFinalTraditional > 0 ? terminalLumpSumTax / medianFinalTraditional : 0;
+
+  // Median effective rate is reported for the UI/tooltip. We surface the lump-sum
+  // liquidation rate (a real number derived from brackets), not the deprecated
+  // per-outcome average rate.
+  const medianEffectiveTerminalRate = effectiveLiquidationRate;
 
   const medianFinalAfterTax =
-    medianFinalTraditional * (1 - medianEffectiveTerminalRate) +
+    (medianFinalTraditional - terminalLumpSumTax) +
     medianFinalRoth +
     medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * ASSUMED_GAIN_FRACTION);
 
