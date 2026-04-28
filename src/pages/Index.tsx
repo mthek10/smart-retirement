@@ -256,12 +256,27 @@ const Index = () => {
   const twoPassResults = useTwoPassProjections(committedAccounts, committedSSData, committedTaxSettings);
   const projections = twoPassResults.currentProjections;
 
-  // Monte Carlo simulation settings - returnMean syncs with Roth IRA return
-  const [monteCarloSettings, setMonteCarloSettings] = useState<MonteCarloSettings>({
+  // Compute portfolio-weighted blended return for Monte Carlo mean.
+  // Aligns MC variance around the same average return the deterministic
+  // engine uses, so depletion-age comparisons with Strategy Comparison
+  // are apples-to-apples (only sequence-of-returns variance differs).
+  const computeBlendedReturn = useCallback((a: typeof accounts): number => {
+    const trad = a.spouse1Traditional + a.spouse2Traditional;
+    const roth = a.roth;
+    const taxable = a.taxable;
+    const total = trad + roth + taxable;
+    if (total <= 0) return a.rothReturn / 100;
+    const blendedPct =
+      (trad * a.traditionalReturn + roth * a.rothReturn + taxable * a.taxableReturn) / total;
+    return blendedPct / 100;
+  }, []);
+
+  // Monte Carlo simulation settings — returnMean syncs with portfolio-weighted return
+  const [monteCarloSettings, setMonteCarloSettings] = useState<MonteCarloSettings>(() => ({
     numSimulations: 1000,
-    returnMean: accounts.rothReturn / 100,
+    returnMean: computeBlendedReturn(accounts),
     returnStdDev: 0.15,
-  });
+  }));
 
   // Simple accounts setter — no extra work
   const handleAccountsChange = useCallback((newAccounts: typeof accounts) => {
@@ -272,11 +287,14 @@ const Index = () => {
     setAccounts(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleReturnFieldCommit = useCallback((field: string, value: number) => {
-    if (field === 'rothReturn') {
-      setMonteCarloSettings(mc => ({ ...mc, returnMean: value / 100 }));
+  const handleReturnFieldCommit = useCallback((field: string, _value: number) => {
+    if (field === 'rothReturn' || field === 'traditionalReturn' || field === 'taxableReturn') {
+      setAccounts(prev => {
+        setMonteCarloSettings(mc => ({ ...mc, returnMean: computeBlendedReturn(prev) }));
+        return prev;
+      });
     }
-  }, []);
+  }, [computeBlendedReturn]);
 
   const hasProgress = useMemo(
     () =>
@@ -411,11 +429,11 @@ const Index = () => {
     setCommittedTaxSettings(structuredClone(DEFAULT_TAX_SETTINGS));
     setMonteCarloSettings({
       numSimulations: 1000,
-      returnMean: DEFAULT_ACCOUNTS.rothReturn / 100,
+      returnMean: computeBlendedReturn(DEFAULT_ACCOUNTS),
       returnStdDev: 0.15,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [clearStoredDraft]);
+  }, [clearStoredDraft, computeBlendedReturn]);
 
   const handleForgetBrowserSave = useCallback(() => {
     clearStoredDraft();

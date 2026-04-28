@@ -11,6 +11,9 @@ export interface MonteCarloSettings {
 export interface SimulationOutcome {
   finalBalance: number;
   depletionAge: number | null;
+  tradDepletionAge: number | null;
+  rothDepletionAge: number | null;
+  taxableDepletionAge: number | null;
   lifetimeTax: number;
   success: boolean; // Funds lasted until age 100
 }
@@ -23,6 +26,9 @@ export interface StrategySimulationResults {
   percentile10FinalBalance: number;
   percentile90FinalBalance: number;
   medianDepletionAge: number | null;
+  medianTradDepletionAge: number | null;
+  medianRothDepletionAge: number | null;
+  medianTaxableDepletionAge: number | null;
   avgLifetimeTax: number;
 }
 
@@ -67,14 +73,33 @@ function runSingleSimulation(
   const baselineProjections = calculateProjections(accounts, ssData, taxSettings, strategy);
   
   let depletionAge: number | null = null;
+  let tradDepletionAge: number | null = null;
+  let rothDepletionAge: number | null = null;
+  let taxableDepletionAge: number | null = null;
   let lifetimeTax = 0;
-  
+
+  // Track previous balances to detect threshold crossings
+  let prevTrad = traditionalBalance;
+  let prevRoth = rothBalance;
+  let prevTaxable = taxableBalance;
+
   // Simulate year by year with random returns
   for (let year = 0; year <= maxYears; year++) {
     const currentAge = taxSettings.spouse1Age + year;
     const totalBalance = traditionalBalance + rothBalance + taxableBalance;
-    
-    // Check for depletion before processing this year
+
+    // Per-account depletion crossings (matches findDepletionAges in useProjections)
+    if (tradDepletionAge === null && prevTrad >= DEPLETION_THRESHOLD && traditionalBalance < DEPLETION_THRESHOLD) {
+      tradDepletionAge = currentAge;
+    }
+    if (rothDepletionAge === null && prevRoth >= DEPLETION_THRESHOLD && rothBalance < DEPLETION_THRESHOLD) {
+      rothDepletionAge = currentAge;
+    }
+    if (taxableDepletionAge === null && prevTaxable >= DEPLETION_THRESHOLD && taxableBalance < DEPLETION_THRESHOLD) {
+      taxableDepletionAge = currentAge;
+    }
+
+    // Check for combined depletion before processing this year
     if (totalBalance < DEPLETION_THRESHOLD && depletionAge === null) {
       depletionAge = currentAge;
       break;
@@ -140,6 +165,11 @@ function runSingleSimulation(
     traditionalBalance = Math.max(0, traditionalBalance);
     rothBalance = Math.max(0, rothBalance);
     taxableBalance = Math.max(0, taxableBalance);
+
+    // Update prev trackers for next iteration's crossing detection
+    prevTrad = traditionalBalance;
+    prevRoth = rothBalance;
+    prevTaxable = taxableBalance;
   }
   
   const finalBalance = traditionalBalance + rothBalance + taxableBalance;
@@ -147,6 +177,9 @@ function runSingleSimulation(
   return {
     finalBalance,
     depletionAge,
+    tradDepletionAge,
+    rothDepletionAge,
+    taxableDepletionAge,
     lifetimeTax,
     success: depletionAge === null || depletionAge >= 100,
   };
@@ -179,16 +212,20 @@ function runStrategySimulation(
   const p10Index = Math.floor(sortedBalances.length * 0.1);
   const p90Index = Math.floor(sortedBalances.length * 0.9);
   
-  // Median depletion age (excluding nulls)
-  const depletionAges = outcomes
-    .map(o => o.depletionAge)
-    .filter((age): age is number => age !== null)
-    .sort((a, b) => a - b);
-  
-  const medianDepletionAge = depletionAges.length > 0 
-    ? depletionAges[Math.floor(depletionAges.length / 2)]
-    : null;
-  
+  // Median helper for nullable per-account depletion ages
+  const medianOf = (key: 'depletionAge' | 'tradDepletionAge' | 'rothDepletionAge' | 'taxableDepletionAge'): number | null => {
+    const ages = outcomes
+      .map(o => o[key])
+      .filter((age): age is number => age !== null)
+      .sort((a, b) => a - b);
+    return ages.length > 0 ? ages[Math.floor(ages.length / 2)] : null;
+  };
+
+  const medianDepletionAge = medianOf('depletionAge');
+  const medianTradDepletionAge = medianOf('tradDepletionAge');
+  const medianRothDepletionAge = medianOf('rothDepletionAge');
+  const medianTaxableDepletionAge = medianOf('taxableDepletionAge');
+
   const avgLifetimeTax = outcomes.reduce((sum, o) => sum + o.lifetimeTax, 0) / settings.numSimulations;
   
   return {
@@ -199,6 +236,9 @@ function runStrategySimulation(
     percentile10FinalBalance: sortedBalances[p10Index],
     percentile90FinalBalance: sortedBalances[p90Index],
     medianDepletionAge,
+    medianTradDepletionAge,
+    medianRothDepletionAge,
+    medianTaxableDepletionAge,
     avgLifetimeTax,
   };
 }
