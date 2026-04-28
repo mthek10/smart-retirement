@@ -1,59 +1,57 @@
-# Add Pre-Tax vs Post-Tax Breakdown to Monte Carlo Median Final
+# Fix After-Tax Equivalent so Roth conversions are evaluated fairly
 
 ## Why this matters
 
-Today the cards show a single **Median Final Balance** (e.g. $1.2M). That number blends three very different dollars:
+The current Monte Carlo "After-Tax Equivalent" metric biases the comparison toward **No Conversions** for two reasons:
 
-- **Traditional / 401(k)** — fully taxable as ordinary income on withdrawal (you don't really own all of it; the IRS owns a slice)
-- **Roth** — already taxed, 100% yours
-- **Taxable / Brokerage** — basis is tax-free, gains owe LTCG
+1. **Conversion tax double-accounting in the simulator.** When a Roth conversion occurs, the engine subtracts the gross amount from Traditional and adds the *full* gross amount to Roth — but the conversion tax was already pre-funded inside `baselineRow.withdrawals` (which shrank the brokerage). So the conversion strategies end up with an inflated Roth balance and a deflated Taxable balance versus what the deterministic engine in `useProjections` actually produces. The terminal *mix* is wrong.
+2. **Flat 22% terminal tax assumption.** A static 22% discount on the ending Traditional balance over-rewards strategies that *leave* large Traditional balances (because in real life RMDs at age 75+ widow-bracket would often hit higher than 22%) and gives no credit to strategies that *pre-paid* tax during life at lower brackets.
 
-Two strategies can show the same $1.2M median but represent very different real wealth. A "Fill to 24%" strategy that aggressively converts to Roth should look **better** here than a "No Conversions" strategy with the same nominal balance — and right now that advantage is invisible.
+Compounded, these can flip the ranking and make "No Conversions" look like a free win.
 
-## What will change
+## Changes
 
-### 1. Track per-account final balances in the simulation
-`src/hooks/useMonteCarloSimulation.ts`
+### 1. `src/hooks/useMonteCarloSimulation.ts` — fix the conversion mechanics
 
-- Extend `SimulationOutcome` with `finalTraditional`, `finalRoth`, `finalTaxable` (already computed inside `runSingleSimulation` — just need to return them).
-- Extend `StrategySimulationResults` with median values: `medianFinalTraditional`, `medianFinalRoth`, `medianFinalTaxable`, and a derived `medianFinalAfterTax`.
-- Compute medians using the existing `medianOf` helper pattern (sort + middle index, per account).
-- Compute `medianFinalAfterTax` as a simple after-tax estimate:
-  - Traditional × (1 − assumedOrdinaryRate)
-  - Roth × 1.0
-  - Taxable × (1 − assumedLTCGRate × estimatedGainFraction)
-  - Use rates from `taxSettings` if available; otherwise default to 22% ordinary / 15% LTCG with a 50% gain assumption (configurable constant at top of file).
+In `runSingleSimulation`, when applying `rothConversion`:
 
-### 2. Display the breakdown in each strategy card
-`src/components/MonteCarloResults.tsx`
+- Compute an estimated marginal rate at conversion time (re-use `ASSUMED_ORDINARY_RATE` as a first-pass; better: read it from the strategy bracket — `fill_10` → 10%, `fill_12` → 12%, `fill_22` → 22%, `fill_24` → 24%, `none` → 0%).
+- Move `actualConversion` *out* of Traditional, but credit Roth with `actualConversion * (1 - conversionRate)` (i.e. net of the tax that the withdrawal already covered).
+- This keeps the total dollars conserved and matches what `useProjections` does in the `tax_source = "conversion"` path; for the brokerage path the gross-up is already in `withdrawals`, so the Roth credit should still be net-of-tax to avoid double-counting tax-free growth on dollars that were really paid to the IRS.
 
-Replace the single "Median Final" row with a small grouped block:
+### 2. Improve the terminal-tax assumption
 
-```text
-Median Final (nominal)        $1,240,000
-  Pre-tax (Trad/401k)           $620,000
-  Post-tax (Roth)               $410,000
-  Taxable (brokerage)           $210,000
-After-Tax Equivalent          $1,015,000   ← new headline number
-```
+Replace the flat `ASSUMED_ORDINARY_RATE = 0.22` with an **effective terminal rate** derived from the simulation:
 
-- "After-Tax Equivalent" gets bold styling so users compare strategies on real spendable wealth.
-- Each row gets an `InfoTooltip` explaining what's being shown and the assumed tax rates.
-- Keep the existing 10th–90th percentile row (still based on nominal final balance).
+- For each outcome, compute `effectiveTerminalRate = avgOrdinaryWithdrawalRate` from the last ~5 years of `baselineProjections` (their `totalTaxes / ordinaryIncome`).
+- Fall back to 22% if unavailable.
+- Apply per-outcome, then take the median. This makes the metric reflect the *user's actual bracket trajectory* rather than a guess.
 
-### 3. No changes to
-- Histogram chart (still nominal, with a one-line note added below the chart noting it shows pre-tax dollars)
-- Depletion age tracking
-- Settings sliders / debounce logic
-- Strategy Comparison or other tabs
+(Lower-cost alternative if the above is too invasive: keep flat-rate but expose it as a settable input — "Assumed terminal tax rate" — so the user can stress-test it. Default to 24% for married couples at typical RMD ages, not 22%.)
 
-## Technical notes
+### 3. Add a true lifetime-comparison headline
 
-- Per-account final medians are computed independently, so the three account medians won't sum exactly to the nominal median (which is the median of sums). We display the nominal median as the headline of the breakdown and label the three rows as "median per account" via tooltip to set expectations.
-- After-tax equivalent uses **median per account** as the basis (not the sum-median), since that's what's actually being decomposed.
-- Default tax assumptions are conservative and clearly disclosed in tooltips. If `taxSettings` exposes a marginal/effective rate field, use it; otherwise fall back to the constants.
+In `MonteCarloResults.tsx`, add a new bold row above "After-Tax Equivalent":
 
-## Files modified
+> **Lifetime Net Wealth = After-Tax Equivalent − Avg Lifetime Tax**
 
-- `src/hooks/useMonteCarloSimulation.ts` — extend interfaces, return per-account finals, compute medians + after-tax equivalent
-- `src/components/MonteCarloResults.tsx` — render breakdown block + after-tax headline in each card
+This is the only number that fairly captures the Roth-conversion tradeoff (pay tax now to avoid more tax later). Keep the existing rows as supporting detail.
+
+Also update the explainer paragraph to say:
+- After-Tax Equivalent is a terminal snapshot and does not credit a strategy for paying less tax over the lifetime.
+- Compare strategies primarily on **Success Rate** + **Lifetime Net Wealth**, not on terminal balance alone.
+
+### 4. Update tests
+
+- Extend `src/hooks/useProjections.snapshot.test.ts` (or add a new MC-focused test) to assert that for a representative scenario, the sum of `medianFinalTraditional + medianFinalRoth + medianFinalTaxable` is within a small tolerance of `medianFinalBalance`, and that `Fill to 24%` produces a Roth balance ≤ pre-fix value (proves the net-of-tax credit landed).
+
+## Out of scope
+
+- Restructuring the MC engine to do its own per-year tax calc (too large; baselineRow scaling stays).
+- Changing strategy ranking logic in `StrategyComparison` (separate engine, separate ticket).
+
+## Files touched
+
+- `src/hooks/useMonteCarloSimulation.ts` — conversion crediting + per-outcome terminal rate.
+- `src/components/MonteCarloResults.tsx` — new "Lifetime Net Wealth" row + revised explainer.
+- `src/hooks/useProjections.snapshot.test.ts` (or new test file) — guardrail assertions.

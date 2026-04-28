@@ -234,9 +234,16 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                 <div className="flex items-center justify-between pt-1 border-t">
                   <span className="text-sm font-semibold text-foreground flex items-center gap-1">
                     After-Tax Equivalent
-                    <InfoTooltip text="Estimated spendable wealth after future taxes: Trad × (1 − 22%) + Roth + Taxable × (1 − 15% × 50% gains). This is the apples-to-apples number for comparing strategies." side="right" />
+                    <InfoTooltip text={`Estimated spendable wealth at end of plan: Trad × (1 − ${formatPercent(s.data.medianEffectiveTerminalRate)}) + Roth + Taxable × (1 − 15% × 50% gains). The Trad rate is derived from the deterministic projection's late-life ordinary tax rate, not a flat 22%.`} side="right" />
                   </span>
                   <span className="font-bold text-foreground">{formatCurrency(s.data.medianFinalAfterTax)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground flex items-center gap-1">
+                    Lifetime Net Wealth
+                    <InfoTooltip text="After-Tax Equivalent minus average lifetime taxes paid. This is the apples-to-apples number for comparing strategies because it credits Roth conversions for paying tax at lower brackets earlier in life." side="right" />
+                  </span>
+                  <span className="font-bold text-primary">{formatCurrency(s.data.medianLifetimeNetWealth)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
@@ -311,11 +318,18 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
         </div>
 
         {/* Explainer: why Monte Carlo medians differ from Strategy Comparison */}
-        <div className="p-3 rounded-md bg-muted/40 border text-xs text-foreground/80">
-          <span className="font-medium text-foreground">Why these ages differ from Strategy Comparison:</span>{' '}
-          Monte Carlo medians reflect random-return variance, so they typically deplete earlier than the deterministic
-          Strategy Comparison even when centered on the same average return — this is sequence-of-returns risk. The
-          deterministic engine assumes one smooth return path; half of random paths underperform it.
+        <div className="p-3 rounded-md bg-muted/40 border text-xs text-foreground/80 space-y-2">
+          <div>
+            <span className="font-medium text-foreground">Why these depletion ages differ from Strategy Comparison:</span>{' '}
+            Monte Carlo medians reflect random-return variance, so they typically deplete earlier than the deterministic
+            Strategy Comparison even when centered on the same average return — this is sequence-of-returns risk.
+          </div>
+          <div>
+            <span className="font-medium text-foreground">How to compare strategies:</span>{' '}
+            <strong>After-Tax Equivalent</strong> is a terminal snapshot — it doesn't credit a strategy for paying less tax over its lifetime, so it can make
+            "No Conversions" look misleadingly strong. Use <strong>Success Rate</strong> together with <strong>Lifetime Net Wealth</strong>
+            (which subtracts the lifetime taxes you actually paid) as the headline comparison.
+          </div>
         </div>
 
 

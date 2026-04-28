@@ -9,9 +9,22 @@ export interface MonteCarloSettings {
 }
 
 // After-tax equivalent assumptions (used to convert nominal final balances into spendable wealth)
-const ASSUMED_ORDINARY_RATE = 0.22; // Traditional / 401(k) withdrawals taxed as ordinary income
-const ASSUMED_LTCG_RATE = 0.15;     // Long-term capital gains rate on taxable account gains
-const ASSUMED_GAIN_FRACTION = 0.5;  // Fraction of taxable balance assumed to be unrealized gains
+const FALLBACK_ORDINARY_RATE = 0.22; // Used only when the projection provides no usable rate signal
+const ASSUMED_LTCG_RATE = 0.15;      // Long-term capital gains rate on taxable account gains
+const ASSUMED_GAIN_FRACTION = 0.5;   // Fraction of taxable balance assumed to be unrealized gains
+
+/** Approximate marginal rate implied by a Roth conversion strategy (used when crediting Roth net-of-tax). */
+function strategyConversionRate(strategy: string): number {
+  switch (strategy) {
+    case 'fill_10': return 0.10;
+    case 'fill_12': return 0.12;
+    case 'fill_22': return 0.22;
+    case 'fill_24': return 0.24;
+    case 'fill_32': return 0.32;
+    case 'none':    return 0;
+    default:        return 0.22; // custom / survivor_smooth — assume top of common conversion band
+  }
+}
 
 export interface SimulationOutcome {
   finalBalance: number;
@@ -23,6 +36,7 @@ export interface SimulationOutcome {
   rothDepletionAge: number | null;
   taxableDepletionAge: number | null;
   lifetimeTax: number;
+  effectiveTerminalRate: number; // Avg ordinary tax rate from final years of the deterministic projection
   success: boolean; // Funds lasted until age 100
 }
 
@@ -42,6 +56,8 @@ export interface StrategySimulationResults {
   medianRothDepletionAge: number | null;
   medianTaxableDepletionAge: number | null;
   avgLifetimeTax: number;
+  medianEffectiveTerminalRate: number; // Avg ordinary rate used in after-tax conversion
+  medianLifetimeNetWealth: number;     // After-tax equivalent minus average lifetime tax
 }
 
 export interface MonteCarloResult {
@@ -157,12 +173,16 @@ function runSingleSimulation(
       remaining -= fromRoth;
     }
     
-    // Handle Roth conversions (move from traditional to Roth, scaled by balance ratio)
+    // Handle Roth conversions. The deterministic engine pre-funds the conversion tax either out
+    // of the brokerage withdrawal (already reflected in `withdrawals`) or out of the converted
+    // amount itself. Either way, the *spendable* dollars landing in Roth are net of tax — adding
+    // the gross amount here would over-credit conversion strategies in the after-tax comparison.
     const rothConversion = (baselineRow.rothConversion || 0) * Math.min(balanceRatio, 1);
     if (rothConversion > 0 && traditionalBalance > 0) {
       const actualConversion = Math.min(rothConversion, traditionalBalance);
+      const conversionRate = strategyConversionRate(strategy);
       traditionalBalance -= actualConversion;
-      rothBalance += actualConversion;
+      rothBalance += actualConversion * (1 - conversionRate);
     }
     
     // Apply random return for this year (key for sequence-of-returns risk)
@@ -185,7 +205,20 @@ function runSingleSimulation(
   }
   
   const finalBalance = traditionalBalance + rothBalance + taxableBalance;
-  
+
+  // Effective terminal ordinary tax rate: average of the deterministic projection's last
+  // (up to) 5 years where ordinary income is meaningful. This captures the user's actual
+  // late-life bracket trajectory (RMDs, widow filing, etc.) instead of a flat 22%.
+  let effectiveTerminalRate = FALLBACK_ORDINARY_RATE;
+  const tail = baselineProjections.slice(-5).filter(r => r.ordinaryIncome > 1000);
+  if (tail.length > 0) {
+    // Approximate ordinary-tax share of totalTaxes by stripping the obvious non-ordinary pieces
+    // is overkill here; totalTaxes / ordinaryIncome is a conservative upper bound that still
+    // ranks strategies correctly because every strategy is measured the same way.
+    const rateSum = tail.reduce((s, r) => s + Math.min(0.40, r.totalTaxes / r.ordinaryIncome), 0);
+    effectiveTerminalRate = rateSum / tail.length;
+  }
+
   return {
     finalBalance,
     finalTraditional: traditionalBalance,
@@ -196,6 +229,7 @@ function runSingleSimulation(
     rothDepletionAge,
     taxableDepletionAge,
     lifetimeTax,
+    effectiveTerminalRate,
     success: depletionAge === null || depletionAge >= 100,
   };
 }
@@ -251,10 +285,21 @@ function runStrategySimulation(
   const medianFinalTraditional = medianNumeric('finalTraditional');
   const medianFinalRoth = medianNumeric('finalRoth');
   const medianFinalTaxable = medianNumeric('finalTaxable');
+
+  // Median effective ordinary rate across outcomes (per-outcome rate from late-life projection)
+  const sortedRates = outcomes.map(o => o.effectiveTerminalRate).sort((a, b) => a - b);
+  const medianEffectiveTerminalRate =
+    sortedRates.length > 0 ? sortedRates[Math.floor(sortedRates.length / 2)] : FALLBACK_ORDINARY_RATE;
+
   const medianFinalAfterTax =
-    medianFinalTraditional * (1 - ASSUMED_ORDINARY_RATE) +
+    medianFinalTraditional * (1 - medianEffectiveTerminalRate) +
     medianFinalRoth +
     medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * ASSUMED_GAIN_FRACTION);
+
+  // Lifetime Net Wealth: terminal after-tax value minus the average tax actually paid during life.
+  // This is the only number that fairly captures the Roth-conversion tradeoff (pay tax now to avoid
+  // more tax later) — the terminal-only metric ignores cumulative tax payments.
+  const medianLifetimeNetWealth = medianFinalAfterTax - avgLifetimeTax;
 
   return {
     strategyName,
@@ -272,6 +317,8 @@ function runStrategySimulation(
     medianRothDepletionAge,
     medianTaxableDepletionAge,
     avgLifetimeTax,
+    medianEffectiveTerminalRate,
+    medianLifetimeNetWealth,
   };
 }
 
