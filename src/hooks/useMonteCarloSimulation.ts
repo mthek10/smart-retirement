@@ -285,10 +285,21 @@ function runStrategySimulation(
   const medianFinalTraditional = medianNumeric('finalTraditional');
   const medianFinalRoth = medianNumeric('finalRoth');
   const medianFinalTaxable = medianNumeric('finalTaxable');
+
+  // Median effective ordinary rate across outcomes (per-outcome rate from late-life projection)
+  const sortedRates = outcomes.map(o => o.effectiveTerminalRate).sort((a, b) => a - b);
+  const medianEffectiveTerminalRate =
+    sortedRates.length > 0 ? sortedRates[Math.floor(sortedRates.length / 2)] : FALLBACK_ORDINARY_RATE;
+
   const medianFinalAfterTax =
-    medianFinalTraditional * (1 - ASSUMED_ORDINARY_RATE) +
+    medianFinalTraditional * (1 - medianEffectiveTerminalRate) +
     medianFinalRoth +
     medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * ASSUMED_GAIN_FRACTION);
+
+  // Lifetime Net Wealth: terminal after-tax value minus the average tax actually paid during life.
+  // This is the only number that fairly captures the Roth-conversion tradeoff (pay tax now to avoid
+  // more tax later) — the terminal-only metric ignores cumulative tax payments.
+  const medianLifetimeNetWealth = medianFinalAfterTax - avgLifetimeTax;
 
   return {
     strategyName,
@@ -306,6 +317,8 @@ function runStrategySimulation(
     medianRothDepletionAge,
     medianTaxableDepletionAge,
     avgLifetimeTax,
+    medianEffectiveTerminalRate,
+    medianLifetimeNetWealth,
   };
 }
 
