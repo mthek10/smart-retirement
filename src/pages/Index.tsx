@@ -429,7 +429,7 @@ const Index = () => {
     setCommittedTaxSettings(structuredClone(DEFAULT_TAX_SETTINGS));
     setMonteCarloSettings({
       numSimulations: 1000,
-      returnMean: DEFAULT_ACCOUNTS.rothReturn / 100,
+      returnMean: computeBlendedReturn(DEFAULT_ACCOUNTS),
       returnStdDev: 0.15,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
