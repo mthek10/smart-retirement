@@ -244,9 +244,48 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                     <span className="font-medium">Past 100</span>
                   </div>
                 )}
+
+                {/* Per-account median depletion ages — comparable to Strategy Comparison */}
+                <div className="pt-2 mt-1 border-t space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground/70 flex items-center gap-1">
+                      Median Traditional Depleted
+                      <InfoTooltip text="Median age across simulations when the combined Traditional / 401(k) balance first falls below $1,000. 'Never' means most simulations preserve a balance past age 100." side="right" />
+                    </span>
+                    <span className="text-xs font-medium text-foreground">
+                      {s.data.medianTradDepletionAge ? `Age ${s.data.medianTradDepletionAge}` : 'Never'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground/70 flex items-center gap-1">
+                      Median Roth Depleted
+                      <InfoTooltip text="Median age across simulations when the Roth balance first falls below $1,000." side="right" />
+                    </span>
+                    <span className="text-xs font-medium text-foreground">
+                      {s.data.medianRothDepletionAge ? `Age ${s.data.medianRothDepletionAge}` : 'Never'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground/70 flex items-center gap-1">
+                      Median Taxable Depleted
+                      <InfoTooltip text="Median age across simulations when the Taxable / Brokerage balance first falls below $1,000." side="right" />
+                    </span>
+                    <span className="text-xs font-medium text-foreground">
+                      {s.data.medianTaxableDepletionAge ? `Age ${s.data.medianTaxableDepletionAge}` : 'Never'}
+                    </span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Explainer: why Monte Carlo medians differ from Strategy Comparison */}
+        <div className="p-3 rounded-md bg-muted/40 border text-xs text-foreground/80">
+          <span className="font-medium text-foreground">Why these ages differ from Strategy Comparison:</span>{' '}
+          Monte Carlo medians reflect random-return variance, so they typically deplete earlier than the deterministic
+          Strategy Comparison even when centered on the same average return — this is sequence-of-returns risk. The
+          deterministic engine assumes one smooth return path; half of random paths underperform it.
         </div>
 
 
