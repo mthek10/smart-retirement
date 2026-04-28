@@ -216,18 +216,12 @@ function runSingleSimulation(
   
   const finalBalance = traditionalBalance + rothBalance + taxableBalance;
 
-  // Effective terminal ordinary tax rate: average of the deterministic projection's last
-  // (up to) 5 years where ordinary income is meaningful. This captures the user's actual
-  // late-life bracket trajectory (RMDs, widow filing, etc.) instead of a flat 22%.
-  let effectiveTerminalRate = FALLBACK_ORDINARY_RATE;
-  const tail = baselineProjections.slice(-5).filter(r => r.ordinaryIncome > 1000);
-  if (tail.length > 0) {
-    // Approximate ordinary-tax share of totalTaxes by stripping the obvious non-ordinary pieces
-    // is overkill here; totalTaxes / ordinaryIncome is a conservative upper bound that still
-    // ranks strategies correctly because every strategy is measured the same way.
-    const rateSum = tail.reduce((s, r) => s + Math.min(0.40, r.totalTaxes / r.ordinaryIncome), 0);
-    effectiveTerminalRate = rateSum / tail.length;
-  }
+  // We no longer compute a per-outcome "effective terminal rate" here because
+  // an average rate (totalTaxes / ordinaryIncome) systematically under-taxes
+  // strategies with very large terminal Traditional balances (e.g. No Conversions).
+  // Terminal liquidation tax is now computed once per strategy via a real bracket
+  // walk on the median terminal Trad balance — see runStrategySimulation below.
+  const effectiveTerminalRate = 0; // Deprecated; preserved on the type for backwards compat.
 
   return {
     finalBalance,
