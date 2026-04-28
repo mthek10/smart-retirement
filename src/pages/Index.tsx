@@ -433,7 +433,7 @@ const Index = () => {
       returnStdDev: 0.15,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [clearStoredDraft]);
+  }, [clearStoredDraft, computeBlendedReturn]);
 
   const handleForgetBrowserSave = useCallback(() => {
     clearStoredDraft();
