@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Accounts, SSData, TaxSettings, ProjectionRow } from "./useProjections";
 import { calculateProjections } from "./useProjections";
+import { calculateFederalTax } from "@/lib/taxCalculations";
 
 export interface MonteCarloSettings {
   numSimulations: number;
