@@ -1,86 +1,63 @@
-## What's wrong today
+## Goal
 
-The After-Tax Equivalent metric haircuts the terminal Taxable balance with a flat assumption:
+Make it immediately obvious what **After-Tax Equivalent** and **Lifetime Net Wealth** each answer, why they can disagree, and which one to trust when comparing strategies.
 
-```ts
-medianFinalTaxable * (1 − 15% × 50%)   // ≈ 7.5% haircut, forever
-```
+## Problem today
 
-That 50% gain fraction is reasonable for *today's* brokerage balance (the user enters their cost basis percent in inputs). But the metric applies it to the **terminal** balance 30+ years out, by which point compounding has turned almost the entire balance into gains. Result: huge end-of-plan Taxable balances look ~92.5% spendable when the real number is closer to 80–82%. Strategies that *preserve* a large Taxable pile (No Conversions) get artificially flattered vs. strategies that drain it to fund Roth conversions.
-
-## The fix: decay basis fraction over the horizon
-
-Replace the flat 50% gain fraction with one that grows over time, anchored to the user's actual starting basis from `accounts.taxableCostBasisPercent`.
-
-### Math
-
-For a balance growing at rate `r` over `t` years with starting basis fraction `b₀`:
+In each strategy card the user sees two bold dollar numbers stacked on top of each other:
 
 ```text
-basisFraction(t) = b₀ / (1 + r)^t
-gainFraction(t)  = 1 − basisFraction(t)
+After-Tax Equivalent      $19,134,000
+Lifetime Net Wealth       $15,372,000
 ```
 
-Intuition: the basis dollars don't compound (they're already after-tax principal), but the balance does. So basis-as-a-share-of-balance shrinks geometrically.
+There's no visual hierarchy, no plain-English label, and no indication of how the two relate. The tooltips explain it, but only if the user hovers — and even then the relationship ("one minus the other plus taxes paid") isn't shown.
 
-Worked example (your MFJ scenario):
-- Starting basis: 67% (= $2M basis on $3M)
-- Growth rate: 5% nominal (deterministic)
-- Horizon: 35 years
-- `basisFraction(35) = 0.67 / 1.05^35 = 0.67 / 5.52 = 12.1%`
-- `gainFraction(35) = 87.9%`
-- Old haircut: 15% × 50% = **7.5%**
-- New haircut: 15% × 87.9% = **13.2%**
+## Proposed redesign (per strategy card)
 
-On an $18M terminal Taxable balance, that's the difference between an $810K tax reserve and a $2.37M tax reserve — about **$1.56M shaved off** the No-Conversions After-Tax Equivalent. That should flip the ranking to match Lifetime Net Wealth in your scenario.
+Replace the current two flat rows with a small grouped block that:
 
-### Implementation
+1. **Renames** the metrics to action-oriented questions.
+2. **Adds a one-line subtitle** under each number.
+3. **Shows the arithmetic** that links them.
+4. **Marks the headline metric** (Lifetime Net Wealth) with the primary color and a "Best for comparing strategies" pill so the eye lands there first.
 
-In `src/hooks/useMonteCarloSimulation.ts`:
+### New layout
 
-1. **Read starting basis from accounts**: `b₀ = accounts.taxableCostBasisPercent / 100`. Default to 0.5 if missing/zero/invalid.
-2. **Use the deterministic taxable growth rate**: `r = accounts.taxableReturn / 100`. This matches the projection engine's assumption — not the Monte Carlo sampled rate, because we're computing a metric on the *median* terminal balance.
-3. **Compute horizon**: same `yearsToTerminal` we already use for the lump-sum federal tax.
-4. **Floor at zero**: `gainFraction = max(0, 1 − b₀ / (1+r)^t)`.
-5. **Replace the constant** at the single call site:
-
-```ts
-const taxableGainFraction = Math.max(
-  0,
-  1 - (accounts.taxableCostBasisPercent / 100 || 0.5) / Math.pow(1 + (accounts.taxableReturn / 100), yearsToTerminal)
-);
-
-const medianFinalAfterTax =
-  (medianFinalTraditional - terminalLumpSumTax) +
-  medianFinalRoth +
-  medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * taxableGainFraction);
+```text
+┌─────────────────────────────────────────────────────┐
+│  What you'd have left at the end                    │
+│  After-Tax Equivalent                  $19.13M      │
+│  Spendable wealth on the final day of the plan      │
+│                                                     │
+│      −  Avg lifetime taxes paid         $3.76M      │
+│      ───────────────────────────────────────        │
+│                                                     │
+│  True lifetime wealth   ★ headline      $15.37M     │
+│  Final wealth after subtracting every tax dollar    │
+│  you paid along the way — use this to compare       │
+│  strategies                                         │
+└─────────────────────────────────────────────────────┘
 ```
 
-6. **Remove the `ASSUMED_GAIN_FRACTION` constant** (no other call sites).
+- "After-Tax Equivalent" keeps its name (users have seen it) but gains the subtitle *"Spendable wealth on the final day of the plan."*
+- "Lifetime Net Wealth" gets the subtitle *"Final wealth after subtracting every tax dollar you paid along the way."*
+- The subtraction line is rendered as a faint indented row (`− Avg lifetime taxes paid  $X`) so the relationship is visible without a tooltip.
+- The headline number is bold + primary color + a small "Best for comparing" badge. The After-Tax Equivalent stays neutral foreground.
 
-### UI tooltip update
+### Updated explainer block (below the cards)
 
-Update the After-Tax Equivalent tooltip in `src/components/MonteCarloResults.tsx` to reflect the dynamic basis decay. New text:
+Replace the current dense paragraph with a two-line contrast:
 
-> "Estimated spendable wealth at end of plan: Trad − federal tax owed if liquidated as a lump sum (effective {rate}, computed by walking inflation-adjusted brackets) + Roth + Taxable × (1 − 15% × {gainFraction} estimated unrealized gains). Gain fraction grows with horizon as compounding outpaces the original cost basis. State tax not included."
+> **After-Tax Equivalent** answers *"How much wealth is left at the end?"* — a snapshot.
+>
+> **Lifetime Net Wealth** answers *"How much wealth did this strategy actually keep, after every tax bill along the way?"* — the fair comparison. A strategy that converts to Roth pays tax earlier, so its After-Tax Equivalent looks lower, but its Lifetime Net Wealth is usually higher.
 
-This requires surfacing the computed `gainFraction` to the UI. Add `medianTaxableGainFraction: number` to `StrategySimulationResults` and thread it through.
+## Files to change
 
-### Tests to add (in `src/hooks/useMonteCarloSimulation.test.ts`)
+- `src/components/MonteCarloResults.tsx` — lines ~234–247 (the two metric rows) and lines ~327–332 (the explainer). Pure presentation changes; no calculation or hook changes.
 
-- **Decay produces higher gain fraction than 50% over 30+ years** at 5% growth with 67% basis (should land ~88%).
-- **Short horizon stays close to starting basis** (e.g. 1 year, basis 67% → gain fraction ~6%, not 50%).
-- **Floor at zero** when `b₀ / (1+r)^t > 1` (e.g. 100% basis, 0% growth → gain fraction = 0).
+## Out of scope
 
-## What I am NOT changing
-
-- The 15% LTCG rate. Adding NIIT (3.8%) and the 20% bracket would help even more, but it's a separate decision and adds UI complexity (the user might be in a low-income post-conversion year). Doing one fix at a time keeps it auditable.
-- The lump-sum Trad bracket walk (already correct).
-- Lifetime Net Wealth (already the better headline metric — this fix just brings After-Tax Equivalent into closer agreement with it).
-- The deterministic `useProjections.ts` engine. This is purely a metric-display fix.
-
-## Files changed
-
-- `src/hooks/useMonteCarloSimulation.ts` — basis decay logic + new field on results type
-- `src/components/MonteCarloResults.tsx` — updated tooltip showing dynamic gain fraction
-- `src/hooks/useMonteCarloSimulation.test.ts` — three new guardrail tests
+- No changes to `useMonteCarloSimulation.ts` or any math. Numbers and tooltips stay accurate; only labeling, ordering, hierarchy, and the inline subtraction row change.
+- No changes to Strategy Comparison or other tabs.
