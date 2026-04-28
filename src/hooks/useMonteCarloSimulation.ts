@@ -8,8 +8,16 @@ export interface MonteCarloSettings {
   returnStdDev: number; // Standard deviation (e.g., 0.15 for 15%)
 }
 
+// After-tax equivalent assumptions (used to convert nominal final balances into spendable wealth)
+const ASSUMED_ORDINARY_RATE = 0.22; // Traditional / 401(k) withdrawals taxed as ordinary income
+const ASSUMED_LTCG_RATE = 0.15;     // Long-term capital gains rate on taxable account gains
+const ASSUMED_GAIN_FRACTION = 0.5;  // Fraction of taxable balance assumed to be unrealized gains
+
 export interface SimulationOutcome {
   finalBalance: number;
+  finalTraditional: number;
+  finalRoth: number;
+  finalTaxable: number;
   depletionAge: number | null;
   tradDepletionAge: number | null;
   rothDepletionAge: number | null;
@@ -23,6 +31,10 @@ export interface StrategySimulationResults {
   outcomes: SimulationOutcome[];
   successRate: number;
   medianFinalBalance: number;
+  medianFinalTraditional: number;
+  medianFinalRoth: number;
+  medianFinalTaxable: number;
+  medianFinalAfterTax: number;
   percentile10FinalBalance: number;
   percentile90FinalBalance: number;
   medianDepletionAge: number | null;
@@ -176,6 +188,9 @@ function runSingleSimulation(
   
   return {
     finalBalance,
+    finalTraditional: traditionalBalance,
+    finalRoth: rothBalance,
+    finalTaxable: taxableBalance,
     depletionAge,
     tradDepletionAge,
     rothDepletionAge,
