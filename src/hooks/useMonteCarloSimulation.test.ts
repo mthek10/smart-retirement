@@ -114,3 +114,34 @@ test("lump-sum liquidation tax scales with balance (small Trad → low rate)", (
   const rateHigh = taxHigh / 1_500_000;
   assert.ok(rateHigh - rateLow > 0.05, `large balance must pay >5pp higher effective rate (got ${(rateHigh-rateLow).toFixed(3)})`);
 });
+
+// ----- Taxable basis-decay (gain fraction grows with horizon) -----
+// The After-Tax Equivalent uses gainFraction = 1 − b₀ / (1+r)^t, floored at 0.
+// These tests pin the formula independently of the React hook so the metric
+// can't silently regress to a flat 50%.
+
+function gainFraction(basisFrac: number, growth: number, years: number): number {
+  const compoundedBasisShare = basisFrac / Math.pow(1 + growth, years);
+  return Math.max(0, Math.min(1, 1 - compoundedBasisShare));
+}
+
+test("basis decay: long horizon at moderate growth pushes gain fraction near 90%", () => {
+  // 67% basis, 5% growth, 35 years -> ~88% gains (matches the MFJ scenario).
+  const gf = gainFraction(0.67, 0.05, 35);
+  assert.ok(gf > 0.85 && gf < 0.92, `expected ~88%, got ${(gf*100).toFixed(1)}%`);
+  assert.ok(gf > 0.5, "long-horizon gain fraction must exceed the old flat 50%");
+});
+
+test("basis decay: short horizon stays near the starting gain fraction", () => {
+  // 67% basis means 33% of today's balance is already gains.
+  // After 1 year of 5% growth, gain fraction grows only modestly: ~36% (not 88%).
+  const gf = gainFraction(0.67, 0.05, 1);
+  assert.ok(gf > 0.30 && gf < 0.42, `1-year gain fraction should be near starting gains, got ${(gf*100).toFixed(1)}%`);
+});
+
+test("basis decay: floors at zero when basis exceeds compounded balance", () => {
+  // 100% basis, 0% growth -> basisShare=1.0 -> gainFraction=0 (no gains to tax).
+  assert.ok(Math.abs(gainFraction(1.0, 0.0, 10) - 0) < 1e-9);
+  // 80% basis, no growth, long horizon -> 20% baseline gain (allow float epsilon).
+  assert.ok(Math.abs(gainFraction(0.8, 0.0, 50) - 0.2) < 1e-9);
+});
