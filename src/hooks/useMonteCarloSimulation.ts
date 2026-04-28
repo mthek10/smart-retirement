@@ -11,6 +11,9 @@ export interface MonteCarloSettings {
 export interface SimulationOutcome {
   finalBalance: number;
   depletionAge: number | null;
+  tradDepletionAge: number | null;
+  rothDepletionAge: number | null;
+  taxableDepletionAge: number | null;
   lifetimeTax: number;
   success: boolean; // Funds lasted until age 100
 }
@@ -23,6 +26,9 @@ export interface StrategySimulationResults {
   percentile10FinalBalance: number;
   percentile90FinalBalance: number;
   medianDepletionAge: number | null;
+  medianTradDepletionAge: number | null;
+  medianRothDepletionAge: number | null;
+  medianTaxableDepletionAge: number | null;
   avgLifetimeTax: number;
 }
 
