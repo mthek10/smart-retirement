@@ -147,43 +147,52 @@ function runSingleSimulation(
       baselineRow.withdrawals * Math.min(balanceRatio, 1.5),
       totalBalance * 0.5 // Safety cap: don't withdraw more than 50% in one year
     );
-    
-    lifetimeTax += baselineRow.totalTaxes;
-    
+
+    // Scale lifetime tax by the same ratio. The deterministic tax bill assumes
+    // deterministic balances; in down-market sims our actual ordinary income
+    // (Trad withdrawals + conversions) is proportionally smaller, so taxes are too.
+    // This gives conversion strategies proper credit when bad sequences shrink RMDs.
+    lifetimeTax += baselineRow.totalTaxes * Math.min(balanceRatio, 1.5);
+
     // Execute withdrawal from accounts (same order as main projection: traditional -> taxable -> roth)
     let remaining = targetWithdrawal;
-    
+
     // 1. From traditional (including RMD)
     if (remaining > 0 && traditionalBalance > 0) {
       const fromTrad = Math.min(remaining, traditionalBalance);
       traditionalBalance -= fromTrad;
       remaining -= fromTrad;
     }
-    
+
     // 2. From taxable
     if (remaining > 0 && taxableBalance > 0) {
       const fromTaxable = Math.min(remaining, taxableBalance);
       taxableBalance -= fromTaxable;
       remaining -= fromTaxable;
     }
-    
+
     // 3. From Roth
     if (remaining > 0 && rothBalance > 0) {
       const fromRoth = Math.min(remaining, rothBalance);
       rothBalance -= fromRoth;
       remaining -= fromRoth;
     }
-    
-    // Handle Roth conversions. The deterministic engine pre-funds the conversion tax either out
-    // of the brokerage withdrawal (already reflected in `withdrawals`) or out of the converted
-    // amount itself. Either way, the *spendable* dollars landing in Roth are net of tax — adding
-    // the gross amount here would over-credit conversion strategies in the after-tax comparison.
+
+    // Handle Roth conversions. Mirror the deterministic engine exactly:
+    //  - "brokerage" (default): conversion tax was already included in baselineRow.withdrawals
+    //    above, so the FULL gross conversion lands in Roth. Netting again here would
+    //    double-charge tax and systematically penalize conversion strategies.
+    //  - "conversion": tax is funded out of the converted amount itself, so Roth
+    //    receives the net.
     const rothConversion = (baselineRow.rothConversion || 0) * Math.min(balanceRatio, 1);
     if (rothConversion > 0 && traditionalBalance > 0) {
       const actualConversion = Math.min(rothConversion, traditionalBalance);
-      const conversionRate = strategyConversionRate(strategy);
       traditionalBalance -= actualConversion;
-      rothBalance += actualConversion * (1 - conversionRate);
+      if (taxSettings.rothConversionTaxSource === "conversion") {
+        rothBalance += actualConversion * (1 - strategyConversionRate(strategy));
+      } else {
+        rothBalance += actualConversion;
+      }
     }
     
     // Apply random return for this year (key for sequence-of-returns risk)
