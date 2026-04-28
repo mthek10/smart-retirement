@@ -234,9 +234,16 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                 <div className="flex items-center justify-between pt-1 border-t">
                   <span className="text-sm font-semibold text-foreground flex items-center gap-1">
                     After-Tax Equivalent
-                    <InfoTooltip text="Estimated spendable wealth after future taxes: Trad × (1 − 22%) + Roth + Taxable × (1 − 15% × 50% gains). This is the apples-to-apples number for comparing strategies." side="right" />
+                    <InfoTooltip text={`Estimated spendable wealth at end of plan: Trad × (1 − ${formatPercent(s.data.medianEffectiveTerminalRate)}) + Roth + Taxable × (1 − 15% × 50% gains). The Trad rate is derived from the deterministic projection's late-life ordinary tax rate, not a flat 22%.`} side="right" />
                   </span>
                   <span className="font-bold text-foreground">{formatCurrency(s.data.medianFinalAfterTax)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground flex items-center gap-1">
+                    Lifetime Net Wealth
+                    <InfoTooltip text="After-Tax Equivalent minus average lifetime taxes paid. This is the apples-to-apples number for comparing strategies because it credits Roth conversions for paying tax at lower brackets earlier in life." side="right" />
+                  </span>
+                  <span className="font-bold text-primary">{formatCurrency(s.data.medianLifetimeNetWealth)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
