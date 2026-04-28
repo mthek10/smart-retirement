@@ -1,57 +1,84 @@
-# Fix After-Tax Equivalent so Roth conversions are evaluated fairly
+## Short answer
 
-## Why this matters
+No — it does not make sense, and the result is still biased. My previous fix solved one bug but introduced another, and there are additional structural problems. There are **four distinct issues** still pushing the comparison against Roth conversions.
 
-The current Monte Carlo "After-Tax Equivalent" metric biases the comparison toward **No Conversions** for two reasons:
+## Why "No Conversions" is still winning unfairly
 
-1. **Conversion tax double-accounting in the simulator.** When a Roth conversion occurs, the engine subtracts the gross amount from Traditional and adds the *full* gross amount to Roth — but the conversion tax was already pre-funded inside `baselineRow.withdrawals` (which shrank the brokerage). So the conversion strategies end up with an inflated Roth balance and a deflated Taxable balance versus what the deterministic engine in `useProjections` actually produces. The terminal *mix* is wrong.
-2. **Flat 22% terminal tax assumption.** A static 22% discount on the ending Traditional balance over-rewards strategies that *leave* large Traditional balances (because in real life RMDs at age 75+ widow-bracket would often hit higher than 22%) and gives no credit to strategies that *pre-paid* tax during life at lower brackets.
+### 1. The previous "fix" now double-charges conversion tax (the new bug)
 
-Compounded, these can flip the ranking and make "No Conversions" look like a free win.
+The deterministic projection in `useProjections.ts` handles conversion taxes two ways:
 
-## Changes
+- **Default (`rothConversionTaxSource === "brokerage"`)**: tax is paid out of the brokerage withdrawal, and the **full gross conversion** is credited to Roth (line 1097: `rothBalance += rothConversion`). The tax is *already baked into* `baselineRow.withdrawals` and `baselineRow.totalTaxes`.
+- **"conversion" mode**: tax is netted out of the Roth credit (line 1095).
 
-### 1. `src/hooks/useMonteCarloSimulation.ts` — fix the conversion mechanics
+My recent MC change *always* credits Roth net-of-tax (`actualConversion * (1 - conversionRate)`). In the default brokerage-tax mode, this means the conversion tax is now subtracted **twice**: once via the withdrawal (which we already replay through `baselineRow.withdrawals`) and again from the Roth credit. This systematically shrinks the Roth balance for every conversion strategy.
 
-In `runSingleSimulation`, when applying `rothConversion`:
+### 2. The terminal tax rate is computed off the **wrong projection**
 
-- Compute an estimated marginal rate at conversion time (re-use `ASSUMED_ORDINARY_RATE` as a first-pass; better: read it from the strategy bracket — `fill_10` → 10%, `fill_12` → 12%, `fill_22` → 22%, `fill_24` → 24%, `none` → 0%).
-- Move `actualConversion` *out* of Traditional, but credit Roth with `actualConversion * (1 - conversionRate)` (i.e. net of the tax that the withdrawal already covered).
-- This keeps the total dollars conserved and matches what `useProjections` does in the `tax_source = "conversion"` path; for the brokerage path the gross-up is already in `withdrawals`, so the Roth credit should still be net-of-tax to avoid double-counting tax-free growth on dollars that were really paid to the IRS.
+Each strategy uses its own `baselineProjections` (the deterministic run for that strategy). For `none`, late-life ordinary income is dominated by RMDs on a huge un-converted Traditional balance — pushing the tail rate up. For `fill_24`, the Traditional balance is much smaller late in life, so the tail rate is lower. We then apply that lower rate to that strategy's *much smaller* Trad remainder. That's correct in spirit, but combined with bug #1 it isn't enough to overcome the double-tax penalty.
 
-### 2. Improve the terminal-tax assumption
+More importantly: `totalTaxes / ordinaryIncome` is an **average** rate, not a marginal rate. Liquidating a $1.5M Trad balance at death wouldn't happen at the average rate — it would push into top brackets. So we systematically *under-tax* the No-Conversion strategy's massive terminal Traditional balance, which is the opposite of what we want.
 
-Replace the flat `ASSUMED_ORDINARY_RATE = 0.22` with an **effective terminal rate** derived from the simulation:
+### 3. Lifetime tax is sampled from the deterministic projection, not the simulation
 
-- For each outcome, compute `effectiveTerminalRate = avgOrdinaryWithdrawalRate` from the last ~5 years of `baselineProjections` (their `totalTaxes / ordinaryIncome`).
-- Fall back to 22% if unavailable.
-- Apply per-outcome, then take the median. This makes the metric reflect the *user's actual bracket trajectory* rather than a guess.
+`lifetimeTax += baselineRow.totalTaxes` uses the deterministic tax bill regardless of how the random returns played out. That means in down-market simulations where a Roth conversion strategy *should* have paid less tax (smaller balances → smaller RMDs → lower brackets), we still book the full deterministic tax. This understates the lifetime-tax advantage of conversions in bad markets.
 
-(Lower-cost alternative if the above is too invasive: keep flat-rate but expose it as a settable input — "Assumed terminal tax rate" — so the user can stress-test it. Default to 24% for married couples at typical RMD ages, not 22%.)
+### 4. Returns are applied **after** withdrawals all year
 
-### 3. Add a true lifetime-comparison headline
+The MC loop withdraws first, then applies the random return to the post-withdrawal balance. Roth balances (which conversions build up) are the *last* dollars touched, so they sit in the account longer and benefit most from compounding. By applying the random return uniformly across all three accounts after withdrawals, we don't lose anything here — but we also lose the tax-free compounding *advantage* that makes Roth valuable in the first place: in the simulation, $1 in Trad and $1 in Roth grow identically, and only the terminal haircut differentiates them. Over 30+ years of variance, the terminal haircut is small noise compared to the lifetime tax differential — which we just established (#3) is being mis-attributed.
 
-In `MonteCarloResults.tsx`, add a new bold row above "After-Tax Equivalent":
+## The fix
 
-> **Lifetime Net Wealth = After-Tax Equivalent − Avg Lifetime Tax**
+### A. Stop double-counting conversion tax
 
-This is the only number that fairly captures the Roth-conversion tradeoff (pay tax now to avoid more tax later). Keep the existing rows as supporting detail.
+Match the deterministic engine exactly: only net out tax from the Roth credit when `rothConversionTaxSource === "conversion"`. Otherwise credit the gross (the brokerage already paid).
 
-Also update the explainer paragraph to say:
-- After-Tax Equivalent is a terminal snapshot and does not credit a strategy for paying less tax over the lifetime.
-- Compare strategies primarily on **Success Rate** + **Lifetime Net Wealth**, not on terminal balance alone.
+```ts
+// in runSingleSimulation, replace the current conversion block
+if (rothConversion > 0 && traditionalBalance > 0) {
+  const actualConversion = Math.min(rothConversion, traditionalBalance);
+  traditionalBalance -= actualConversion;
+  if (taxSettings.rothConversionTaxSource === "conversion") {
+    rothBalance += actualConversion * (1 - strategyConversionRate(strategy));
+  } else {
+    rothBalance += actualConversion; // tax already came out of withdrawals
+  }
+}
+```
 
-### 4. Update tests
+### B. Use a **liquidation** rate for terminal Trad, not an average rate
 
-- Extend `src/hooks/useProjections.snapshot.test.ts` (or add a new MC-focused test) to assert that for a representative scenario, the sum of `medianFinalTraditional + medianFinalRoth + medianFinalTaxable` is within a small tolerance of `medianFinalBalance`, and that `Fill to 24%` produces a Roth balance ≤ pre-fix value (proves the net-of-tax credit landed).
+The After-Tax Equivalent assumes you cash out the remaining Trad balance. That's a lump-sum event that runs through the brackets from $0 up. Replace `totalTaxes / ordinaryIncome` with a real bracket walk on the median terminal Trad balance using the user's filing status (and projected inflation-adjusted brackets at the terminal year). This will:
 
-## Out of scope
+- Raise the effective rate on the No-Conversion strategy's huge terminal Trad pile (correctly).
+- Keep the rate modest on conversion strategies whose terminal Trad is small.
 
-- Restructuring the MC engine to do its own per-year tax calc (too large; baselineRow scaling stays).
-- Changing strategy ranking logic in `StrategyComparison` (separate engine, separate ticket).
+`src/lib/taxCalculations.ts` already has the bracket utilities — we'll add a `calculateLumpSumOrdinaryTax(amount, filingStatus, year, inflationRate)` helper.
 
-## Files touched
+### C. Scale lifetime tax by simulated ordinary income
 
-- `src/hooks/useMonteCarloSimulation.ts` — conversion crediting + per-outcome terminal rate.
-- `src/components/MonteCarloResults.tsx` — new "Lifetime Net Wealth" row + revised explainer.
-- `src/hooks/useProjections.snapshot.test.ts` (or new test file) — guardrail assertions.
+In each simulated year, scale the deterministic year's `totalTaxes` by how much smaller/larger our actual Trad withdrawal ended up vs. the deterministic one (proxy: `balanceRatio` we already compute). This gives strategies credit for *actually* paying less tax in poor markets where their balances shrank.
+
+### D. Update the on-card explainer and tooltip
+
+The After-Tax Equivalent tooltip should explain it now uses a lump-sum liquidation rate. The "Why these depletion ages differ" footer should point users at **Lifetime Net Wealth** as the headline, and explicitly note that Success Rate is the most important number.
+
+### E. Refresh the guardrail tests
+
+Update `src/hooks/useMonteCarloSimulation.test.ts` to:
+- Assert that with `rothConversionTaxSource === "brokerage"` (the default), gross conversion is credited to Roth (not net).
+- Assert that the lump-sum liquidation tax on $1.5M single-filer is meaningfully higher than 22% (somewhere ~30%+).
+- Assert directionally that `fill_24` now has higher `medianLifetimeNetWealth` than `none` in a high-Trad-balance scenario.
+
+## Files changed
+
+- `src/hooks/useMonteCarloSimulation.ts` — fixes A, B, C
+- `src/lib/taxCalculations.ts` — add `calculateLumpSumOrdinaryTax` helper
+- `src/components/MonteCarloResults.tsx` — fix D (tooltip + footer)
+- `src/hooks/useMonteCarloSimulation.test.ts` — fix E
+
+## What I am **not** changing
+
+- The simulation's withdrawal-first / return-second loop (issue #4 is structural; fixing it would be a larger rewrite and the bracket-correct terminal tax in fix B largely compensates).
+- The deterministic projection itself.
+- The 50% gain assumption for taxable accounts (out of scope here).
