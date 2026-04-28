@@ -9,9 +9,22 @@ export interface MonteCarloSettings {
 }
 
 // After-tax equivalent assumptions (used to convert nominal final balances into spendable wealth)
-const ASSUMED_ORDINARY_RATE = 0.22; // Traditional / 401(k) withdrawals taxed as ordinary income
-const ASSUMED_LTCG_RATE = 0.15;     // Long-term capital gains rate on taxable account gains
-const ASSUMED_GAIN_FRACTION = 0.5;  // Fraction of taxable balance assumed to be unrealized gains
+const FALLBACK_ORDINARY_RATE = 0.22; // Used only when the projection provides no usable rate signal
+const ASSUMED_LTCG_RATE = 0.15;      // Long-term capital gains rate on taxable account gains
+const ASSUMED_GAIN_FRACTION = 0.5;   // Fraction of taxable balance assumed to be unrealized gains
+
+/** Approximate marginal rate implied by a Roth conversion strategy (used when crediting Roth net-of-tax). */
+function strategyConversionRate(strategy: string): number {
+  switch (strategy) {
+    case 'fill_10': return 0.10;
+    case 'fill_12': return 0.12;
+    case 'fill_22': return 0.22;
+    case 'fill_24': return 0.24;
+    case 'fill_32': return 0.32;
+    case 'none':    return 0;
+    default:        return 0.22; // custom / survivor_smooth — assume top of common conversion band
+  }
+}
 
 export interface SimulationOutcome {
   finalBalance: number;
