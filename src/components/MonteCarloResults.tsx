@@ -343,10 +343,12 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
             Strategy Comparison even when centered on the same average return — this is sequence-of-returns risk.
           </div>
           <div>
-            <span className="font-medium text-foreground">How to compare strategies:</span>{' '}
-            <strong>After-Tax Equivalent</strong> is a terminal snapshot — it doesn't credit a strategy for paying less tax over its lifetime, so it can make
-            "No Conversions" look misleadingly strong. Use <strong>Success Rate</strong> together with <strong>Lifetime Net Wealth</strong>
-            (which subtracts the lifetime taxes you actually paid) as the headline comparison.
+            <span className="font-medium text-foreground">Two ways to read terminal wealth:</span>
+            <ul className="mt-1 space-y-1 list-disc pl-5">
+              <li><strong>After-Tax Equivalent</strong> answers <em>"How much wealth is left at the end?"</em> — a snapshot.</li>
+              <li><strong>True Lifetime Wealth</strong> answers <em>"How much did this strategy actually keep, after every tax bill along the way?"</em> — the fair comparison.</li>
+            </ul>
+            <div className="mt-1">A strategy that converts to Roth pays tax earlier, so its After-Tax Equivalent can look lower — but its True Lifetime Wealth is usually higher. Pair it with <strong>Success Rate</strong> as the headline.</div>
           </div>
         </div>
 
