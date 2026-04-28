@@ -140,7 +140,7 @@ test("basis decay: short horizon stays close to starting basis", () => {
 
 test("basis decay: floors at zero when basis exceeds compounded balance", () => {
   // 100% basis, 0% growth -> basisShare=1.0 -> gainFraction=0 (no gains to tax).
-  assert.equal(gainFraction(1.0, 0.0, 10), 0);
-  // 80% basis, negative-equivalent (no growth), long horizon -> still 20% baseline gain.
-  assert.equal(gainFraction(0.8, 0.0, 50), 0.2);
+  assert.ok(Math.abs(gainFraction(1.0, 0.0, 10) - 0) < 1e-9);
+  // 80% basis, no growth, long horizon -> 20% baseline gain (allow float epsilon).
+  assert.ok(Math.abs(gainFraction(0.8, 0.0, 50) - 0.2) < 1e-9);
 });
