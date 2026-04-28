@@ -203,15 +203,45 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground flex items-center gap-1">
-                    Median Final
-                    <InfoTooltip text="The middle outcome for your ending balance across all simulations. Half of scenarios end higher, half lower." side="right" />
+                    Median Final (nominal)
+                    <InfoTooltip text="The middle outcome for total ending balance across all simulations. Pre-tax — does not reflect taxes still owed on Traditional/401(k) withdrawals." side="right" />
                   </span>
                   <span className="font-medium">{formatCurrency(s.data.medianFinalBalance)}</span>
+                </div>
+                <div className="pl-3 space-y-1 border-l-2 border-muted">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground/70 flex items-center gap-1">
+                      Pre-tax (Trad/401k)
+                      <InfoTooltip text="Median Traditional/401(k) balance across simulations. Withdrawals are taxed as ordinary income (assumed 22%)." side="right" />
+                    </span>
+                    <span className="text-xs font-medium text-foreground">{formatCurrency(s.data.medianFinalTraditional)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground/70 flex items-center gap-1">
+                      Post-tax (Roth)
+                      <InfoTooltip text="Median Roth balance across simulations. Already taxed — fully spendable." side="right" />
+                    </span>
+                    <span className="text-xs font-medium text-foreground">{formatCurrency(s.data.medianFinalRoth)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-foreground/70 flex items-center gap-1">
+                      Taxable (brokerage)
+                      <InfoTooltip text="Median taxable/brokerage balance. Gains owe LTCG (assumed 15% on ~50% of balance)." side="right" />
+                    </span>
+                    <span className="text-xs font-medium text-foreground">{formatCurrency(s.data.medianFinalTaxable)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t">
+                  <span className="text-sm font-semibold text-foreground flex items-center gap-1">
+                    After-Tax Equivalent
+                    <InfoTooltip text="Estimated spendable wealth after future taxes: Trad × (1 − 22%) + Roth + Taxable × (1 − 15% × 50% gains). This is the apples-to-apples number for comparing strategies." side="right" />
+                  </span>
+                  <span className="font-bold text-foreground">{formatCurrency(s.data.medianFinalAfterTax)}</span>
                 </div>
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
                     10th-90th %ile
-                    <InfoTooltip text="The range covering 80% of outcomes. The 10th percentile is a poor-market result; the 90th is a strong-market result." side="right" />
+                    <InfoTooltip text="The range covering 80% of nominal-balance outcomes. The 10th percentile is a poor-market result; the 90th is a strong-market result." side="right" />
                   </span>
                   <span className="text-xs whitespace-nowrap">
                     {formatCurrencyCompact(s.data.percentile10FinalBalance)} – {formatCurrencyCompact(s.data.percentile90FinalBalance)}
