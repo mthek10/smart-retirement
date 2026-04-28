@@ -231,19 +231,44 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                     <span className="text-xs font-medium text-foreground">{formatCurrency(s.data.medianFinalTaxable)}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-1 border-t">
-                  <span className="text-sm font-semibold text-foreground flex items-center gap-1">
-                    After-Tax Equivalent
-                    <InfoTooltip text={`Estimated spendable wealth at end of plan: Trad − federal tax owed if liquidated as a lump sum (effective ${formatPercent(s.data.medianEffectiveTerminalRate)}, computed by walking inflation-adjusted brackets) + Roth + Taxable × (1 − 15% × ${formatPercent(s.data.medianTaxableGainFraction)} estimated unrealized gains). The gain fraction grows with horizon as compounding outpaces the original cost basis. State tax not included.`} side="right" />
-                  </span>
-                  <span className="font-bold text-foreground">{formatCurrency(s.data.medianFinalAfterTax)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground flex items-center gap-1">
-                    Lifetime Net Wealth
-                    <InfoTooltip text="After-Tax Equivalent minus average lifetime taxes paid. This is the apples-to-apples number for comparing strategies because it credits Roth conversions for paying tax at lower brackets earlier in life." side="right" />
-                  </span>
-                  <span className="font-bold text-primary">{formatCurrency(s.data.medianLifetimeNetWealth)}</span>
+                {/* Wealth comparison block: snapshot vs lifetime-fair */}
+                <div className="pt-2 mt-1 border-t space-y-2">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1">
+                        After-Tax Equivalent
+                        <InfoTooltip text={`Estimated spendable wealth at end of plan: Trad − federal tax owed if liquidated as a lump sum (effective ${formatPercent(s.data.medianEffectiveTerminalRate)}, computed by walking inflation-adjusted brackets) + Roth + Taxable × (1 − 15% × ${formatPercent(s.data.medianTaxableGainFraction)} estimated unrealized gains). The gain fraction grows with horizon as compounding outpaces the original cost basis. State tax not included.`} side="right" />
+                      </span>
+                      <span className="font-bold text-foreground">{formatCurrency(s.data.medianFinalAfterTax)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Spendable wealth on the final day of the plan
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pl-3 text-xs text-foreground/70 border-l-2 border-muted">
+                    <span className="flex items-center gap-1">
+                      − Avg lifetime taxes paid
+                      <InfoTooltip text="Average total federal + state taxes paid across all simulated years and market scenarios. Roth conversions add tax now but typically reduce this total over your lifetime." side="right" />
+                    </span>
+                    <span className="font-medium">{formatCurrency(s.data.avgLifetimeTax)}</span>
+                  </div>
+
+                  <div className="pt-2 border-t">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-foreground flex items-center gap-1 flex-wrap">
+                        True Lifetime Wealth
+                        <span className="inline-flex items-center rounded-full bg-primary/10 text-primary text-[10px] font-medium px-1.5 py-0.5 leading-none">
+                          Best for comparing
+                        </span>
+                        <InfoTooltip text="After-Tax Equivalent minus average lifetime taxes paid. This is the apples-to-apples number for comparing strategies because it credits Roth conversions for paying tax at lower brackets earlier in life." side="right" />
+                      </span>
+                      <span className="font-bold text-primary">{formatCurrency(s.data.medianLifetimeNetWealth)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Final wealth after subtracting every tax dollar paid along the way
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
