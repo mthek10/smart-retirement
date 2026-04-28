@@ -171,12 +171,16 @@ function runSingleSimulation(
       remaining -= fromRoth;
     }
     
-    // Handle Roth conversions (move from traditional to Roth, scaled by balance ratio)
+    // Handle Roth conversions. The deterministic engine pre-funds the conversion tax either out
+    // of the brokerage withdrawal (already reflected in `withdrawals`) or out of the converted
+    // amount itself. Either way, the *spendable* dollars landing in Roth are net of tax — adding
+    // the gross amount here would over-credit conversion strategies in the after-tax comparison.
     const rothConversion = (baselineRow.rothConversion || 0) * Math.min(balanceRatio, 1);
     if (rothConversion > 0 && traditionalBalance > 0) {
       const actualConversion = Math.min(rothConversion, traditionalBalance);
+      const conversionRate = strategyConversionRate(strategy);
       traditionalBalance -= actualConversion;
-      rothBalance += actualConversion;
+      rothBalance += actualConversion * (1 - conversionRate);
     }
     
     // Apply random return for this year (key for sequence-of-returns risk)
