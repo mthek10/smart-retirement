@@ -318,11 +318,18 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
         </div>
 
         {/* Explainer: why Monte Carlo medians differ from Strategy Comparison */}
-        <div className="p-3 rounded-md bg-muted/40 border text-xs text-foreground/80">
-          <span className="font-medium text-foreground">Why these ages differ from Strategy Comparison:</span>{' '}
-          Monte Carlo medians reflect random-return variance, so they typically deplete earlier than the deterministic
-          Strategy Comparison even when centered on the same average return — this is sequence-of-returns risk. The
-          deterministic engine assumes one smooth return path; half of random paths underperform it.
+        <div className="p-3 rounded-md bg-muted/40 border text-xs text-foreground/80 space-y-2">
+          <div>
+            <span className="font-medium text-foreground">Why these depletion ages differ from Strategy Comparison:</span>{' '}
+            Monte Carlo medians reflect random-return variance, so they typically deplete earlier than the deterministic
+            Strategy Comparison even when centered on the same average return — this is sequence-of-returns risk.
+          </div>
+          <div>
+            <span className="font-medium text-foreground">How to compare strategies:</span>{' '}
+            <strong>After-Tax Equivalent</strong> is a terminal snapshot — it doesn't credit a strategy for paying less tax over its lifetime, so it can make
+            "No Conversions" look misleadingly strong. Use <strong>Success Rate</strong> together with <strong>Lifetime Net Wealth</strong>
+            (which subtracts the lifetime taxes you actually paid) as the headline comparison.
+          </div>
         </div>
 
 
