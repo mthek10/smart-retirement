@@ -36,6 +36,7 @@ export interface SimulationOutcome {
   rothDepletionAge: number | null;
   taxableDepletionAge: number | null;
   lifetimeTax: number;
+  effectiveTerminalRate: number; // Avg ordinary tax rate from final years of the deterministic projection
   success: boolean; // Funds lasted until age 100
 }
 
