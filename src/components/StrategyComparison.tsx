@@ -383,7 +383,7 @@ export function StrategyComparison({
 
         {/* Summary Section */}
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {hasImprovement && optimizationGoal !== 'maximize-longevity' && (
+          {hasImprovement && (
             <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
                 <TrendingDown className="h-5 w-5" />
