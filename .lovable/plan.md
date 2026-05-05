@@ -1,27 +1,22 @@
-## Remove "Optimization Goal" from Tax Settings
+## Plan: Group advanced options under collapsible "Advanced Options" in Tax Settings
 
-The `optimizationGoal` field doesn't drive any projection math — it only changes the wording of one recommendation card and toggles a couple of cosmetic badges in `StrategyComparison`. The actual strategy is set by `rothConversionStrategy` (which now includes the auto-pick `maximize_after_tax` option). So the dropdown can go.
+Wrap the three existing sections (Charitable Giving, Life Events, Model Survivor Scenario) in a single collapsible block at the bottom of the Tax Settings card so they are hidden by default.
 
-### Changes
+### Changes — `src/components/TaxSettings.tsx`
 
-**1. `src/components/TaxSettings.tsx`**
-- Remove the entire "Optimization Goal" `<Select>` block (lines ~498–520, the section above the Standard Deduction line). Keep the Standard Deduction row inside the same `pt-4 border-t` container.
-- Remove `optimizationGoal?: string` from the local props/type.
+1. Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible` and `ChevronDown` from `lucide-react`.
+2. Add local state `const [advancedOpen, setAdvancedOpen] = useState(false);`.
+3. Wrap the three existing blocks (lines ~509–705: Charitable Giving, Life Events, and the married-only Survivor Scenario) inside a single `<Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>` placed within the same `pt-4 border-t` container.
+4. Trigger: a full-width button row labeled "Advanced Options" with a small subtitle ("Charitable giving, life events, survivor scenario") and a rotating `ChevronDown` icon (rotates when open). Styled to match existing section headers.
+5. `CollapsibleContent` contains the three sections unchanged. Remove the now-redundant `pt-4 border-t` from the inner Charitable Giving block (the wrapper provides the divider) and keep separators between the inner subsections (or use simple `Separator` / spacing) for visual rhythm.
 
-**2. `src/pages/Index.tsx`**
-- Remove `optimizationGoal: "minimize-taxes"` from default tax settings (line 101).
-- Remove the `optimizationGoal={taxSettings.optimizationGoal}` prop passed to `StrategyComparison` (line 838).
+### Behavior
 
-**3. `src/components/StrategyComparison.tsx`** — switch from one goal-driven card to three side-by-side recommendation cards:
-- Drop `optimizationGoal` from the props interface and destructuring.
-- Replace `getRecommendation()` (single object) with three computed recommendations: `taxRecommendation`, `longevityRecommendation`, `balancedRecommendation`. Each picks its winner across baseline / current / optimized / autoMax using the existing `taxWinner`, `longevityWinner`, `balanceWinner` values, and produces `{ title, strategy, savings, tradeoff, icon, color }` exactly like today.
-- Replace the single "Goal-Based Recommendation" block (lines ~334–373) with a `grid gap-4 md:grid-cols-3` of three cards reusing the existing color/icon styling (green / blue / purple).
-- Header badge: change `hasImprovement && optimizationGoal === 'minimize-taxes'` to just `hasImprovement` so the "Potential Savings" badge always shows when relevant.
-- Bottom Summary Section: drop the `optimizationGoal !== 'maximize-longevity'` and `optimizationGoal === 'minimize-taxes'` guards so those tip cards show whenever their numeric conditions are met.
-
-**4. Persisted setup CSV / scenarios**
-- `optimizationGoal` is read off `taxSettings` only inside `StrategyComparison`. No tests or storage code reference it. Existing saved drafts that still contain the field will simply be ignored — no migration needed.
+- Section is collapsed by default for all users.
+- If any of the three features already has data (e.g. `charitableGiving.enabled`, `lifeEvents.length > 0`, `survivorSettings.enabled`), default `advancedOpen` to `true` so existing users immediately see their configured settings.
+- No changes to data model, defaults, projections, or any other component.
 
 ### Out of scope
-- No changes to projection math, `useProjections`, or `strategyOptimizer`.
-- No changes to the `rothConversionStrategy` dropdown itself.
+
+- No changes to `Index.tsx`, `useProjections`, schema, or persisted CSV.
+- Roth Conversion Strategy, Standard Deduction, and other Tax Settings remain visible at the top level.
