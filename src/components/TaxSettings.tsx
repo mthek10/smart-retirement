@@ -405,6 +405,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                 <SelectValue placeholder="Select conversion strategy" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="maximize_after_tax">⭐ Maximize Lifetime Wealth (Auto)</SelectItem>
                 <SelectItem value="none">No Conversions</SelectItem>
                 <SelectItem value="fill_10">Fill to 10% Bracket</SelectItem>
                 <SelectItem value="fill_12">Fill to 12% Bracket</SelectItem>
@@ -415,9 +416,13 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                 <SelectItem value="custom">Custom Amount</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              Convert Traditional to Roth to fill your target tax bracket. "Survivor Tax Smoothing" applies aggressive 24% bracket targeting after a spouse passes to prevent tax spikes.
-            </p>
+            {taxSettings.rothConversionStrategy === 'maximize_after_tax' ? (
+              <AutoStrategyHint />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Convert Traditional to Roth to fill your target tax bracket. "Survivor Tax Smoothing" applies aggressive 24% bracket targeting after a spouse passes to prevent tax spikes.
+              </p>
+            )}
           </div>
 
           {taxSettings.rothConversionStrategy === 'survivor_smooth' && (
