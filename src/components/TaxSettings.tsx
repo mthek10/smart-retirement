@@ -723,6 +723,8 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
             </div>
           </>
         )}
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );
