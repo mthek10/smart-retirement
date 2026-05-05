@@ -98,7 +98,6 @@ const DEFAULT_TAX_SETTINGS = {
     spouse2DeathAge: null as number | null,
     survivorSpendingPercent: 75,
   },
-  optimizationGoal: "minimize-taxes",
   stateRelocation: {
     enabled: false,
     targetState: "FL",
@@ -835,7 +834,6 @@ const Index = () => {
               survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
               currentStrategyName={currentStrategyName}
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
-              optimizationGoal={taxSettings.optimizationGoal}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
             />
             <MonteCarloResults

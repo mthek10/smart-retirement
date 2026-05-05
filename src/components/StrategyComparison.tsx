@@ -13,7 +13,7 @@ interface StrategyComparisonProps {
   survivorSmoothedMetrics: StrategyMetrics | null;
   currentStrategyName: string;
   showOptimization: boolean;
-  optimizationGoal?: string;
+  
   survivorEnabled?: boolean;
 }
 
@@ -34,7 +34,6 @@ export function StrategyComparison({
   survivorSmoothedMetrics,
   currentStrategyName,
   showOptimization,
-  optimizationGoal = 'minimize-taxes',
   survivorEnabled = false,
 }: StrategyComparisonProps) {
 
@@ -122,56 +121,61 @@ export function StrategyComparison({
     { label: "Max Annual Withdrawal to Zero", group: "longevity", baseline: formatCurrency(baselineMetrics.maxAnnualWithdrawalToZero), current: formatCurrency(currentMetrics.maxAnnualWithdrawalToZero), optimized: formatCurrency(optimizedMetrics.maxAnnualWithdrawalToZero), autoMax: formatCurrency(autoMaxMetrics.maxAnnualWithdrawalToZero), icon: null, diff: 0, formatDiff: () => '', winner: null },
   ];
 
-  // Determine recommendation based on goal
-  const getRecommendation = () => {
-    if (optimizationGoal === 'minimize-taxes') {
-      const winner = taxWinner === 'optimized' ? 'Fill to 22% bracket' : 
-                     taxWinner === 'current' ? currentStrategyName : 'No conversions';
-      const savings = taxWinner === 'optimized' ? taxSavings : 0;
-      return {
-        title: "Tax Minimization Recommendation",
-        strategy: winner,
-        savings: savings > 0 ? `Saves ${formatCurrency(savings)} in lifetime taxes` : null,
-        tradeoff: longevityWinner !== taxWinner && longevityWinner !== 'tie'
-          ? `Trade-off: Funds may deplete ${longevityWinner === 'baseline' ? 'earlier' : 'differently'} than other strategies`
-          : null,
-        icon: <DollarSign className="h-5 w-5" />,
-        color: 'green',
-      };
-    }
-    if (optimizationGoal === 'maximize-longevity') {
-      const winner = longevityWinner === 'optimized' ? 'Fill to 22% bracket' : 
-                     longevityWinner === 'current' ? currentStrategyName : 'No conversions';
-      const depletionAge = longevityWinner === 'optimized' ? optimizedDepletion :
-                           longevityWinner === 'current' ? currentDepletion : baselineDepletion;
-      return {
-        title: "Longevity Recommendation",
-        strategy: winner,
-        savings: depletionAge === null ? 'Funds never deplete' : `Funds last until age ${depletionAge}`,
-        tradeoff: taxWinner !== longevityWinner && taxWinner !== 'tie'
-          ? `Trade-off: May pay ${formatCurrency(Math.abs(baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax))} more in lifetime taxes`
-          : null,
-        icon: <Clock className="h-5 w-5" />,
-        color: 'blue',
-      };
-    }
-    // Balanced
-    const winner = balanceWinner === 'optimized' ? 'Fill to 22% bracket' : 
-                   balanceWinner === 'current' ? currentStrategyName : 'No conversions';
-    return {
-      title: "Balanced Recommendation",
-      strategy: winner,
-      savings: `Final balance: ${formatCurrency(
-        balanceWinner === 'optimized' ? optimizedMetrics.finalTotalBalance :
-        balanceWinner === 'current' ? currentMetrics.finalTotalBalance : baselineMetrics.finalTotalBalance
-      )}`,
-      tradeoff: null,
-      icon: <ArrowRightLeft className="h-5 w-5" />,
-      color: 'purple',
-    };
+  // Resolve a winner key to a human label
+  const winnerLabel = (w: 'baseline' | 'optimized' | 'current' | 'autoMax' | 'tie'): string => {
+    if (w === 'optimized') return 'Fill to 22% bracket';
+    if (w === 'current') return currentStrategyName;
+    if (w === 'autoMax') return autoMaxName;
+    return 'No conversions';
+  };
+  const winnerFinalBalance = (w: 'baseline' | 'optimized' | 'current' | 'autoMax' | 'tie'): number => {
+    if (w === 'optimized') return optimizedMetrics.finalTotalBalance;
+    if (w === 'current') return currentMetrics.finalTotalBalance;
+    if (w === 'autoMax') return autoMaxMetrics.finalTotalBalance;
+    return baselineMetrics.finalTotalBalance;
+  };
+  const winnerDepletionAge = (w: 'baseline' | 'optimized' | 'current' | 'autoMax' | 'tie'): number | null => {
+    if (w === 'optimized') return optimizedDepletion;
+    if (w === 'current') return currentDepletion;
+    if (w === 'autoMax') return autoMaxMetrics.allFundsDepletionAge;
+    return baselineDepletion;
   };
 
-  const recommendation = getRecommendation();
+  const taxRecommendation = {
+    title: "Tax Minimization",
+    strategy: winnerLabel(taxWinner),
+    savings: taxSavings > 0 ? `Saves ${formatCurrency(taxSavings)} vs. no conversions` : null,
+    tradeoff: longevityWinner !== taxWinner && longevityWinner !== 'tie'
+      ? `Trade-off: longevity winner is "${winnerLabel(longevityWinner)}"`
+      : null,
+    icon: <DollarSign className="h-5 w-5" />,
+    color: 'green' as const,
+  };
+
+  const longevityRecommendation = (() => {
+    const age = winnerDepletionAge(longevityWinner);
+    return {
+      title: "Longevity",
+      strategy: winnerLabel(longevityWinner),
+      savings: age === null ? 'Funds never deplete' : `Funds last until age ${age}`,
+      tradeoff: taxWinner !== longevityWinner && taxWinner !== 'tie'
+        ? `Trade-off: tax-minimizing winner is "${winnerLabel(taxWinner)}"`
+        : null,
+      icon: <Clock className="h-5 w-5" />,
+      color: 'blue' as const,
+    };
+  })();
+
+  const balancedRecommendation = {
+    title: "Balanced (Final Balance)",
+    strategy: winnerLabel(balanceWinner),
+    savings: `Final balance: ${formatCurrency(winnerFinalBalance(balanceWinner))}`,
+    tradeoff: null as string | null,
+    icon: <ArrowRightLeft className="h-5 w-5" />,
+    color: 'purple' as const,
+  };
+
+  const recommendations = [taxRecommendation, longevityRecommendation, balancedRecommendation];
 
   return (
     <Card>
@@ -179,7 +183,7 @@ export function StrategyComparison({
         <CardTitle className="flex items-center gap-2">
           <ArrowRightLeft className="h-5 w-5" />
           Two-Pass Strategy Comparison
-          {hasImprovement && optimizationGoal === 'minimize-taxes' && (
+          {hasImprovement && (
             <Badge variant="default" className="bg-green-600">
               Potential Savings: {formatCurrency(taxSavings)}
             </Badge>
@@ -331,50 +335,55 @@ export function StrategyComparison({
           )}
         </div>
 
-        {/* Goal-Based Recommendation */}
-        <div className="mt-6">
-          <div className={`p-4 rounded-lg border ${
-            recommendation.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
-            recommendation.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' :
-            'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
-          }`}>
-            <div className={`flex items-center gap-2 font-medium ${
-              recommendation.color === 'green' ? 'text-green-700 dark:text-green-300' :
-              recommendation.color === 'blue' ? 'text-blue-700 dark:text-blue-300' :
-              'text-purple-700 dark:text-purple-300'
-            }`}>
-              {recommendation.icon}
-              <span>{recommendation.title}</span>
-            </div>
-            <div className="mt-2 space-y-1">
-              <p className={`text-sm font-semibold ${
-                recommendation.color === 'green' ? 'text-green-800 dark:text-green-200' :
-                recommendation.color === 'blue' ? 'text-blue-800 dark:text-blue-200' :
-                'text-purple-800 dark:text-purple-200'
+        {/* Recommendations across all three goals */}
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {recommendations.map((rec) => (
+            <div
+              key={rec.title}
+              className={`p-4 rounded-lg border ${
+                rec.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
+                rec.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' :
+                'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+              }`}
+            >
+              <div className={`flex items-center gap-2 font-medium ${
+                rec.color === 'green' ? 'text-green-700 dark:text-green-300' :
+                rec.color === 'blue' ? 'text-blue-700 dark:text-blue-300' :
+                'text-purple-700 dark:text-purple-300'
               }`}>
-                Recommended: {recommendation.strategy}
-              </p>
-              {recommendation.savings && (
-                <p className={`text-sm ${
-                  recommendation.color === 'green' ? 'text-green-600 dark:text-green-400' :
-                  recommendation.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                  'text-purple-600 dark:text-purple-400'
+                {rec.icon}
+                <span>{rec.title}</span>
+              </div>
+              <div className="mt-2 space-y-1">
+                <p className={`text-sm font-semibold ${
+                  rec.color === 'green' ? 'text-green-800 dark:text-green-200' :
+                  rec.color === 'blue' ? 'text-blue-800 dark:text-blue-200' :
+                  'text-purple-800 dark:text-purple-200'
                 }`}>
-                  {recommendation.savings}
+                  Recommended: {rec.strategy}
                 </p>
-              )}
-              {recommendation.tradeoff && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {recommendation.tradeoff}
-                </p>
-              )}
+                {rec.savings && (
+                  <p className={`text-sm ${
+                    rec.color === 'green' ? 'text-green-600 dark:text-green-400' :
+                    rec.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                    'text-purple-600 dark:text-purple-400'
+                  }`}>
+                    {rec.savings}
+                  </p>
+                )}
+                {rec.tradeoff && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {rec.tradeoff}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* Summary Section */}
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {hasImprovement && optimizationGoal !== 'maximize-longevity' && (
+          {hasImprovement && (
             <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
                 <TrendingDown className="h-5 w-5" />
@@ -399,7 +408,7 @@ export function StrategyComparison({
                 Your selected Roth conversion strategy achieves results similar to the optimized approach.
               </p>
             </div>
-          ) : showOptimization && currentVsOptimized > 1000 && optimizationGoal === 'minimize-taxes' && (
+          ) : showOptimization && currentVsOptimized > 1000 && (
             <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
               <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
                 <TrendingUp className="h-5 w-5" />
