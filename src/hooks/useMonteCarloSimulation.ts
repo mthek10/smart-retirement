@@ -391,9 +391,6 @@ export function useMonteCarloSimulation(
     let currentStrategy = taxSettings.rothConversionStrategy;
     let currentLabel: string;
     if (currentStrategy === 'maximize_after_tax') {
-      // Resolve the auto-picked strategy so MC simulates the actual chosen bracket.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { pickBestAfterTaxStrategyCached, STRATEGY_LABELS } = require('@/lib/strategyOptimizer');
       const picked = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
       currentStrategy = picked;
       currentLabel = `Auto-Max (${STRATEGY_LABELS[picked]})`;
