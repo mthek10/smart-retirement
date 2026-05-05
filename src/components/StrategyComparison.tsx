@@ -224,7 +224,7 @@ export function StrategyComparison({
                           </td>
                         </tr>
                       )}
-                      <tr key={metric.label} className="border-b last:border-b-0 hover:bg-muted/10">
+                      <tr key={metric.label} className={`border-b last:border-b-0 hover:bg-muted/10 ${metric.label.includes('after taxes') ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
                         <td className="px-3 py-2 font-medium border-r">{metric.label}</td>
                         <td className="px-3 py-2 text-center text-muted-foreground border-r">
                           <span className="inline-flex items-center justify-center gap-1">
