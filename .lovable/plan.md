@@ -1,63 +1,47 @@
 ## Goal
 
-Make it immediately obvious what **After-Tax Equivalent** and **Lifetime Net Wealth** each answer, why they can disagree, and which one to trust when comparing strategies.
+Give users a single dropdown choice that automatically picks the Roth conversion strategy producing the highest **True Lifetime Wealth** (the headline Monte Carlo metric), instead of forcing them to manually compare Fill to 12 / 22 / 24 / 32.
 
-## Problem today
+## New strategy option
 
-In each strategy card the user sees two bold dollar numbers stacked on top of each other:
+Add `maximize_after_tax` to the **Roth Conversion Strategy** dropdown in `src/components/TaxSettings.tsx`, labeled:
 
-```text
-After-Tax Equivalent      $19,134,000
-Lifetime Net Wealth       $15,372,000
-```
+> **Maximize Lifetime Wealth (Auto)** — *Recommended*
 
-There's no visual hierarchy, no plain-English label, and no indication of how the two relate. The tooltips explain it, but only if the user hovers — and even then the relationship ("one minus the other plus taxes paid") isn't shown.
+with a small "beta" / info tooltip:
+> "Runs each fill-bracket strategy and automatically applies the one that produces the highest after-tax lifetime wealth for your situation."
 
-## Proposed redesign (per strategy card)
+Place it at the top of the list so it's the obvious default for users who don't want to tinker.
 
-Replace the current two flat rows with a small grouped block that:
+## How it resolves to a real strategy
 
-1. **Renames** the metrics to action-oriented questions.
-2. **Adds a one-line subtitle** under each number.
-3. **Shows the arithmetic** that links them.
-4. **Marks the headline metric** (Lifetime Net Wealth) with the primary color and a "Best for comparing strategies" pill so the eye lands there first.
+The deterministic projection engine (`useProjections.ts`) needs a concrete fill bracket — it can't run "auto." We resolve `maximize_after_tax` once, up front, by comparing candidate strategies:
 
-### New layout
+Candidates: `none`, `fill_12`, `fill_22`, `fill_24`, `fill_32`.
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  What you'd have left at the end                    │
-│  After-Tax Equivalent                  $19.13M      │
-│  Spendable wealth on the final day of the plan      │
-│                                                     │
-│      −  Avg lifetime taxes paid         $3.76M      │
-│      ───────────────────────────────────────        │
-│                                                     │
-│  True lifetime wealth   ★ headline      $15.37M     │
-│  Final wealth after subtracting every tax dollar    │
-│  you paid along the way — use this to compare       │
-│  strategies                                         │
-└─────────────────────────────────────────────────────┘
-```
+Selection metric: **median True Lifetime Wealth** (`medianFinalAfterTax − avgLifetimeTax`) — the same number now shown as the headline in the Monte Carlo card.
 
-- "After-Tax Equivalent" keeps its name (users have seen it) but gains the subtitle *"Spendable wealth on the final day of the plan."*
-- "Lifetime Net Wealth" gets the subtitle *"Final wealth after subtracting every tax dollar you paid along the way."*
-- The subtraction line is rendered as a faint indented row (`− Avg lifetime taxes paid  $X`) so the relationship is visible without a tooltip.
-- The headline number is bold + primary color + a small "Best for comparing" badge. The After-Tax Equivalent stays neutral foreground.
+Two execution options (we'll go with **B** unless you prefer A):
 
-### Updated explainer block (below the cards)
+- **A. Monte Carlo–based picker (most accurate, slower)** — runs a small MC sweep (e.g. 200 sims × 5 strategies) to choose the winner. Honest but adds ~1s of compute on every settings change.
+- **B. Deterministic picker (fast, default)** — for each candidate, runs the existing deterministic `calculateProjections`, computes terminal after-tax (using the same lump-sum bracket walk + basis-decay logic already in `useMonteCarloSimulation.ts`) minus cumulative `totalTaxes`, picks the max. Near-instant; matches MC ranking in the vast majority of cases.
 
-Replace the current dense paragraph with a two-line contrast:
+## Implementation
 
-> **After-Tax Equivalent** answers *"How much wealth is left at the end?"* — a snapshot.
->
-> **Lifetime Net Wealth** answers *"How much wealth did this strategy actually keep, after every tax bill along the way?"* — the fair comparison. A strategy that converts to Roth pays tax earlier, so its After-Tax Equivalent looks lower, but its Lifetime Net Wealth is usually higher.
+1. **`src/lib/strategyOptimizer.ts`** (new) — exports `pickBestAfterTaxStrategy(accounts, ssData, taxSettings): { strategy: string; ranking: Array<{strategy, lifetimeNetWealth}> }`. Internally loops candidates, calls `calculateProjections`, and reuses the terminal lump-sum tax + basis-decay formulas extracted from `useMonteCarloSimulation.ts` (refactored into a shared helper to avoid duplication).
 
-## Files to change
+2. **`src/hooks/useProjections.ts`** — at the top of `calculateProjections`, if `effectiveConversionStrategy === 'maximize_after_tax'`, resolve it to the winner via the optimizer and continue with that strategy. Cache the result on `taxSettings` identity to avoid recomputation.
 
-- `src/components/MonteCarloResults.tsx` — lines ~234–247 (the two metric rows) and lines ~327–332 (the explainer). Pure presentation changes; no calculation or hook changes.
+3. **`src/components/TaxSettings.tsx`** — add the new `<SelectItem value="maximize_after_tax">` with the recommended badge and tooltip. When selected, show a small read-only line below the dropdown: *"Currently using: Fill to 24% Bracket — chosen automatically."* so the user can see what was picked and why.
 
-## Out of scope
+4. **`src/hooks/useMonteCarloSimulation.ts`** — when the user's strategy is `maximize_after_tax`, the "Your Strategy" column should label itself *"Maximize Lifetime Wealth (= Fill to 24%)"* so the comparison card stays meaningful.
 
-- No changes to `useMonteCarloSimulation.ts` or any math. Numbers and tooltips stay accurate; only labeling, ordering, hierarchy, and the inline subtraction row change.
-- No changes to Strategy Comparison or other tabs.
+5. **Tests** — extend `useMonteCarloSimulation.test.ts` with a case asserting that for the MFJ $5M Trad / $3M Taxable scenario, the optimizer picks a fill-bracket strategy (not `none`), confirming the regression we just fixed stays fixed.
+
+## UX note
+
+Because this option is labeled *Recommended* and sits at the top, new users get the right answer by default. Power users can still pick a specific bracket manually.
+
+## Open question
+
+Do you want option **B (deterministic, fast)** or **A (Monte Carlo–based, slower but slightly more robust against sequence-of-returns risk)** for the picker?
