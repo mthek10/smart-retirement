@@ -1519,6 +1519,44 @@ export function useTwoPassProjections(
     baselineMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'none');
     optimizedMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'fill_22');
     autoMaxMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, autoMaxStrategy);
+
+    // After-tax final balance: Trad − federal lump-sum tax + Roth + Taxable × (1 − LTCG × gainFraction)
+    const ASSUMED_LTCG_RATE = 0.15;
+    const yearsToTerminal = taxSettings.filingStatus === 'married'
+      ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
+      : 100 - taxSettings.spouse1Age;
+    const startingBasisFraction =
+      accounts.taxableCostBasisPercent > 0 && accounts.taxableCostBasisPercent <= 100
+        ? accounts.taxableCostBasisPercent / 100
+        : 0.5;
+    const taxableGrowthRate = (accounts.taxableReturn || 0) / 100;
+    const compoundedBasisShare =
+      startingBasisFraction / Math.pow(1 + taxableGrowthRate, Math.max(0, yearsToTerminal));
+    const gainFraction = Math.max(0, Math.min(1, 1 - compoundedBasisShare));
+
+    const computeAfterTax = (proj: ProjectionRow[]) => {
+      const last = proj[proj.length - 1];
+      if (!last) return 0;
+      const lumpSumTax = calculateFederalTax(
+        last.traditionalBalance,
+        taxSettings.filingStatus,
+        yearsToTerminal,
+        taxSettings.inflationRate / 100,
+      );
+      return (
+        (last.traditionalBalance - lumpSumTax) +
+        last.rothBalance +
+        last.taxableBalance * (1 - ASSUMED_LTCG_RATE * gainFraction)
+      );
+    };
+
+    currentMetrics.finalTotalBalanceAfterTax = computeAfterTax(currentProjections);
+    baselineMetrics.finalTotalBalanceAfterTax = computeAfterTax(baselineProjections);
+    optimizedMetrics.finalTotalBalanceAfterTax = computeAfterTax(optimizedProjections);
+    autoMaxMetrics.finalTotalBalanceAfterTax = computeAfterTax(autoMaxProjections);
+    if (survivorSmoothedMetrics && survivorSmoothedProjections) {
+      survivorSmoothedMetrics.finalTotalBalanceAfterTax = computeAfterTax(survivorSmoothedProjections);
+    }
     
     // Tax savings = baseline taxes - optimized taxes
     const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
