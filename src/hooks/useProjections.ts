@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { pickBestAfterTaxStrategyCached } from "@/lib/strategyOptimizer";
 import { 
   calculateFederalTax, 
   calculateIRMAA, 
@@ -478,7 +479,14 @@ export function calculateProjections(
     : 100 - taxSettings.spouse1Age;
   
   // Use override strategy if provided, otherwise use settings
-  const effectiveConversionStrategy = strategyOverride ?? taxSettings.rothConversionStrategy;
+  let effectiveConversionStrategy = strategyOverride ?? taxSettings.rothConversionStrategy;
+  // "Maximize Lifetime Wealth (Auto)" — resolve to the candidate that produces
+  // the highest True Lifetime Wealth. Guard against re-entry from the optimizer.
+  if (effectiveConversionStrategy === 'maximize_after_tax' && !strategyOverride) {
+    effectiveConversionStrategy = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
+  } else if (effectiveConversionStrategy === 'maximize_after_tax') {
+    effectiveConversionStrategy = 'fill_22';
+  }
 
   let spouse1SSAtDeath = 0;
   let spouse2SSAtDeath = 0;
