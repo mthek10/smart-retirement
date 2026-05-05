@@ -8,6 +8,8 @@ interface StrategyComparisonProps {
   baselineMetrics: StrategyMetrics;
   optimizedMetrics: StrategyMetrics;
   currentMetrics: StrategyMetrics;
+  autoMaxMetrics: StrategyMetrics;
+  autoMaxStrategy: string;
   survivorSmoothedMetrics: StrategyMetrics | null;
   currentStrategyName: string;
   showOptimization: boolean;
@@ -15,10 +17,20 @@ interface StrategyComparisonProps {
   survivorEnabled?: boolean;
 }
 
+const STRATEGY_LABEL: Record<string, string> = {
+  none: "No Conversions",
+  fill_12: "Fill to 12%",
+  fill_22: "Fill to 22%",
+  fill_24: "Fill to 24%",
+  fill_32: "Fill to 32%",
+};
+
 export function StrategyComparison({ 
   baselineMetrics,
   optimizedMetrics,
   currentMetrics,
+  autoMaxMetrics,
+  autoMaxStrategy,
   survivorSmoothedMetrics,
   currentStrategyName,
   showOptimization,
@@ -26,11 +38,15 @@ export function StrategyComparison({
   survivorEnabled = false,
 }: StrategyComparisonProps) {
 
-  // Hide the "current" column when it duplicates baseline or optimized
+  const autoMaxName = `Maximize Lifetime Wealth (${STRATEGY_LABEL[autoMaxStrategy] ?? autoMaxStrategy})`;
+
+  // Hide the "current" column when it duplicates baseline, optimized, or auto-max
   const currentName = currentStrategyName.toLowerCase().trim();
-  const showCurrentColumn = currentName !== 'no conversions' && currentName !== 'fill to 22%';
-  const colCount = showCurrentColumn ? 4 : 3;
-  const gridCols = showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3';
+  const showCurrentColumn = currentName !== 'no conversions'
+    && currentName !== 'fill to 22%'
+    && currentName !== autoMaxName.toLowerCase().trim();
+  const colCount = showCurrentColumn ? 5 : 4;
+  const gridCols = showCurrentColumn ? 'grid-cols-5' : 'grid-cols-4';
 
   // Calculate savings comparing baseline (no conversions) to optimized (fill-22)
   const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
@@ -46,29 +62,28 @@ export function StrategyComparison({
   const currentDepletion = currentMetrics.allFundsDepletionAge;
 
   // Determine which strategy wins each objective
-  const getWinner = (metric: 'taxes' | 'longevity' | 'balance'): 'baseline' | 'optimized' | 'current' | 'tie' => {
+  const getWinner = (metric: 'taxes' | 'longevity' | 'balance'): 'baseline' | 'optimized' | 'current' | 'autoMax' | 'tie' => {
     if (metric === 'taxes') {
-      const min = Math.min(baselineMetrics.lifetimeTotalTax, optimizedMetrics.lifetimeTotalTax, currentMetrics.lifetimeTotalTax);
+      const min = Math.min(baselineMetrics.lifetimeTotalTax, optimizedMetrics.lifetimeTotalTax, currentMetrics.lifetimeTotalTax, autoMaxMetrics.lifetimeTotalTax);
+      if (autoMaxMetrics.lifetimeTotalTax === min) return 'autoMax';
       if (optimizedMetrics.lifetimeTotalTax === min) return 'optimized';
       if (currentMetrics.lifetimeTotalTax === min) return 'current';
       return 'baseline';
     }
     if (metric === 'longevity') {
-      // null means never depleted (best), otherwise higher age is better
       const ages = [
         { name: 'baseline' as const, age: baselineDepletion },
         { name: 'optimized' as const, age: optimizedDepletion },
         { name: 'current' as const, age: currentDepletion },
+        { name: 'autoMax' as const, age: autoMaxMetrics.allFundsDepletionAge },
       ];
-      // Never depleted wins
       const neverDepleted = ages.filter(a => a.age === null);
       if (neverDepleted.length > 0) return neverDepleted[0].name;
-      // Otherwise highest age wins
       ages.sort((a, b) => (b.age ?? 0) - (a.age ?? 0));
       return ages[0].name;
     }
-    // Balanced: compare final total balance
-    const max = Math.max(baselineMetrics.finalTotalBalance, optimizedMetrics.finalTotalBalance, currentMetrics.finalTotalBalance);
+    const max = Math.max(baselineMetrics.finalTotalBalance, optimizedMetrics.finalTotalBalance, currentMetrics.finalTotalBalance, autoMaxMetrics.finalTotalBalance);
+    if (autoMaxMetrics.finalTotalBalance === max) return 'autoMax';
     if (optimizedMetrics.finalTotalBalance === max) return 'optimized';
     if (currentMetrics.finalTotalBalance === max) return 'current';
     return 'baseline';
@@ -87,7 +102,7 @@ export function StrategyComparison({
     return diff < 0 ? <TrendingUp className="h-4 w-4 text-green-600" /> : <TrendingDown className="h-4 w-4 text-destructive" />;
   };
 
-  const getWinnerBadge = (winner: string, column: 'baseline' | 'optimized' | 'current') => {
+  const getWinnerBadge = (winner: string, column: 'baseline' | 'optimized' | 'current' | 'autoMax') => {
     if (winner === column) {
       return <Trophy className="h-3 w-3 text-amber-500 ml-1" />;
     }
@@ -95,17 +110,15 @@ export function StrategyComparison({
   };
 
   const allMetrics = [
-    // Tax metrics
-    { label: "Lifetime Total Tax", group: "tax", baseline: formatCurrency(baselineMetrics.lifetimeTotalTax), current: formatCurrency(currentMetrics.lifetimeTotalTax), optimized: formatCurrency(optimizedMetrics.lifetimeTotalTax), icon: getDifferenceIcon(baselineMetrics.lifetimeTotalTax, optimizedMetrics.lifetimeTotalTax), diff: baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax, formatDiff: (d: number) => formatCurrency(Math.abs(d)), winner: taxWinner },
-    { label: "Lifetime Federal Tax", group: "tax", baseline: formatCurrency(baselineMetrics.lifetimeFederalTax), current: formatCurrency(currentMetrics.lifetimeFederalTax), optimized: formatCurrency(optimizedMetrics.lifetimeFederalTax), icon: getDifferenceIcon(baselineMetrics.lifetimeFederalTax, optimizedMetrics.lifetimeFederalTax), diff: baselineMetrics.lifetimeFederalTax - optimizedMetrics.lifetimeFederalTax, formatDiff: (d: number) => formatCurrency(Math.abs(d)), winner: taxWinner },
-    { label: "Bracket Consistency Score", group: "tax", baseline: baselineMetrics.bracketScore.toFixed(1), current: currentMetrics.bracketScore.toFixed(1), optimized: optimizedMetrics.bracketScore.toFixed(1), icon: getDifferenceIcon(baselineMetrics.bracketScore, optimizedMetrics.bracketScore), diff: baselineMetrics.bracketScore - optimizedMetrics.bracketScore, formatDiff: (d: number) => Math.abs(d).toFixed(1), winner: null },
-    { label: "Avg Marginal Bracket", group: "tax", baseline: formatPercent(baselineMetrics.avgBracket), current: formatPercent(currentMetrics.avgBracket), optimized: formatPercent(optimizedMetrics.avgBracket), icon: getDifferenceIcon(baselineMetrics.avgBracket, optimizedMetrics.avgBracket), diff: baselineMetrics.avgBracket - optimizedMetrics.avgBracket, formatDiff: (d: number) => formatPercent(Math.abs(d)), winner: null },
-    // Longevity metrics
-    { label: "All Funds Depleted", group: "longevity", baseline: formatAge(baselineMetrics.allFundsDepletionAge), current: formatAge(currentMetrics.allFundsDepletionAge), optimized: formatAge(optimizedMetrics.allFundsDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: longevityWinner },
-    { label: "Traditional Depleted", group: "longevity", baseline: formatAge(baselineMetrics.tradDepletionAge), current: formatAge(currentMetrics.tradDepletionAge), optimized: formatAge(optimizedMetrics.tradDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: null },
-    { label: "Roth Depleted", group: "longevity", baseline: formatAge(baselineMetrics.rothDepletionAge), current: formatAge(currentMetrics.rothDepletionAge), optimized: formatAge(optimizedMetrics.rothDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: null },
-    { label: "Final Balance (Age 100)", group: "longevity", baseline: formatCurrency(baselineMetrics.finalTotalBalance), current: formatCurrency(currentMetrics.finalTotalBalance), optimized: formatCurrency(optimizedMetrics.finalTotalBalance), icon: null, diff: 0, formatDiff: () => '', winner: balanceWinner },
-    { label: "Max Annual Withdrawal to Zero", group: "longevity", baseline: formatCurrency(baselineMetrics.maxAnnualWithdrawalToZero), current: formatCurrency(currentMetrics.maxAnnualWithdrawalToZero), optimized: formatCurrency(optimizedMetrics.maxAnnualWithdrawalToZero), icon: null, diff: 0, formatDiff: () => '', winner: null },
+    { label: "Lifetime Total Tax", group: "tax", baseline: formatCurrency(baselineMetrics.lifetimeTotalTax), current: formatCurrency(currentMetrics.lifetimeTotalTax), optimized: formatCurrency(optimizedMetrics.lifetimeTotalTax), autoMax: formatCurrency(autoMaxMetrics.lifetimeTotalTax), icon: getDifferenceIcon(baselineMetrics.lifetimeTotalTax, optimizedMetrics.lifetimeTotalTax), diff: baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax, formatDiff: (d: number) => formatCurrency(Math.abs(d)), winner: taxWinner },
+    { label: "Lifetime Federal Tax", group: "tax", baseline: formatCurrency(baselineMetrics.lifetimeFederalTax), current: formatCurrency(currentMetrics.lifetimeFederalTax), optimized: formatCurrency(optimizedMetrics.lifetimeFederalTax), autoMax: formatCurrency(autoMaxMetrics.lifetimeFederalTax), icon: getDifferenceIcon(baselineMetrics.lifetimeFederalTax, optimizedMetrics.lifetimeFederalTax), diff: baselineMetrics.lifetimeFederalTax - optimizedMetrics.lifetimeFederalTax, formatDiff: (d: number) => formatCurrency(Math.abs(d)), winner: taxWinner },
+    { label: "Bracket Consistency Score", group: "tax", baseline: baselineMetrics.bracketScore.toFixed(1), current: currentMetrics.bracketScore.toFixed(1), optimized: optimizedMetrics.bracketScore.toFixed(1), autoMax: autoMaxMetrics.bracketScore.toFixed(1), icon: getDifferenceIcon(baselineMetrics.bracketScore, optimizedMetrics.bracketScore), diff: baselineMetrics.bracketScore - optimizedMetrics.bracketScore, formatDiff: (d: number) => Math.abs(d).toFixed(1), winner: null },
+    { label: "Avg Marginal Bracket", group: "tax", baseline: formatPercent(baselineMetrics.avgBracket), current: formatPercent(currentMetrics.avgBracket), optimized: formatPercent(optimizedMetrics.avgBracket), autoMax: formatPercent(autoMaxMetrics.avgBracket), icon: getDifferenceIcon(baselineMetrics.avgBracket, optimizedMetrics.avgBracket), diff: baselineMetrics.avgBracket - optimizedMetrics.avgBracket, formatDiff: (d: number) => formatPercent(Math.abs(d)), winner: null },
+    { label: "All Funds Depleted", group: "longevity", baseline: formatAge(baselineMetrics.allFundsDepletionAge), current: formatAge(currentMetrics.allFundsDepletionAge), optimized: formatAge(optimizedMetrics.allFundsDepletionAge), autoMax: formatAge(autoMaxMetrics.allFundsDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: longevityWinner },
+    { label: "Traditional Depleted", group: "longevity", baseline: formatAge(baselineMetrics.tradDepletionAge), current: formatAge(currentMetrics.tradDepletionAge), optimized: formatAge(optimizedMetrics.tradDepletionAge), autoMax: formatAge(autoMaxMetrics.tradDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: null },
+    { label: "Roth Depleted", group: "longevity", baseline: formatAge(baselineMetrics.rothDepletionAge), current: formatAge(currentMetrics.rothDepletionAge), optimized: formatAge(optimizedMetrics.rothDepletionAge), autoMax: formatAge(autoMaxMetrics.rothDepletionAge), icon: null, diff: 0, formatDiff: () => '', winner: null },
+    { label: "Final Balance (Age 100)", group: "longevity", baseline: formatCurrency(baselineMetrics.finalTotalBalance), current: formatCurrency(currentMetrics.finalTotalBalance), optimized: formatCurrency(optimizedMetrics.finalTotalBalance), autoMax: formatCurrency(autoMaxMetrics.finalTotalBalance), icon: null, diff: 0, formatDiff: () => '', winner: balanceWinner },
+    { label: "Max Annual Withdrawal to Zero", group: "longevity", baseline: formatCurrency(baselineMetrics.maxAnnualWithdrawalToZero), current: formatCurrency(currentMetrics.maxAnnualWithdrawalToZero), optimized: formatCurrency(optimizedMetrics.maxAnnualWithdrawalToZero), autoMax: formatCurrency(autoMaxMetrics.maxAnnualWithdrawalToZero), icon: null, diff: 0, formatDiff: () => '', winner: null },
   ];
 
   // Determine recommendation based on goal
@@ -185,14 +198,15 @@ export function StrategyComparison({
                   <th className="text-left font-medium text-muted-foreground px-3 py-2 border-r">Metric</th>
                   <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Baseline - No Conversion</th>
                   {showCurrentColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">{currentStrategyName}</th>}
-                  <th className="text-center font-medium text-muted-foreground px-3 py-2">Optimized - Fill to 22%</th>
+                  <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Optimized - Fill to 22%</th>
+                  <th className="text-center font-medium text-primary px-3 py-2">⭐ {autoMaxName}</th>
                 </tr>
               </thead>
               <tbody>
                 {allMetrics.map((metric, idx) => {
                   const prevGroup = idx > 0 ? allMetrics[idx - 1].group : null;
                   const showSeparator = prevGroup && prevGroup !== metric.group;
-                  const colSpan = showCurrentColumn ? 4 : 3;
+                  const colSpan = showCurrentColumn ? 5 : 4;
                   return (
                     <>
                       {idx === 0 && (
@@ -225,10 +239,16 @@ export function StrategyComparison({
                             </span>
                           </td>
                         )}
-                        <td className={`px-3 py-2 text-center ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
+                        <td className={`px-3 py-2 text-center border-r ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
                           <span className="inline-flex items-center justify-center gap-1">
                             {metric.optimized}
                             {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-center bg-primary/5 font-semibold text-foreground">
+                          <span className="inline-flex items-center justify-center gap-1">
+                            {metric.autoMax}
+                            {metric.winner && getWinnerBadge(metric.winner, 'autoMax')}
                           </span>
                         </td>
                       </tr>

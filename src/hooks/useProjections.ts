@@ -1297,10 +1297,13 @@ export interface TwoPassResult {
   currentProjections: ProjectionRow[];
   baselineProjections: ProjectionRow[];
   optimizedProjections: ProjectionRow[];
+  autoMaxProjections: ProjectionRow[];
   survivorSmoothedProjections: ProjectionRow[] | null;
   currentMetrics: StrategyMetrics;
   baselineMetrics: StrategyMetrics;
   optimizedMetrics: StrategyMetrics;
+  autoMaxMetrics: StrategyMetrics;
+  autoMaxStrategy: string;
   survivorSmoothedMetrics: StrategyMetrics | null;
   taxSavings: number;
   survivorTaxSavings: number;
@@ -1490,7 +1493,11 @@ export function useTwoPassProjections(
     
     // Optimized projections filling to 22% bracket
     const optimizedProjections = calculateProjections(accounts, ssData, taxSettings, 'fill_22');
-    
+
+    // Maximize Lifetime Wealth (Auto) — pick best fill-bracket strategy by True Lifetime Wealth
+    const autoMaxStrategy = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
+    const autoMaxProjections = calculateProjections(accounts, ssData, taxSettings, autoMaxStrategy);
+
     // Survivor-smoothed projections (only if survivor scenario is enabled)
     const survivorEnabled = taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married';
     const survivorSmoothedProjections = survivorEnabled
@@ -1500,6 +1507,7 @@ export function useTwoPassProjections(
     const currentMetrics = calculateMetrics(currentProjections);
     const baselineMetrics = calculateMetrics(baselineProjections);
     const optimizedMetrics = calculateMetrics(optimizedProjections);
+    const autoMaxMetrics = calculateMetrics(autoMaxProjections);
     const survivorSmoothedMetrics = survivorSmoothedProjections 
       ? calculateMetrics(survivorSmoothedProjections)
       : null;
@@ -1508,6 +1516,7 @@ export function useTwoPassProjections(
     currentMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings);
     baselineMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'none');
     optimizedMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'fill_22');
+    autoMaxMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, autoMaxStrategy);
     
     // Tax savings = baseline taxes - optimized taxes
     const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
@@ -1521,10 +1530,13 @@ export function useTwoPassProjections(
       currentProjections,
       baselineProjections,
       optimizedProjections,
+      autoMaxProjections,
       survivorSmoothedProjections,
       currentMetrics,
       baselineMetrics,
       optimizedMetrics,
+      autoMaxMetrics,
+      autoMaxStrategy,
       survivorSmoothedMetrics,
       taxSavings,
       survivorTaxSavings,
