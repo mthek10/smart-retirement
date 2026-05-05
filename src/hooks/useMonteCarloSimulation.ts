@@ -69,6 +69,7 @@ export interface MonteCarloResult {
   baseline: StrategySimulationResults;
   current: StrategySimulationResults;
   optimized: StrategySimulationResults;
+  autoMax: StrategySimulationResults;
   isRunning: boolean;
 }
 
