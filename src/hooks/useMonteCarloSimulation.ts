@@ -387,15 +387,27 @@ export function useMonteCarloSimulation(
       settings
     );
     
+    let currentStrategy = taxSettings.rothConversionStrategy;
+    let currentLabel: string;
+    if (currentStrategy === 'maximize_after_tax') {
+      // Resolve the auto-picked strategy so MC simulates the actual chosen bracket.
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { pickBestAfterTaxStrategyCached, STRATEGY_LABELS } = require('@/lib/strategyOptimizer');
+      const picked = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
+      currentStrategy = picked;
+      currentLabel = `Auto-Max (${STRATEGY_LABELS[picked]})`;
+    } else {
+      currentLabel =
+        currentStrategy === 'none' ? 'No Conversions' :
+        currentStrategy === 'fill_10' ? 'Fill to 10%' :
+        currentStrategy === 'fill_12' ? 'Fill to 12%' :
+        currentStrategy === 'fill_22' ? 'Fill to 22%' :
+        currentStrategy === 'fill_24' ? 'Fill to 24%' :
+        'Custom';
+    }
     const current = runStrategySimulation(
       accounts, ssData, taxSettings,
-      taxSettings.rothConversionStrategy, 
-      taxSettings.rothConversionStrategy === 'none' ? 'No Conversions' :
-      taxSettings.rothConversionStrategy === 'fill_10' ? 'Fill to 10%' :
-      taxSettings.rothConversionStrategy === 'fill_12' ? 'Fill to 12%' :
-      taxSettings.rothConversionStrategy === 'fill_22' ? 'Fill to 22%' :
-      taxSettings.rothConversionStrategy === 'fill_24' ? 'Fill to 24%' :
-      'Custom',
+      currentStrategy, currentLabel,
       settings
     );
     
