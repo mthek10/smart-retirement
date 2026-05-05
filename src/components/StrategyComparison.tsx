@@ -335,45 +335,50 @@ export function StrategyComparison({
           )}
         </div>
 
-        {/* Goal-Based Recommendation */}
-        <div className="mt-6">
-          <div className={`p-4 rounded-lg border ${
-            recommendation.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
-            recommendation.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' :
-            'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
-          }`}>
-            <div className={`flex items-center gap-2 font-medium ${
-              recommendation.color === 'green' ? 'text-green-700 dark:text-green-300' :
-              recommendation.color === 'blue' ? 'text-blue-700 dark:text-blue-300' :
-              'text-purple-700 dark:text-purple-300'
-            }`}>
-              {recommendation.icon}
-              <span>{recommendation.title}</span>
-            </div>
-            <div className="mt-2 space-y-1">
-              <p className={`text-sm font-semibold ${
-                recommendation.color === 'green' ? 'text-green-800 dark:text-green-200' :
-                recommendation.color === 'blue' ? 'text-blue-800 dark:text-blue-200' :
-                'text-purple-800 dark:text-purple-200'
+        {/* Recommendations across all three goals */}
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {recommendations.map((rec) => (
+            <div
+              key={rec.title}
+              className={`p-4 rounded-lg border ${
+                rec.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
+                rec.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' :
+                'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+              }`}
+            >
+              <div className={`flex items-center gap-2 font-medium ${
+                rec.color === 'green' ? 'text-green-700 dark:text-green-300' :
+                rec.color === 'blue' ? 'text-blue-700 dark:text-blue-300' :
+                'text-purple-700 dark:text-purple-300'
               }`}>
-                Recommended: {recommendation.strategy}
-              </p>
-              {recommendation.savings && (
-                <p className={`text-sm ${
-                  recommendation.color === 'green' ? 'text-green-600 dark:text-green-400' :
-                  recommendation.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                  'text-purple-600 dark:text-purple-400'
+                {rec.icon}
+                <span>{rec.title}</span>
+              </div>
+              <div className="mt-2 space-y-1">
+                <p className={`text-sm font-semibold ${
+                  rec.color === 'green' ? 'text-green-800 dark:text-green-200' :
+                  rec.color === 'blue' ? 'text-blue-800 dark:text-blue-200' :
+                  'text-purple-800 dark:text-purple-200'
                 }`}>
-                  {recommendation.savings}
+                  Recommended: {rec.strategy}
                 </p>
-              )}
-              {recommendation.tradeoff && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {recommendation.tradeoff}
-                </p>
-              )}
+                {rec.savings && (
+                  <p className={`text-sm ${
+                    rec.color === 'green' ? 'text-green-600 dark:text-green-400' :
+                    rec.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                    'text-purple-600 dark:text-purple-400'
+                  }`}>
+                    {rec.savings}
+                  </p>
+                )}
+                {rec.tradeoff && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {rec.tradeoff}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* Summary Section */}
