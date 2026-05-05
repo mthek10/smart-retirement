@@ -834,7 +834,6 @@ const Index = () => {
               survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
               currentStrategyName={currentStrategyName}
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
-              optimizationGoal={taxSettings.optimizationGoal}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
             />
             <MonteCarloResults
