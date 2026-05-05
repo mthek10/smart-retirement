@@ -34,7 +34,6 @@ export function StrategyComparison({
   survivorSmoothedMetrics,
   currentStrategyName,
   showOptimization,
-  optimizationGoal = 'minimize-taxes',
   survivorEnabled = false,
 }: StrategyComparisonProps) {
 
