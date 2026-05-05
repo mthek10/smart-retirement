@@ -62,7 +62,7 @@ export interface StrategySimulationResults {
   avgLifetimeTax: number;
   medianEffectiveTerminalRate: number; // Avg ordinary rate used in after-tax conversion
   medianTaxableGainFraction: number;   // Dynamic gain fraction applied to terminal Taxable balance
-  medianLifetimeNetWealth: number;     // After-tax equivalent minus average lifetime tax
+  
 }
 
 export interface MonteCarloResult {
