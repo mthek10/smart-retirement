@@ -98,7 +98,6 @@ const DEFAULT_TAX_SETTINGS = {
     spouse2DeathAge: null as number | null,
     survivorSpendingPercent: 75,
   },
-  optimizationGoal: "minimize-taxes",
   stateRelocation: {
     enabled: false,
     targetState: "FL",
