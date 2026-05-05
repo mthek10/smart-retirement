@@ -330,12 +330,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
             Strategy Comparison even when centered on the same average return — this is sequence-of-returns risk.
           </div>
           <div>
-            <span className="font-medium text-foreground">Two ways to read terminal wealth:</span>
-            <ul className="mt-1 space-y-1 list-disc pl-5">
-              <li><strong>After-Tax Equivalent</strong> answers <em>"How much wealth is left at the end?"</em> — a snapshot.</li>
-              <li><strong>True Lifetime Wealth</strong> answers <em>"How much did this strategy actually keep, after every tax bill along the way?"</em> — the fair comparison.</li>
-            </ul>
-            <div className="mt-1">A strategy that converts to Roth pays tax earlier, so its After-Tax Equivalent can look lower — but its True Lifetime Wealth is usually higher. Pair it with <strong>Success Rate</strong> as the headline.</div>
+            <span className="font-medium text-foreground">After-Tax Equivalent</span> shows estimated spendable wealth at the end of the plan, after accounting for federal tax owed on remaining Traditional balances and assumed LTCG on taxable gains. Pair it with <strong>Success Rate</strong> and <strong>Avg Lifetime Taxes</strong> for the full picture.
           </div>
         </div>
 
