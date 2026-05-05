@@ -13,7 +13,7 @@ interface StrategyComparisonProps {
   survivorSmoothedMetrics: StrategyMetrics | null;
   currentStrategyName: string;
   showOptimization: boolean;
-  optimizationGoal?: string;
+  
   survivorEnabled?: boolean;
 }
 
