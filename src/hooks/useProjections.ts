@@ -480,11 +480,11 @@ export function calculateProjections(
   // Use override strategy if provided, otherwise use settings
   let effectiveConversionStrategy = strategyOverride ?? taxSettings.rothConversionStrategy;
   // "Maximize Lifetime Wealth (Auto)" — resolve to the candidate that produces
-  // the highest True Lifetime Wealth. Lazy-imported to avoid an import cycle.
-  if (effectiveConversionStrategy === 'maximize_after_tax') {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { pickBestAfterTaxStrategyCached } = require('@/lib/strategyOptimizer');
+  // the highest True Lifetime Wealth. Guard against re-entry from the optimizer.
+  if (effectiveConversionStrategy === 'maximize_after_tax' && !strategyOverride) {
     effectiveConversionStrategy = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
+  } else if (effectiveConversionStrategy === 'maximize_after_tax') {
+    effectiveConversionStrategy = 'fill_22';
   }
 
   let spouse1SSAtDeath = 0;
