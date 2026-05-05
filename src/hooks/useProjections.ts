@@ -1321,6 +1321,7 @@ export interface StrategyMetrics {
   rothDepletionAge: number | null;
   allFundsDepletionAge: number | null;
   finalTotalBalance: number;
+  finalTotalBalanceAfterTax: number;
   maxAnnualWithdrawalToZero: number;
   // Survivor-specific metrics
   peakMarginalBracket: number;
