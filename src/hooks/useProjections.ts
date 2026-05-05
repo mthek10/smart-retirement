@@ -1394,6 +1394,7 @@ function calculateMetrics(projections: ProjectionRow[]): StrategyMetrics {
     rothDepletionAge,
     allFundsDepletionAge,
     finalTotalBalance,
+    finalTotalBalanceAfterTax: 0,
     maxAnnualWithdrawalToZero,
     peakMarginalBracket,
     yearsInHighBracket,
