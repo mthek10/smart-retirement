@@ -139,6 +139,11 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
     survivorSpendingPercent: 75,
   };
 
+  const charitableEnabled = !!(taxSettings as any).charitableGiving?.enabled;
+  const lifeEvents = (taxSettings as any).lifeEvents || [];
+  const hasAdvancedData = charitableEnabled || lifeEvents.length > 0 || survivorSettings.enabled;
+  const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedData);
+
   return (
     <Card>
       <CardHeader>
