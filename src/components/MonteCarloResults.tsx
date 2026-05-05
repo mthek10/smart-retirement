@@ -180,11 +180,12 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
         )}
 
         {/* Strategy Comparison Cards */}
-        <div className={`grid grid-cols-1 ${strategies.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+        <div className={`grid grid-cols-1 ${strategies.length >= 4 ? 'md:grid-cols-2 xl:grid-cols-4' : strategies.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
           {strategies.map((s) => (
             <Card key={s.key} className={`border-2 ${
               s.key === 'optimized' ? 'border-green-500/50' :
-              s.key === 'current' ? 'border-blue-500/50' : 
+              s.key === 'autoMax' ? 'border-primary/60' :
+              s.key === 'current' ? 'border-blue-500/50' :
               'border-muted'
             }`}>
               <CardHeader className="pb-2">
