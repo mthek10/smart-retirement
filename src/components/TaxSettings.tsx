@@ -24,7 +24,7 @@ interface TaxSettingsProps {
     inflationRate: number;
     rothConversionStrategy: string;
     rothConversionCustom: number;
-    optimizationGoal?: string;
+    
     stateRelocation?: {
       enabled: boolean;
       targetState: string;
