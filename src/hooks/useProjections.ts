@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { pickBestAfterTaxStrategyCached } from "@/lib/strategyOptimizer";
 import { 
   calculateFederalTax, 
   calculateIRMAA, 
