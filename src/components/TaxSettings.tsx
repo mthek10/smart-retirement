@@ -417,7 +417,9 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
               </SelectContent>
             </Select>
             {taxSettings.rothConversionStrategy === 'maximize_after_tax' ? (
-              <AutoStrategyHint />
+              <p className="text-xs text-muted-foreground">
+                Auto-picks the fill bracket (None / 12% / 22% / 24% / 32%) that produces the highest <strong>True Lifetime Wealth</strong> for your situation. The chosen bracket updates automatically as your inputs change.
+              </p>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Convert Traditional to Roth to fill your target tax bracket. "Survivor Tax Smoothing" applies aggressive 24% bracket targeting after a spouse passes to prevent tax spikes.
