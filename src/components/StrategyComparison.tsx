@@ -183,7 +183,7 @@ export function StrategyComparison({
         <CardTitle className="flex items-center gap-2">
           <ArrowRightLeft className="h-5 w-5" />
           Two-Pass Strategy Comparison
-          {hasImprovement && optimizationGoal === 'minimize-taxes' && (
+          {hasImprovement && (
             <Badge variant="default" className="bg-green-600">
               Potential Savings: {formatCurrency(taxSavings)}
             </Badge>
