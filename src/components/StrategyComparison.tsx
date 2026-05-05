@@ -198,14 +198,15 @@ export function StrategyComparison({
                   <th className="text-left font-medium text-muted-foreground px-3 py-2 border-r">Metric</th>
                   <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Baseline - No Conversion</th>
                   {showCurrentColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">{currentStrategyName}</th>}
-                  <th className="text-center font-medium text-muted-foreground px-3 py-2">Optimized - Fill to 22%</th>
+                  <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Optimized - Fill to 22%</th>
+                  <th className="text-center font-medium text-primary px-3 py-2">⭐ {autoMaxName}</th>
                 </tr>
               </thead>
               <tbody>
                 {allMetrics.map((metric, idx) => {
                   const prevGroup = idx > 0 ? allMetrics[idx - 1].group : null;
                   const showSeparator = prevGroup && prevGroup !== metric.group;
-                  const colSpan = showCurrentColumn ? 4 : 3;
+                  const colSpan = showCurrentColumn ? 5 : 4;
                   return (
                     <>
                       {idx === 0 && (
@@ -238,10 +239,16 @@ export function StrategyComparison({
                             </span>
                           </td>
                         )}
-                        <td className={`px-3 py-2 text-center ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
+                        <td className={`px-3 py-2 text-center border-r ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
                           <span className="inline-flex items-center justify-center gap-1">
                             {metric.optimized}
                             {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-center bg-primary/5 font-semibold text-foreground">
+                          <span className="inline-flex items-center justify-center gap-1">
+                            {metric.autoMax}
+                            {metric.winner && getWinnerBadge(metric.winner, 'autoMax')}
                           </span>
                         </td>
                       </tr>
