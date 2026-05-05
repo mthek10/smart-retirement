@@ -8,6 +8,8 @@ interface StrategyComparisonProps {
   baselineMetrics: StrategyMetrics;
   optimizedMetrics: StrategyMetrics;
   currentMetrics: StrategyMetrics;
+  autoMaxMetrics: StrategyMetrics;
+  autoMaxStrategy: string;
   survivorSmoothedMetrics: StrategyMetrics | null;
   currentStrategyName: string;
   showOptimization: boolean;
@@ -15,10 +17,20 @@ interface StrategyComparisonProps {
   survivorEnabled?: boolean;
 }
 
+const STRATEGY_LABEL: Record<string, string> = {
+  none: "No Conversions",
+  fill_12: "Fill to 12%",
+  fill_22: "Fill to 22%",
+  fill_24: "Fill to 24%",
+  fill_32: "Fill to 32%",
+};
+
 export function StrategyComparison({ 
   baselineMetrics,
   optimizedMetrics,
   currentMetrics,
+  autoMaxMetrics,
+  autoMaxStrategy,
   survivorSmoothedMetrics,
   currentStrategyName,
   showOptimization,
@@ -26,11 +38,15 @@ export function StrategyComparison({
   survivorEnabled = false,
 }: StrategyComparisonProps) {
 
-  // Hide the "current" column when it duplicates baseline or optimized
+  const autoMaxName = `Maximize Lifetime Wealth (${STRATEGY_LABEL[autoMaxStrategy] ?? autoMaxStrategy})`;
+
+  // Hide the "current" column when it duplicates baseline, optimized, or auto-max
   const currentName = currentStrategyName.toLowerCase().trim();
-  const showCurrentColumn = currentName !== 'no conversions' && currentName !== 'fill to 22%';
-  const colCount = showCurrentColumn ? 4 : 3;
-  const gridCols = showCurrentColumn ? 'grid-cols-4' : 'grid-cols-3';
+  const showCurrentColumn = currentName !== 'no conversions'
+    && currentName !== 'fill to 22%'
+    && currentName !== autoMaxName.toLowerCase().trim();
+  const colCount = showCurrentColumn ? 5 : 4;
+  const gridCols = showCurrentColumn ? 'grid-cols-5' : 'grid-cols-4';
 
   // Calculate savings comparing baseline (no conversions) to optimized (fill-22)
   const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
