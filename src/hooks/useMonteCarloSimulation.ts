@@ -415,11 +415,20 @@ export function useMonteCarloSimulation(
       'fill_24', 'Fill to 24%',
       settings
     );
-    
+
+    // Always include "Maximize Lifetime Wealth" as a comparison strategy
+    const autoPicked = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
+    const autoMax = runStrategySimulation(
+      accounts, ssData, taxSettings,
+      autoPicked, `Maximize Lifetime Wealth (${STRATEGY_LABELS[autoPicked]})`,
+      settings
+    );
+
     return {
       baseline,
       current,
       optimized,
+      autoMax,
       isRunning: false,
     };
   }, [accounts, ssData, taxSettings, settings.numSimulations, settings.returnMean, settings.returnStdDev]);
