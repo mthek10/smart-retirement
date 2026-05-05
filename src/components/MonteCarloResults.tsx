@@ -256,22 +256,6 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                     </span>
                     <span className="font-medium">{formatCurrency(s.data.avgLifetimeTax)}</span>
                   </div>
-
-                  <div className="pt-2 border-t">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-foreground flex items-center gap-1 flex-wrap">
-                        True Lifetime Wealth
-                        <span className="inline-flex items-center rounded-full bg-primary/10 text-primary text-[10px] font-medium px-1.5 py-0.5 leading-none">
-                          Best for comparing
-                        </span>
-                        <InfoTooltip text="After-Tax Equivalent minus average lifetime taxes paid. This is the apples-to-apples number for comparing strategies because it credits Roth conversions for paying tax at lower brackets earlier in life." side="right" />
-                      </span>
-                      <span className="font-bold text-primary">{formatCurrency(s.data.medianLifetimeNetWealth)}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      Final wealth after subtracting every tax dollar paid along the way
-                    </div>
-                  </div>
                 </div>
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
@@ -346,12 +330,7 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
             Strategy Comparison even when centered on the same average return — this is sequence-of-returns risk.
           </div>
           <div>
-            <span className="font-medium text-foreground">Two ways to read terminal wealth:</span>
-            <ul className="mt-1 space-y-1 list-disc pl-5">
-              <li><strong>After-Tax Equivalent</strong> answers <em>"How much wealth is left at the end?"</em> — a snapshot.</li>
-              <li><strong>True Lifetime Wealth</strong> answers <em>"How much did this strategy actually keep, after every tax bill along the way?"</em> — the fair comparison.</li>
-            </ul>
-            <div className="mt-1">A strategy that converts to Roth pays tax earlier, so its After-Tax Equivalent can look lower — but its True Lifetime Wealth is usually higher. Pair it with <strong>Success Rate</strong> as the headline.</div>
+            <span className="font-medium text-foreground">After-Tax Equivalent</span> shows estimated spendable wealth at the end of the plan, after accounting for federal tax owed on remaining Traditional balances and assumed LTCG on taxable gains. Pair it with <strong>Success Rate</strong> and <strong>Avg Lifetime Taxes</strong> for the full picture.
           </div>
         </div>
 

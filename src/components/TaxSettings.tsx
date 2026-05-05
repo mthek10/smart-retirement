@@ -418,7 +418,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
             </Select>
             {taxSettings.rothConversionStrategy === 'maximize_after_tax' ? (
               <p className="text-xs text-muted-foreground">
-                Auto-picks the fill bracket (None / 12% / 22% / 24% / 32%) that produces the highest <strong>True Lifetime Wealth</strong> for your situation. The chosen bracket updates automatically as your inputs change.
+                Auto-picks the fill bracket (None / 12% / 22% / 24% / 32%) that produces the highest <strong>After-Tax Equivalent</strong> for your situation. The chosen bracket updates automatically as your inputs change.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">

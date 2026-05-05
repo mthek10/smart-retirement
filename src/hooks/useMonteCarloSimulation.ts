@@ -62,7 +62,7 @@ export interface StrategySimulationResults {
   avgLifetimeTax: number;
   medianEffectiveTerminalRate: number; // Avg ordinary rate used in after-tax conversion
   medianTaxableGainFraction: number;   // Dynamic gain fraction applied to terminal Taxable balance
-  medianLifetimeNetWealth: number;     // After-tax equivalent minus average lifetime tax
+  
 }
 
 export interface MonteCarloResult {
@@ -342,11 +342,6 @@ function runStrategySimulation(
     medianFinalRoth +
     medianFinalTaxable * (1 - ASSUMED_LTCG_RATE * medianTaxableGainFraction);
 
-  // Lifetime Net Wealth: terminal after-tax value minus the average tax actually paid during life.
-  // This is the only number that fairly captures the Roth-conversion tradeoff (pay tax now to avoid
-  // more tax later) — the terminal-only metric ignores cumulative tax payments.
-  const medianLifetimeNetWealth = medianFinalAfterTax - avgLifetimeTax;
-
   return {
     strategyName,
     outcomes,
@@ -365,7 +360,6 @@ function runStrategySimulation(
     avgLifetimeTax,
     medianEffectiveTerminalRate,
     medianTaxableGainFraction,
-    medianLifetimeNetWealth,
   };
 }
 

@@ -481,7 +481,7 @@ export function calculateProjections(
   // Use override strategy if provided, otherwise use settings
   let effectiveConversionStrategy = strategyOverride ?? taxSettings.rothConversionStrategy;
   // "Maximize Lifetime Wealth (Auto)" — resolve to the candidate that produces
-  // the highest True Lifetime Wealth. Guard against re-entry from the optimizer.
+  // the highest After-Tax Equivalent. Guard against re-entry from the optimizer.
   if (effectiveConversionStrategy === 'maximize_after_tax' && !strategyOverride) {
     effectiveConversionStrategy = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
   } else if (effectiveConversionStrategy === 'maximize_after_tax') {
@@ -1494,7 +1494,7 @@ export function useTwoPassProjections(
     // Optimized projections filling to 22% bracket
     const optimizedProjections = calculateProjections(accounts, ssData, taxSettings, 'fill_22');
 
-    // Maximize Lifetime Wealth (Auto) — pick best fill-bracket strategy by True Lifetime Wealth
+    // Maximize Lifetime Wealth (Auto) — pick best fill-bracket strategy by After-Tax Equivalent
     const autoMaxStrategy = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
     const autoMaxProjections = calculateProjections(accounts, ssData, taxSettings, autoMaxStrategy);
 

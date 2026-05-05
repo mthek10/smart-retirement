@@ -9,7 +9,6 @@ export type CandidateStrategy = typeof CANDIDATES[number];
 
 export interface StrategyScore {
   strategy: CandidateStrategy;
-  lifetimeNetWealth: number;
   terminalAfterTax: number;
   lifetimeTax: number;
 }
@@ -20,10 +19,10 @@ export interface OptimizerResult {
 }
 
 /**
- * Score each candidate Roth conversion strategy on True Lifetime Wealth
- * (terminal after-tax minus cumulative lifetime taxes), using the same
- * terminal lump-sum bracket walk + basis-decay logic as the Monte Carlo card.
- * Deterministic — fast enough to run on every settings change.
+ * Score each candidate Roth conversion strategy on After-Tax Equivalent
+ * (terminal after-tax wealth: Trad − lump-sum federal tax, plus Roth, plus
+ * Taxable net of LTCG with basis decay). Deterministic — fast enough to run
+ * on every settings change.
  */
 export function pickBestAfterTaxStrategy(
   accounts: Accounts,
@@ -68,11 +67,10 @@ export function pickBestAfterTaxStrategy(
       strategy,
       terminalAfterTax,
       lifetimeTax,
-      lifetimeNetWealth: terminalAfterTax - lifetimeTax,
     };
   });
 
-  ranking.sort((a, b) => b.lifetimeNetWealth - a.lifetimeNetWealth);
+  ranking.sort((a, b) => b.terminalAfterTax - a.terminalAfterTax);
   return { best: ranking[0].strategy, ranking };
 }
 
