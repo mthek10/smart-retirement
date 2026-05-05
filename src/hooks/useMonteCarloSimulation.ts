@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Accounts, SSData, TaxSettings } from "./useProjections";
 import { calculateProjections } from "./useProjections";
+import { pickBestAfterTaxStrategyCached, STRATEGY_LABELS } from "@/lib/strategyOptimizer";
 import { calculateFederalTax } from "@/lib/taxCalculations";
 
 export interface MonteCarloSettings {
@@ -390,9 +391,6 @@ export function useMonteCarloSimulation(
     let currentStrategy = taxSettings.rothConversionStrategy;
     let currentLabel: string;
     if (currentStrategy === 'maximize_after_tax') {
-      // Resolve the auto-picked strategy so MC simulates the actual chosen bracket.
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { pickBestAfterTaxStrategyCached, STRATEGY_LABELS } = require('@/lib/strategyOptimizer');
       const picked = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
       currentStrategy = picked;
       currentLabel = `Auto-Max (${STRATEGY_LABELS[picked]})`;
