@@ -1297,10 +1297,13 @@ export interface TwoPassResult {
   currentProjections: ProjectionRow[];
   baselineProjections: ProjectionRow[];
   optimizedProjections: ProjectionRow[];
+  autoMaxProjections: ProjectionRow[];
   survivorSmoothedProjections: ProjectionRow[] | null;
   currentMetrics: StrategyMetrics;
   baselineMetrics: StrategyMetrics;
   optimizedMetrics: StrategyMetrics;
+  autoMaxMetrics: StrategyMetrics;
+  autoMaxStrategy: string;
   survivorSmoothedMetrics: StrategyMetrics | null;
   taxSavings: number;
   survivorTaxSavings: number;
