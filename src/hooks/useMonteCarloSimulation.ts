@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Accounts, SSData, TaxSettings } from "./useProjections";
 import { calculateProjections } from "./useProjections";
+import { pickBestAfterTaxStrategyCached, STRATEGY_LABELS } from "@/lib/strategyOptimizer";
 import { calculateFederalTax } from "@/lib/taxCalculations";
 
 export interface MonteCarloSettings {
