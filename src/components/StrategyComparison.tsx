@@ -121,56 +121,61 @@ export function StrategyComparison({
     { label: "Max Annual Withdrawal to Zero", group: "longevity", baseline: formatCurrency(baselineMetrics.maxAnnualWithdrawalToZero), current: formatCurrency(currentMetrics.maxAnnualWithdrawalToZero), optimized: formatCurrency(optimizedMetrics.maxAnnualWithdrawalToZero), autoMax: formatCurrency(autoMaxMetrics.maxAnnualWithdrawalToZero), icon: null, diff: 0, formatDiff: () => '', winner: null },
   ];
 
-  // Determine recommendation based on goal
-  const getRecommendation = () => {
-    if (optimizationGoal === 'minimize-taxes') {
-      const winner = taxWinner === 'optimized' ? 'Fill to 22% bracket' : 
-                     taxWinner === 'current' ? currentStrategyName : 'No conversions';
-      const savings = taxWinner === 'optimized' ? taxSavings : 0;
-      return {
-        title: "Tax Minimization Recommendation",
-        strategy: winner,
-        savings: savings > 0 ? `Saves ${formatCurrency(savings)} in lifetime taxes` : null,
-        tradeoff: longevityWinner !== taxWinner && longevityWinner !== 'tie'
-          ? `Trade-off: Funds may deplete ${longevityWinner === 'baseline' ? 'earlier' : 'differently'} than other strategies`
-          : null,
-        icon: <DollarSign className="h-5 w-5" />,
-        color: 'green',
-      };
-    }
-    if (optimizationGoal === 'maximize-longevity') {
-      const winner = longevityWinner === 'optimized' ? 'Fill to 22% bracket' : 
-                     longevityWinner === 'current' ? currentStrategyName : 'No conversions';
-      const depletionAge = longevityWinner === 'optimized' ? optimizedDepletion :
-                           longevityWinner === 'current' ? currentDepletion : baselineDepletion;
-      return {
-        title: "Longevity Recommendation",
-        strategy: winner,
-        savings: depletionAge === null ? 'Funds never deplete' : `Funds last until age ${depletionAge}`,
-        tradeoff: taxWinner !== longevityWinner && taxWinner !== 'tie'
-          ? `Trade-off: May pay ${formatCurrency(Math.abs(baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax))} more in lifetime taxes`
-          : null,
-        icon: <Clock className="h-5 w-5" />,
-        color: 'blue',
-      };
-    }
-    // Balanced
-    const winner = balanceWinner === 'optimized' ? 'Fill to 22% bracket' : 
-                   balanceWinner === 'current' ? currentStrategyName : 'No conversions';
-    return {
-      title: "Balanced Recommendation",
-      strategy: winner,
-      savings: `Final balance: ${formatCurrency(
-        balanceWinner === 'optimized' ? optimizedMetrics.finalTotalBalance :
-        balanceWinner === 'current' ? currentMetrics.finalTotalBalance : baselineMetrics.finalTotalBalance
-      )}`,
-      tradeoff: null,
-      icon: <ArrowRightLeft className="h-5 w-5" />,
-      color: 'purple',
-    };
+  // Resolve a winner key to a human label
+  const winnerLabel = (w: 'baseline' | 'optimized' | 'current' | 'autoMax' | 'tie'): string => {
+    if (w === 'optimized') return 'Fill to 22% bracket';
+    if (w === 'current') return currentStrategyName;
+    if (w === 'autoMax') return autoMaxName;
+    return 'No conversions';
+  };
+  const winnerFinalBalance = (w: 'baseline' | 'optimized' | 'current' | 'autoMax' | 'tie'): number => {
+    if (w === 'optimized') return optimizedMetrics.finalTotalBalance;
+    if (w === 'current') return currentMetrics.finalTotalBalance;
+    if (w === 'autoMax') return autoMaxMetrics.finalTotalBalance;
+    return baselineMetrics.finalTotalBalance;
+  };
+  const winnerDepletionAge = (w: 'baseline' | 'optimized' | 'current' | 'autoMax' | 'tie'): number | null => {
+    if (w === 'optimized') return optimizedDepletion;
+    if (w === 'current') return currentDepletion;
+    if (w === 'autoMax') return autoMaxMetrics.allFundsDepletionAge;
+    return baselineDepletion;
   };
 
-  const recommendation = getRecommendation();
+  const taxRecommendation = {
+    title: "Tax Minimization",
+    strategy: winnerLabel(taxWinner),
+    savings: taxSavings > 0 ? `Saves ${formatCurrency(taxSavings)} vs. no conversions` : null,
+    tradeoff: longevityWinner !== taxWinner && longevityWinner !== 'tie'
+      ? `Trade-off: longevity winner is "${winnerLabel(longevityWinner)}"`
+      : null,
+    icon: <DollarSign className="h-5 w-5" />,
+    color: 'green' as const,
+  };
+
+  const longevityRecommendation = (() => {
+    const age = winnerDepletionAge(longevityWinner);
+    return {
+      title: "Longevity",
+      strategy: winnerLabel(longevityWinner),
+      savings: age === null ? 'Funds never deplete' : `Funds last until age ${age}`,
+      tradeoff: taxWinner !== longevityWinner && taxWinner !== 'tie'
+        ? `Trade-off: tax-minimizing winner is "${winnerLabel(taxWinner)}"`
+        : null,
+      icon: <Clock className="h-5 w-5" />,
+      color: 'blue' as const,
+    };
+  })();
+
+  const balancedRecommendation = {
+    title: "Balanced (Final Balance)",
+    strategy: winnerLabel(balanceWinner),
+    savings: `Final balance: ${formatCurrency(winnerFinalBalance(balanceWinner))}`,
+    tradeoff: null as string | null,
+    icon: <ArrowRightLeft className="h-5 w-5" />,
+    color: 'purple' as const,
+  };
+
+  const recommendations = [taxRecommendation, longevityRecommendation, balancedRecommendation];
 
   return (
     <Card>
