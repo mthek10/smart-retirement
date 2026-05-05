@@ -97,23 +97,25 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
     return histData;
   }, [results.baseline.outcomes, results.current.outcomes, results.optimized.outcomes]);
 
-  // Strategy cards data – deduplicate when current strategy matches another by name
+  // Strategy cards data – always include Maximize Lifetime Wealth, dedup current if it matches
   const strategies = useMemo(() => {
     const all = [
       { key: 'baseline', name: 'No Conversions', data: results.baseline, color: 'slate' },
       { key: 'current', name: results.current.strategyName, data: results.current, color: 'blue' },
       { key: 'optimized', name: 'Fill to 24%', data: results.optimized, color: 'green' },
+      { key: 'autoMax', name: results.autoMax.strategyName, data: results.autoMax, color: 'primary' },
     ];
 
     const currentName = results.current.strategyName.toLowerCase().trim();
-    const baselineName = 'no conversions';
-    const optimizedName = 'fill to 24%';
+    const autoName = results.autoMax.strategyName.toLowerCase().trim();
 
-    // If current matches baseline or optimized by name, remove the duplicate current card
-    if (currentName === baselineName || currentName === optimizedName) {
-      return all.filter(s => s.key !== 'current');
-    }
-    return all;
+    const filtered = all.filter((s) => {
+      if (s.key === 'current' && (currentName === 'no conversions' || currentName === 'fill to 24%' || currentName === autoName)) {
+        return false;
+      }
+      return true;
+    });
+    return filtered;
   }, [results]);
 
   return (
@@ -178,11 +180,12 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
         )}
 
         {/* Strategy Comparison Cards */}
-        <div className={`grid grid-cols-1 ${strategies.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+        <div className={`grid grid-cols-1 ${strategies.length >= 4 ? 'md:grid-cols-2 xl:grid-cols-4' : strategies.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
           {strategies.map((s) => (
             <Card key={s.key} className={`border-2 ${
               s.key === 'optimized' ? 'border-green-500/50' :
-              s.key === 'current' ? 'border-blue-500/50' : 
+              s.key === 'autoMax' ? 'border-primary/60' :
+              s.key === 'current' ? 'border-blue-500/50' :
               'border-muted'
             }`}>
               <CardHeader className="pb-2">
