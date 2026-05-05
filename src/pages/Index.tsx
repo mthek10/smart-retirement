@@ -830,6 +830,8 @@ const Index = () => {
               baselineMetrics={twoPassResults.baselineMetrics}
               optimizedMetrics={twoPassResults.optimizedMetrics}
               currentMetrics={twoPassResults.currentMetrics}
+              autoMaxMetrics={twoPassResults.autoMaxMetrics}
+              autoMaxStrategy={twoPassResults.autoMaxStrategy}
               survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
               currentStrategyName={currentStrategyName}
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
