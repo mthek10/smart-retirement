@@ -256,22 +256,6 @@ export function MonteCarloResults({ results, settings, onSettingsChange }: Monte
                     </span>
                     <span className="font-medium">{formatCurrency(s.data.avgLifetimeTax)}</span>
                   </div>
-
-                  <div className="pt-2 border-t">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-foreground flex items-center gap-1 flex-wrap">
-                        True Lifetime Wealth
-                        <span className="inline-flex items-center rounded-full bg-primary/10 text-primary text-[10px] font-medium px-1.5 py-0.5 leading-none">
-                          Best for comparing
-                        </span>
-                        <InfoTooltip text="After-Tax Equivalent minus average lifetime taxes paid. This is the apples-to-apples number for comparing strategies because it credits Roth conversions for paying tax at lower brackets earlier in life." side="right" />
-                      </span>
-                      <span className="font-bold text-primary">{formatCurrency(s.data.medianLifetimeNetWealth)}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      Final wealth after subtracting every tax dollar paid along the way
-                    </div>
-                  </div>
                 </div>
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-xs text-muted-foreground flex items-center gap-1 whitespace-nowrap">
