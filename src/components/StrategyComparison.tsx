@@ -224,7 +224,11 @@ export function StrategyComparison({
                           </td>
                         </tr>
                       )}
-                      <tr key={metric.label} className={`border-b last:border-b-0 hover:bg-muted/10 ${metric.label.includes('after taxes') ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                      {(() => {
+                        const isAfterTax = metric.label.includes('after taxes');
+                        const rowBg = isAfterTax ? 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30' : 'hover:bg-muted/10';
+                        return (
+                      <tr key={metric.label} className={`border-b last:border-b-0 ${rowBg}`}>
                         <td className="px-3 py-2 font-medium border-r">{metric.label}</td>
                         <td className="px-3 py-2 text-center text-muted-foreground border-r">
                           <span className="inline-flex items-center justify-center gap-1">
@@ -246,13 +250,15 @@ export function StrategyComparison({
                             {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-center bg-primary/5 font-semibold text-foreground">
+                        <td className={`px-3 py-2 text-center font-semibold text-foreground ${isAfterTax ? '' : 'bg-primary/5'}`}>
                           <span className="inline-flex items-center justify-center gap-1">
                             {metric.autoMax}
                             {metric.winner && getWinnerBadge(metric.winner, 'autoMax')}
                           </span>
                         </td>
                       </tr>
+                        );
+                      })()}
                     </>
                   );
                 })}
