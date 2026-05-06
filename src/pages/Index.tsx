@@ -833,6 +833,7 @@ const Index = () => {
               autoMaxStrategy={twoPassResults.autoMaxStrategy}
               survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
               currentStrategyName={currentStrategyName}
+              currentStrategyKey={taxSettings.rothConversionStrategy || 'none'}
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
             />
