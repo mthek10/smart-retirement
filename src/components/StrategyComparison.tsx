@@ -280,7 +280,7 @@ export function StrategyComparison({
               <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
                 <div>Metric</div>
                 <div className="text-center">Baseline</div>
-                <div className="text-center">Current</div>
+                <div className="text-center">{currentStrategyName}</div>
                 <div className="text-center">Survivor Smoothed</div>
               </div>
               
