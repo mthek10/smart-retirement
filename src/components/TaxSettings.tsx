@@ -523,6 +523,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                   </SelectContent>
                 </Select>
               </div>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
               </p>
