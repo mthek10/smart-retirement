@@ -323,8 +323,6 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                 <SelectItem value="fill_22">Fill to 22% Bracket</SelectItem>
                 <SelectItem value="fill_24">Fill to 24% Bracket</SelectItem>
                 <SelectItem value="survivor_smooth">Survivor Tax Smoothing</SelectItem>
-                <SelectItem value="optimize_consistency">Optimize Bracket Consistency</SelectItem>
-                <SelectItem value="custom">Custom Amount</SelectItem>
               </SelectContent>
             </Select>
             {taxSettings.rothConversionStrategy === 'maximize_after_tax' ? (
