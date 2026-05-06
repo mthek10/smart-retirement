@@ -459,9 +459,10 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
           </div>
 
           {taxSettings.stateRelocation?.enabled && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="relocationAge">Relocation Age Spouse 1</Label>
+            <div className="space-y-4 pl-4 border-l-2 border-muted">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="relocationAge">Relocation Age (Spouse 1)</Label>
                 <DebouncedInput
                   id="relocationAge"
                   type="number"
@@ -521,11 +522,11 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                     <SelectItem value="WY">Wyoming (No Income Tax)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
-                </p>
               </div>
-            </>
+              <p className="text-xs text-muted-foreground">
+                Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
+              </p>
+            </div>
           )}
         </div>
 
