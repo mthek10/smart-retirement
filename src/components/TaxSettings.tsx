@@ -434,31 +434,35 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
         {/* State Relocation Planning */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Label htmlFor="stateRelocationEnabled" className="text-sm font-medium">
-                Plan State Relocation
-              </Label>
-              <InfoTooltip text="Model moving to a different state at a specific age. This is an annual model: the target state's tax rules apply starting with the first projection year in which Spouse 1 is at or above the relocation age." />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="stateRelocationEnabled" className="text-base font-medium">
+                  Plan State Relocation
+                </Label>
+                <InfoTooltip text="Model moving to a different state at a specific age. This is an annual model: the target state's tax rules apply starting with the first projection year in which Spouse 1 is at or above the relocation age." />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Model a future move to a different state's tax regime
+              </p>
             </div>
-            <input
-              type="checkbox"
+            <Switch
               id="stateRelocationEnabled"
               checked={taxSettings.stateRelocation?.enabled || false}
-              onChange={(e) => {
+              onCheckedChange={(checked) => {
                 const current = taxSettings.stateRelocation || { enabled: false, targetState: 'FL', relocationAge: 65 };
                 onChange({
                   ...taxSettings,
-                  stateRelocation: { ...current, enabled: e.target.checked }
+                  stateRelocation: { ...current, enabled: checked }
                 });
               }}
-              className="h-4 w-4 rounded border-border"
             />
           </div>
 
           {taxSettings.stateRelocation?.enabled && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="relocationAge">Relocation Age Spouse 1</Label>
+            <div className="space-y-4 pl-4 border-l-2 border-muted">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="relocationAge">Relocation Age (Spouse 1)</Label>
                 <DebouncedInput
                   id="relocationAge"
                   type="number"
@@ -518,20 +522,28 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                     <SelectItem value="WY">Wyoming (No Income Tax)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
-                </p>
               </div>
-            </>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
+              </p>
+            </div>
           )}
         </div>
+
+        <Separator />
 
         {/* Charitable Giving */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Label htmlFor="charitableEnabled" className="text-base font-medium">Charitable Giving</Label>
-              <InfoTooltip text="Model annual donations. Cash → itemized deduction. QCD (age 70½+) → excluded from AGI and counts toward RMD. Appreciated shares → skips capital gains and gives FMV deduction." />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="charitableEnabled" className="text-base font-medium">Charitable Giving</Label>
+                <InfoTooltip text="Model annual donations. Cash → itemized deduction. QCD (age 70½+) → excluded from AGI and counts toward RMD. Appreciated shares → skips capital gains and gives FMV deduction." />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Annual donations modeled as cash, QCD, or appreciated shares
+              </p>
             </div>
             <Switch
               id="charitableEnabled"
@@ -624,8 +636,10 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
           )}
         </div>
 
+        <Separator />
+
         {/* Life Events */}
-        <div className="pt-4 border-t">
+        <div>
           <LifeEventsEditor
             events={(taxSettings as any).lifeEvents || []}
             onChange={(events: LifeEvent[]) => onChange({ ...taxSettings, lifeEvents: events })}
@@ -637,7 +651,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
         {taxSettings.filingStatus === 'married' && (
           <>
             <Separator />
-            
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -660,7 +674,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
 
               {survivorSettings.enabled && (
                 <div className="space-y-4 pl-4 border-l-2 border-muted">
-                  <div className="flex items-center gap-2 text-sm text-warning">
+                  <div className="flex items-center gap-2 text-sm text-foreground">
                     <AlertTriangle className="h-4 w-4" />
                     <span>Survivor scenario affects filing status, Social Security, and spending needs</span>
                   </div>
