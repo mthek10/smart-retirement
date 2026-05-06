@@ -88,8 +88,6 @@ export function ScenarioManager({
     if (strategy === 'fill_22') return 'Fill 22%';
     if (strategy === 'fill_24') return 'Fill 24%';
     if (strategy === 'survivor_smooth') return 'Survivor Smooth';
-    if (strategy === 'optimize_consistency') return 'Optimize';
-    if (strategy === 'custom') return 'Custom';
     return strategy;
   };
 

@@ -456,8 +456,6 @@ const Index = () => {
     if (strategy === 'fill_32') return 'Fill to 32%';
     if (strategy === 'maximize_after_tax') return 'Maximize Lifetime Wealth (Auto)';
     if (strategy === 'survivor_smooth') return 'Survivor Smoothing';
-    if (strategy === 'optimize_consistency') return 'Optimize Consistency';
-    if (strategy === 'custom') return 'Custom Amount';
     return 'Current';
   }, [taxSettings.rothConversionStrategy]);
 
@@ -836,7 +834,7 @@ const Index = () => {
               survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
               currentStrategyName={currentStrategyName}
               currentStrategyKey={taxSettings.rothConversionStrategy || 'none'}
-              showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
+              showOptimization={taxSettings.rothConversionStrategy !== 'fill_22'}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
             />
             <MonteCarloResults
