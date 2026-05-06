@@ -674,7 +674,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
 
               {survivorSettings.enabled && (
                 <div className="space-y-4 pl-4 border-l-2 border-muted">
-                  <div className="flex items-center gap-2 text-sm text-warning">
+                  <div className="flex items-center gap-2 text-sm text-foreground">
                     <AlertTriangle className="h-4 w-4" />
                     <span>Survivor scenario affects filing status, Social Security, and spending needs</span>
                   </div>
