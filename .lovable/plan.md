@@ -1,22 +1,26 @@
-## Plan: Group advanced options under collapsible "Advanced Options" in Tax Settings
+## Issue
 
-Wrap the three existing sections (Charitable Giving, Life Events, Model Survivor Scenario) in a single collapsible block at the bottom of the Tax Settings card so they are hidden by default.
+In the Two-Pass Strategy Comparison table, the "Optimized - Fill to 22%" column and the starred "Maximize Lifetime Wealth" column show identical values whenever the auto-max optimizer also selects `fill_22`. Similarly, when the optimizer picks `none`, the "Baseline - No Conversion" column duplicates the auto-max column.
 
-### Changes — `src/components/TaxSettings.tsx`
+The "Current" column already has duplicate-detection logic (lines 43-48), but Baseline and Optimized do not.
 
-1. Import `Collapsible`, `CollapsibleTrigger`, `CollapsibleContent` from `@/components/ui/collapsible` and `ChevronDown` from `lucide-react`.
-2. Add local state `const [advancedOpen, setAdvancedOpen] = useState(false);`.
-3. Wrap the three existing blocks (lines ~509–705: Charitable Giving, Life Events, and the married-only Survivor Scenario) inside a single `<Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>` placed within the same `pt-4 border-t` container.
-4. Trigger: a full-width button row labeled "Advanced Options" with a small subtitle ("Charitable giving, life events, survivor scenario") and a rotating `ChevronDown` icon (rotates when open). Styled to match existing section headers.
-5. `CollapsibleContent` contains the three sections unchanged. Remove the now-redundant `pt-4 border-t` from the inner Charitable Giving block (the wrapper provides the divider) and keep separators between the inner subsections (or use simple `Separator` / spacing) for visual rhythm.
+## Fix
 
-### Behavior
+In `src/components/StrategyComparison.tsx`, extend the column-hiding logic so that:
 
-- Section is collapsed by default for all users.
-- If any of the three features already has data (e.g. `charitableGiving.enabled`, `lifeEvents.length > 0`, `survivorSettings.enabled`), default `advancedOpen` to `true` so existing users immediately see their configured settings.
-- No changes to data model, defaults, projections, or any other component.
+1. **Hide the "Optimized - Fill to 22%" column** when `autoMaxStrategy === 'fill_22'` (auto-max already represents it).
+2. **Hide the "Baseline - No Conversion" column** when `autoMaxStrategy === 'none'` (auto-max already represents it).
+3. Keep the existing logic that hides the "Current" column when it duplicates baseline / optimized / auto-max.
 
-### Out of scope
+### Implementation details
 
-- No changes to `Index.tsx`, `useProjections`, schema, or persisted CSV.
-- Roth Conversion Strategy, Standard Deduction, and other Tax Settings remain visible at the top level.
+- Add `showBaselineColumn` and `showOptimizedColumn` flags alongside `showCurrentColumn`.
+- Compute `colCount` / `colSpan` dynamically from the count of visible strategy columns + 1 (for the Metric label).
+- Wrap the Baseline `<th>` and each Baseline `<td>` cell in `{showBaselineColumn && ...}`.
+- Wrap the Optimized `<th>` and each Optimized `<td>` cell in `{showOptimizedColumn && ...}`.
+- Update the group-header rows (`Tax Efficiency`, `Longevity`) to use the dynamic `colSpan`.
+- The auto-max column always remains visible (it's the recommended strategy).
+
+The Survivor Tax Impact section below uses Baseline + Current + Survivor Smoothed and is unrelated — leave it alone.
+
+No changes to calculations, recommendations cards, or any other component.

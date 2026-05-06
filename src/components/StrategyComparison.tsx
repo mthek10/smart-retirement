@@ -44,8 +44,11 @@ export function StrategyComparison({
   const showCurrentColumn = currentName !== 'no conversions'
     && currentName !== 'fill to 22%'
     && currentName !== autoMaxName.toLowerCase().trim();
-  const colCount = showCurrentColumn ? 5 : 4;
-  const gridCols = showCurrentColumn ? 'grid-cols-5' : 'grid-cols-4';
+  // Hide Baseline / Optimized columns when auto-max already represents them
+  const showBaselineColumn = autoMaxStrategy !== 'none';
+  const showOptimizedColumn = autoMaxStrategy !== 'fill_22';
+  const visibleStrategyCols = (showBaselineColumn ? 1 : 0) + (showCurrentColumn ? 1 : 0) + (showOptimizedColumn ? 1 : 0) + 1;
+  const colCount = visibleStrategyCols + 1;
 
   // Calculate savings comparing baseline (no conversions) to optimized (fill-22)
   const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
@@ -201,9 +204,9 @@ export function StrategyComparison({
               <thead>
                 <tr className="border-b bg-muted/30">
                   <th className="text-left font-medium text-muted-foreground px-3 py-2 border-r">Metric</th>
-                  <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Baseline - No Conversion</th>
+                  {showBaselineColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Baseline - No Conversion</th>}
                   {showCurrentColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">{currentStrategyName}</th>}
-                  <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Optimized - Fill to 22%</th>
+                  {showOptimizedColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Optimized - Fill to 22%</th>}
                   <th className="text-center font-medium text-primary px-3 py-2">⭐ {autoMaxName}</th>
                 </tr>
               </thead>
@@ -211,7 +214,7 @@ export function StrategyComparison({
                 {allMetrics.map((metric, idx) => {
                   const prevGroup = idx > 0 ? allMetrics[idx - 1].group : null;
                   const showSeparator = prevGroup && prevGroup !== metric.group;
-                  const colSpan = showCurrentColumn ? 5 : 4;
+                  const colSpan = colCount;
                   return (
                     <>
                       {idx === 0 && (
@@ -234,12 +237,14 @@ export function StrategyComparison({
                         return (
                       <tr key={metric.label} className={`border-b last:border-b-0 ${rowBg}`}>
                         <td className="px-3 py-2 font-medium border-r">{metric.label}</td>
-                        <td className="px-3 py-2 text-center text-muted-foreground border-r">
-                          <span className="inline-flex items-center justify-center gap-1">
-                            {metric.baseline}
-                            {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
-                          </span>
-                        </td>
+                        {showBaselineColumn && (
+                          <td className="px-3 py-2 text-center text-muted-foreground border-r">
+                            <span className="inline-flex items-center justify-center gap-1">
+                              {metric.baseline}
+                              {metric.winner && getWinnerBadge(metric.winner, 'baseline')}
+                            </span>
+                          </td>
+                        )}
                         {showCurrentColumn && (
                           <td className={`px-3 py-2 text-center border-r ${metric.group === 'tax' && currentIsOptimal ? 'text-green-600 font-semibold' : ''}`}>
                             <span className="inline-flex items-center justify-center gap-1">
@@ -248,12 +253,14 @@ export function StrategyComparison({
                             </span>
                           </td>
                         )}
-                        <td className={`px-3 py-2 text-center border-r ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
-                          <span className="inline-flex items-center justify-center gap-1">
-                            {metric.optimized}
-                            {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
-                          </span>
-                        </td>
+                        {showOptimizedColumn && (
+                          <td className={`px-3 py-2 text-center border-r ${metric.group === 'tax' ? 'font-semibold text-green-600' : ''}`}>
+                            <span className="inline-flex items-center justify-center gap-1">
+                              {metric.optimized}
+                              {metric.winner && getWinnerBadge(metric.winner, 'optimized')}
+                            </span>
+                          </td>
+                        )}
                         <td className={`px-3 py-2 text-center font-semibold text-foreground ${isAfterTax ? '' : 'bg-primary/5'}`}>
                           <span className="inline-flex items-center justify-center gap-1">
                             {metric.autoMax}
