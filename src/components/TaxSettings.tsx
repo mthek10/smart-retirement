@@ -431,6 +431,101 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-6 pt-6">
 
+        {/* State Relocation Planning */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="stateRelocationEnabled" className="text-sm font-medium">
+                Plan State Relocation
+              </Label>
+              <InfoTooltip text="Model moving to a different state at a specific age. This is an annual model: the target state's tax rules apply starting with the first projection year in which Spouse 1 is at or above the relocation age." />
+            </div>
+            <input
+              type="checkbox"
+              id="stateRelocationEnabled"
+              checked={taxSettings.stateRelocation?.enabled || false}
+              onChange={(e) => {
+                const current = taxSettings.stateRelocation || { enabled: false, targetState: 'FL', relocationAge: 65 };
+                onChange({
+                  ...taxSettings,
+                  stateRelocation: { ...current, enabled: e.target.checked }
+                });
+              }}
+              className="h-4 w-4 rounded border-border"
+            />
+          </div>
+
+          {taxSettings.stateRelocation?.enabled && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="relocationAge">Relocation Age Spouse 1</Label>
+                <DebouncedInput
+                  id="relocationAge"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="100"
+                  placeholder="65"
+                  value={taxSettings.stateRelocation?.relocationAge || 65}
+                  onChange={(value) => {
+                    const current = taxSettings.stateRelocation || { enabled: true, targetState: 'FL', relocationAge: 65 };
+                    const parsed = parseInt(value) || 65;
+                    const clamped = Math.min(Math.max(parsed, 1), 100);
+                    onChange({
+                      ...taxSettings,
+                      stateRelocation: { ...current, relocationAge: clamped }
+                    });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="targetState">Target State</Label>
+                <Select
+                  value={taxSettings.stateRelocation?.targetState || 'FL'}
+                  onValueChange={(value) => {
+                    const current = taxSettings.stateRelocation || { enabled: true, targetState: 'FL', relocationAge: 65 };
+                    onChange({
+                      ...taxSettings,
+                      stateRelocation: { ...current, targetState: value }
+                    });
+                  }}
+                >
+                  <SelectTrigger id="targetState">
+                    <SelectValue placeholder="Select target state" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="AK">Alaska (No Income Tax)</SelectItem>
+                    <SelectItem value="AZ">Arizona (2.5% Flat)</SelectItem>
+                    <SelectItem value="CA">California (up to 13.3%)</SelectItem>
+                    <SelectItem value="CO">Colorado (4.4% Flat)</SelectItem>
+                    <SelectItem value="CT">Connecticut (up to 6.99%)</SelectItem>
+                    <SelectItem value="DC">D.C. (up to 10.75%)</SelectItem>
+                    <SelectItem value="FL">Florida (No Income Tax)</SelectItem>
+                    <SelectItem value="HI">Hawaii (up to 11%)</SelectItem>
+                    <SelectItem value="MN">Minnesota (up to 9.85%)</SelectItem>
+                    <SelectItem value="NV">Nevada (No Income Tax)</SelectItem>
+                    <SelectItem value="NH">New Hampshire (No Income Tax)</SelectItem>
+                    <SelectItem value="NJ">New Jersey (up to 10.75%)</SelectItem>
+                    <SelectItem value="NY">New York (up to 10.9%)</SelectItem>
+                    <SelectItem value="NC">North Carolina (4.5% Flat)</SelectItem>
+                    <SelectItem value="OR">Oregon (up to 9.9%)</SelectItem>
+                    <SelectItem value="PA">Pennsylvania (3.07% Flat)</SelectItem>
+                    <SelectItem value="SD">South Dakota (No Income Tax)</SelectItem>
+                    <SelectItem value="TN">Tennessee (No Income Tax)</SelectItem>
+                    <SelectItem value="TX">Texas (No Income Tax)</SelectItem>
+                    <SelectItem value="VT">Vermont (up to 8.75%)</SelectItem>
+                    <SelectItem value="WA">Washington (No Wage Tax; CG Excise)</SelectItem>
+                    <SelectItem value="WY">Wyoming (No Income Tax)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
         {/* Charitable Giving */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
