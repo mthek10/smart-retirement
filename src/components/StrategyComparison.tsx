@@ -12,6 +12,7 @@ interface StrategyComparisonProps {
   autoMaxStrategy: string;
   survivorSmoothedMetrics: StrategyMetrics | null;
   currentStrategyName: string;
+  currentStrategyKey: string;
   showOptimization: boolean;
   
   survivorEnabled?: boolean;
@@ -33,17 +34,20 @@ export function StrategyComparison({
   autoMaxStrategy,
   survivorSmoothedMetrics,
   currentStrategyName,
+  currentStrategyKey,
   showOptimization,
   survivorEnabled = false,
 }: StrategyComparisonProps) {
 
   const autoMaxName = `Maximize Lifetime Wealth (${STRATEGY_LABEL[autoMaxStrategy] ?? autoMaxStrategy})`;
 
-  // Hide the "current" column when it duplicates baseline, optimized, or auto-max
-  const currentName = currentStrategyName.toLowerCase().trim();
-  const showCurrentColumn = currentName !== 'no conversions'
-    && currentName !== 'fill to 22%'
-    && currentName !== autoMaxName.toLowerCase().trim();
+  // Hide the "current" column when its underlying strategy duplicates baseline,
+  // optimized, or auto-max. Compare strategy keys, not display labels.
+  // 'maximize_after_tax' resolves to autoMaxStrategy in projections, so it duplicates auto-max.
+  const effectiveCurrentKey = currentStrategyKey === 'maximize_after_tax' ? autoMaxStrategy : currentStrategyKey;
+  const showCurrentColumn = effectiveCurrentKey !== 'none'
+    && effectiveCurrentKey !== 'fill_22'
+    && effectiveCurrentKey !== autoMaxStrategy;
   // Hide Baseline / Optimized columns when auto-max already represents them
   const showBaselineColumn = autoMaxStrategy !== 'none';
   const showOptimizedColumn = autoMaxStrategy !== 'fill_22';

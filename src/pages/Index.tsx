@@ -453,6 +453,8 @@ const Index = () => {
     if (strategy === 'fill_12') return 'Fill to 12%';
     if (strategy === 'fill_22') return 'Fill to 22%';
     if (strategy === 'fill_24') return 'Fill to 24%';
+    if (strategy === 'fill_32') return 'Fill to 32%';
+    if (strategy === 'maximize_after_tax') return 'Maximize Lifetime Wealth (Auto)';
     if (strategy === 'survivor_smooth') return 'Survivor Smoothing';
     if (strategy === 'optimize_consistency') return 'Optimize Consistency';
     if (strategy === 'custom') return 'Custom Amount';
@@ -833,6 +835,7 @@ const Index = () => {
               autoMaxStrategy={twoPassResults.autoMaxStrategy}
               survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
               currentStrategyName={currentStrategyName}
+              currentStrategyKey={taxSettings.rothConversionStrategy || 'none'}
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22' && taxSettings.rothConversionStrategy !== 'optimize_consistency'}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
             />

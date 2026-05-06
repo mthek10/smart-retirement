@@ -1,26 +1,34 @@
-## Issue
+1. Fix the root cause of the duplicate column
+- Pass the raw selected Roth strategy key into `StrategyComparison` (for example: `none`, `fill_22`, `maximize_after_tax`) instead of relying only on the display label.
+- In `Index.tsx`, also add the missing display label for `maximize_after_tax` so it no longer falls back to `Current`.
 
-In the Two-Pass Strategy Comparison table, the "Optimized - Fill to 22%" column and the starred "Maximize Lifetime Wealth" column show identical values whenever the auto-max optimizer also selects `fill_22`. Similarly, when the optimizer picks `none`, the "Baseline - No Conversion" column duplicates the auto-max column.
+2. Compare strategy identity, not column titles
+- Update the table visibility logic in `StrategyComparison.tsx` to determine whether the current column is redundant based on the effective strategy key, not the human-readable heading.
+- Hide the current column when it resolves to the same strategy as:
+  - Baseline (`none`)
+  - Optimized (`fill_22`)
+  - Auto-Max’s chosen strategy
+- This will correctly remove duplicates when:
+  - the user selected `maximize_after_tax` (current metrics already equal auto-max)
+  - the user selected `fill_12`, `fill_24`, or another bracket that auto-max also chose
 
-The "Current" column already has duplicate-detection logic (lines 43-48), but Baseline and Optimized do not.
+3. Keep labels accurate and aligned with the actual data
+- Ensure the visible column titles always match the strategy that produced the metrics.
+- Preserve the existing dynamic auto-max title, while making the current title reflect the true selected strategy instead of generic `Current`.
 
-## Fix
+4. Re-check table structure after column removal
+- Keep the dynamic column count / `colSpan` behavior already added.
+- Verify the Tax Efficiency and Longevity group headers still span the correct number of columns after the current column is hidden.
 
-In `src/components/StrategyComparison.tsx`, extend the column-hiding logic so that:
+Technical details
+- Likely issue found:
+  - `currentMetrics` can already equal `autoMaxMetrics` because `calculateProjections(...)` resolves `maximize_after_tax` into the optimizer’s chosen bracket.
+  - But `showCurrentColumn` currently compares display text (`currentStrategyName`) rather than strategy identity.
+  - `Index.tsx` currently does not map `maximize_after_tax`, so the label falls through to `Current`, which prevents duplicate detection.
+- Files to update:
+  - `src/pages/Index.tsx`
+  - `src/components/StrategyComparison.tsx`
 
-1. **Hide the "Optimized - Fill to 22%" column** when `autoMaxStrategy === 'fill_22'` (auto-max already represents it).
-2. **Hide the "Baseline - No Conversion" column** when `autoMaxStrategy === 'none'` (auto-max already represents it).
-3. Keep the existing logic that hides the "Current" column when it duplicates baseline / optimized / auto-max.
-
-### Implementation details
-
-- Add `showBaselineColumn` and `showOptimizedColumn` flags alongside `showCurrentColumn`.
-- Compute `colCount` / `colSpan` dynamically from the count of visible strategy columns + 1 (for the Metric label).
-- Wrap the Baseline `<th>` and each Baseline `<td>` cell in `{showBaselineColumn && ...}`.
-- Wrap the Optimized `<th>` and each Optimized `<td>` cell in `{showOptimizedColumn && ...}`.
-- Update the group-header rows (`Tax Efficiency`, `Longevity`) to use the dynamic `colSpan`.
-- The auto-max column always remains visible (it's the recommended strategy).
-
-The Survivor Tax Impact section below uses Baseline + Current + Survivor Smoothed and is unrelated — leave it alone.
-
-No changes to calculations, recommendations cards, or any other component.
+Expected result
+- The Two-Pass Strategy Comparison table will only show distinct strategies.
+- If the current strategy is effectively the same as auto-max, baseline, or fill-to-22, its duplicate column will disappear.
