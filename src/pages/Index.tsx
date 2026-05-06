@@ -456,8 +456,6 @@ const Index = () => {
     if (strategy === 'fill_32') return 'Fill to 32%';
     if (strategy === 'maximize_after_tax') return 'Maximize Lifetime Wealth (Auto)';
     if (strategy === 'survivor_smooth') return 'Survivor Smoothing';
-    if (strategy === 'optimize_consistency') return 'Optimize Consistency';
-    if (strategy === 'custom') return 'Custom Amount';
     return 'Current';
   }, [taxSettings.rothConversionStrategy]);
 
