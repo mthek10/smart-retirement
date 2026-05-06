@@ -434,24 +434,27 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
         {/* State Relocation Planning */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Label htmlFor="stateRelocationEnabled" className="text-sm font-medium">
-                Plan State Relocation
-              </Label>
-              <InfoTooltip text="Model moving to a different state at a specific age. This is an annual model: the target state's tax rules apply starting with the first projection year in which Spouse 1 is at or above the relocation age." />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="stateRelocationEnabled" className="text-base font-medium">
+                  Plan State Relocation
+                </Label>
+                <InfoTooltip text="Model moving to a different state at a specific age. This is an annual model: the target state's tax rules apply starting with the first projection year in which Spouse 1 is at or above the relocation age." />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Model a future move to a different state's tax regime
+              </p>
             </div>
-            <input
-              type="checkbox"
+            <Switch
               id="stateRelocationEnabled"
               checked={taxSettings.stateRelocation?.enabled || false}
-              onChange={(e) => {
+              onCheckedChange={(checked) => {
                 const current = taxSettings.stateRelocation || { enabled: false, targetState: 'FL', relocationAge: 65 };
                 onChange({
                   ...taxSettings,
-                  stateRelocation: { ...current, enabled: e.target.checked }
+                  stateRelocation: { ...current, enabled: checked }
                 });
               }}
-              className="h-4 w-4 rounded border-border"
             />
           </div>
 
