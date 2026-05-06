@@ -629,8 +629,10 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
           )}
         </div>
 
+        <Separator />
+
         {/* Life Events */}
-        <div className="pt-4 border-t">
+        <div>
           <LifeEventsEditor
             events={(taxSettings as any).lifeEvents || []}
             onChange={(events: LifeEvent[]) => onChange({ ...taxSettings, lifeEvents: events })}
@@ -642,7 +644,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
         {taxSettings.filingStatus === 'married' && (
           <>
             <Separator />
-            
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
