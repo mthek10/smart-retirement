@@ -531,12 +531,19 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
           )}
         </div>
 
+        <Separator />
+
         {/* Charitable Giving */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Label htmlFor="charitableEnabled" className="text-base font-medium">Charitable Giving</Label>
-              <InfoTooltip text="Model annual donations. Cash → itemized deduction. QCD (age 70½+) → excluded from AGI and counts toward RMD. Appreciated shares → skips capital gains and gives FMV deduction." />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="charitableEnabled" className="text-base font-medium">Charitable Giving</Label>
+                <InfoTooltip text="Model annual donations. Cash → itemized deduction. QCD (age 70½+) → excluded from AGI and counts toward RMD. Appreciated shares → skips capital gains and gives FMV deduction." />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Annual donations modeled as cash, QCD, or appreciated shares
+              </p>
             </div>
             <Switch
               id="charitableEnabled"
