@@ -204,9 +204,9 @@ export function StrategyComparison({
               <thead>
                 <tr className="border-b bg-muted/30">
                   <th className="text-left font-medium text-muted-foreground px-3 py-2 border-r">Metric</th>
-                  <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Baseline - No Conversion</th>
+                  {showBaselineColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Baseline - No Conversion</th>}
                   {showCurrentColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">{currentStrategyName}</th>}
-                  <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Optimized - Fill to 22%</th>
+                  {showOptimizedColumn && <th className="text-center font-medium text-muted-foreground px-3 py-2 border-r">Optimized - Fill to 22%</th>}
                   <th className="text-center font-medium text-primary px-3 py-2">⭐ {autoMaxName}</th>
                 </tr>
               </thead>
