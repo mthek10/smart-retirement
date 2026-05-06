@@ -141,7 +141,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
 
   const charitableEnabled = !!(taxSettings as any).charitableGiving?.enabled;
   const lifeEvents = (taxSettings as any).lifeEvents || [];
-  const hasAdvancedData = charitableEnabled || lifeEvents.length > 0 || survivorSettings.enabled;
+  const hasAdvancedData = charitableEnabled || lifeEvents.length > 0 || survivorSettings.enabled || !!taxSettings.stateRelocation?.enabled;
   const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedData);
 
   return (
