@@ -528,8 +528,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
               </p>
             </div>
           )}
-              </div>
-              </div>
+        </div>
 
         {/* Charitable Giving */}
         <div className="space-y-4">
