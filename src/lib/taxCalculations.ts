@@ -49,7 +49,7 @@ export function getRothConversionLimit(
   customAmount?: number
 ): number {
   if (strategy === 'none') return 0;
-  if (strategy === 'custom' && customAmount) return customAmount;
+  
 
   const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const brackets = federalTaxBrackets2024[filingStatus] || federalTaxBrackets2024.single;
