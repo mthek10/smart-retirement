@@ -44,8 +44,11 @@ export function StrategyComparison({
   const showCurrentColumn = currentName !== 'no conversions'
     && currentName !== 'fill to 22%'
     && currentName !== autoMaxName.toLowerCase().trim();
-  const colCount = showCurrentColumn ? 5 : 4;
-  const gridCols = showCurrentColumn ? 'grid-cols-5' : 'grid-cols-4';
+  // Hide Baseline / Optimized columns when auto-max already represents them
+  const showBaselineColumn = autoMaxStrategy !== 'none';
+  const showOptimizedColumn = autoMaxStrategy !== 'fill_22';
+  const visibleStrategyCols = (showBaselineColumn ? 1 : 0) + (showCurrentColumn ? 1 : 0) + (showOptimizedColumn ? 1 : 0) + 1;
+  const colCount = visibleStrategyCols + 1;
 
   // Calculate savings comparing baseline (no conversions) to optimized (fill-22)
   const taxSavings = baselineMetrics.lifetimeTotalTax - optimizedMetrics.lifetimeTotalTax;
