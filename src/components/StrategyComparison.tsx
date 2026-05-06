@@ -237,7 +237,7 @@ export function StrategyComparison({
                       )}
                       {(() => {
                         const isAfterTax = metric.label.includes('after taxes');
-                        const rowBg = isAfterTax ? 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30' : 'hover:bg-muted/10';
+                        const rowBg = isAfterTax ? 'bg-green-200 dark:bg-green-800/50 hover:bg-green-300 dark:hover:bg-green-800/60' : 'hover:bg-muted/10';
                         return (
                       <tr key={metric.label} className={`border-b last:border-b-0 ${rowBg}`}>
                         <td className="px-3 py-2 font-medium border-r">{metric.label}</td>
