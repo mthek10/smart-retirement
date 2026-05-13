@@ -51,6 +51,9 @@ interface SetupWizardProps {
   hasSavedDraft: boolean;
   onClearSavedDraft: () => void;
   projections?: import("@/hooks/useProjections").ProjectionRow[];
+  monteCarloResults?: import("@/hooks/useMonteCarloSimulation").MonteCarloResult;
+  monteCarloSettings?: import("@/hooks/useMonteCarloSimulation").MonteCarloSettings;
+  onMonteCarloSettingsChange?: (settings: import("@/hooks/useMonteCarloSimulation").MonteCarloSettings) => void;
 }
 
 export function SetupWizard({
