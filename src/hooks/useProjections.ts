@@ -1019,52 +1019,73 @@ export function calculateProjections(
       
       if (proposedConversion > 0 && isIRMAAAge) {
         const magiWithoutConversion = totalOrdinaryIncomePreConversion + capitalGains;
-        let irmaaWithoutConversion = 0;
-        if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-          irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
-        }
-        if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-          irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
-        }
-        
-        const magiWithConversion = totalOrdinaryIncomePreConversion + proposedConversion + capitalGains;
-        let irmaaWithConversion = 0;
-        if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-          irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
-        }
-        if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-          irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
-        }
-        
-        const irmaaIncrease = irmaaWithConversion - irmaaWithoutConversion;
-        const marginalRate = getMarginalTaxBracket(totalOrdinaryIncomePreConversion + proposedConversion, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
-        const conversionTaxCost = proposedConversion * marginalRate;
-        
-        if (irmaaIncrease > conversionTaxCost * 0.5) {
-          let optimalConversion = 0;
-          let step = proposedConversion / 10;
-          
-          for (let testConversion = step; testConversion <= proposedConversion; testConversion += step) {
-            const testMagi = totalOrdinaryIncomePreConversion + testConversion + capitalGains;
-            let testIrmaa = 0;
-            if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-              testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
-            }
-            if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-              testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
-            }
-            
-            const testIrmaaIncrease = testIrmaa - irmaaWithoutConversion;
-            const testTaxCost = testConversion * getMarginalTaxBracket(totalOrdinaryIncomePreConversion + testConversion, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
-            
-            if (testIrmaaIncrease <= testTaxCost * 0.5) {
-              optimalConversion = testConversion;
-            } else {
-              break;
-            }
+
+        if (taxSettings.neverTriggerIRMAA) {
+          // Hard-cap mode: never let conversions push MAGI across the next IRMAA tier.
+          const nextTierThreshold = getNextIRMAAThreshold(
+            magiWithoutConversion,
+            i,
+            taxSettings.inflationRate / 100,
+            effectiveFilingStatus
+          );
+          if (nextTierThreshold === null) {
+            // Already in the top tier; conversion can't make IRMAA worse.
+          } else if (magiWithoutConversion >= nextTierThreshold) {
+            // Already over the next tier purely from baseline income — don't add more.
+            proposedConversion = 0;
+          } else {
+            const headroom = Math.max(0, nextTierThreshold - magiWithoutConversion - 1);
+            proposedConversion = Math.min(proposedConversion, headroom);
           }
-          
-          proposedConversion = optimalConversion;
+        } else {
+          // Soft heuristic: shrink conversion if IRMAA increase exceeds 50% of conversion tax cost.
+          let irmaaWithoutConversion = 0;
+          if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+            irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+          }
+          if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+            irmaaWithoutConversion += calculateIRMAA(magiWithoutConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+          }
+
+          const magiWithConversion = totalOrdinaryIncomePreConversion + proposedConversion + capitalGains;
+          let irmaaWithConversion = 0;
+          if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+            irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+          }
+          if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+            irmaaWithConversion += calculateIRMAA(magiWithConversion, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+          }
+
+          const irmaaIncrease = irmaaWithConversion - irmaaWithoutConversion;
+          const marginalRate = getMarginalTaxBracket(totalOrdinaryIncomePreConversion + proposedConversion, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
+          const conversionTaxCost = proposedConversion * marginalRate;
+
+          if (irmaaIncrease > conversionTaxCost * 0.5) {
+            let optimalConversion = 0;
+            const step = proposedConversion / 10;
+
+            for (let testConversion = step; testConversion <= proposedConversion; testConversion += step) {
+              const testMagi = totalOrdinaryIncomePreConversion + testConversion + capitalGains;
+              let testIrmaa = 0;
+              if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+                testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+              }
+              if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+                testIrmaa += calculateIRMAA(testMagi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+              }
+
+              const testIrmaaIncrease = testIrmaa - irmaaWithoutConversion;
+              const testTaxCost = testConversion * getMarginalTaxBracket(totalOrdinaryIncomePreConversion + testConversion, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
+
+              if (testIrmaaIncrease <= testTaxCost * 0.5) {
+                optimalConversion = testConversion;
+              } else {
+                break;
+              }
+            }
+
+            proposedConversion = optimalConversion;
+          }
         }
       }
       
