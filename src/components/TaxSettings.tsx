@@ -12,7 +12,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
 import { LifeEventsEditor } from "@/components/LifeEventsEditor";
-import type { LifeEvent } from "@/hooks/useProjections";
+import { TaxLossHarvestingTracker } from "@/components/TaxLossHarvestingTracker";
+import type { LifeEvent, ProjectionRow } from "@/hooks/useProjections";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -35,6 +36,12 @@ interface TaxSettingsProps {
   };
   onChange: (settings: any) => void;
   totalPortfolio?: number;
+  projections?: ProjectionRow[];
+  accounts?: {
+    taxable: number;
+    taxableCostBasisPercent: number;
+    taxableReturn: number;
+  };
 }
 // Inline currency-formatted input with $ and commas
 function CurrencyInput({ id, value, onChange, max, placeholder }: {
