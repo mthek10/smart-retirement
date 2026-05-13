@@ -50,6 +50,7 @@ interface SetupWizardProps {
   saveStatus: SetupSaveStatus;
   hasSavedDraft: boolean;
   onClearSavedDraft: () => void;
+  projections?: import("@/hooks/useProjections").ProjectionRow[];
 }
 
 export function SetupWizard({
@@ -65,6 +66,7 @@ export function SetupWizard({
   saveStatus,
   hasSavedDraft,
   onClearSavedDraft,
+  projections,
 }: SetupWizardProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,7 +177,7 @@ export function SetupWizard({
       case "tax": {
         const isMarried = taxSettings.filingStatus === 'married';
         const totalPortfolio = accounts.spouse1Traditional + (isMarried ? accounts.spouse2Traditional : 0) + accounts.roth + accounts.taxable;
-        return <TaxSettings taxSettings={taxSettings} onChange={onTaxSettingsChange} totalPortfolio={totalPortfolio} />;
+        return <TaxSettings taxSettings={taxSettings} onChange={onTaxSettingsChange} totalPortfolio={totalPortfolio} projections={projections} accounts={accounts} />;
       }
       case "aca":
         return (
