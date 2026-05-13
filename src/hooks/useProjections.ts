@@ -136,6 +136,7 @@ export interface TaxSettings {
   rothConversionCustom: number;
   rothConversionTaxSource?: "brokerage" | "conversion";
   preSurvivorStrategy?: string;
+  neverTriggerIRMAA?: boolean;
   acaSettings: ACASettings;
   spouse1Employment: EmploymentSettings;
   spouse2Employment: EmploymentSettings;
