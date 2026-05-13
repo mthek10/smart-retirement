@@ -9,7 +9,7 @@ import { BalanceByAgeChart } from "@/components/BalanceByAgeChart";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
-import { MonteCarloResults } from "@/components/MonteCarloResults";
+import { IncomeAlertsBanner } from "@/components/IncomeAlertsBanner";
 import { IncomeAlertsBanner } from "@/components/IncomeAlertsBanner";
 import { BracketFillGauge } from "@/components/BracketFillGauge";
 import { ActionItems } from "@/components/ActionItems";
