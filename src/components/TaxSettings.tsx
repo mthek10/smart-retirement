@@ -13,7 +13,9 @@ import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
 import { LifeEventsEditor } from "@/components/LifeEventsEditor";
 import { TaxLossHarvestingTracker } from "@/components/TaxLossHarvestingTracker";
+import { MonteCarloResults } from "@/components/MonteCarloResults";
 import type { LifeEvent, ProjectionRow } from "@/hooks/useProjections";
+import type { MonteCarloResult, MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -42,6 +44,9 @@ interface TaxSettingsProps {
     taxableCostBasisPercent: number;
     taxableReturn: number;
   };
+  monteCarloResults?: MonteCarloResult;
+  monteCarloSettings?: MonteCarloSettings;
+  onMonteCarloSettingsChange?: (settings: MonteCarloSettings) => void;
 }
 // Inline currency-formatted input with $ and commas
 function CurrencyInput({ id, value, onChange, max, placeholder }: {
@@ -97,7 +102,7 @@ function CurrencyInput({ id, value, onChange, max, placeholder }: {
   );
 }
 
-export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections, accounts }: TaxSettingsProps) {
+export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections, accounts, monteCarloResults, monteCarloSettings, onMonteCarloSettingsChange }: TaxSettingsProps) {
   const handleChange = (field: string, value: string | number | boolean) => {
     // Auto-enable survivor scenario when survivor_smooth strategy is selected
     if (field === 'rothConversionStrategy' && value === 'survivor_smooth') {
@@ -759,6 +764,17 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
               taxableReturn={accounts.taxableReturn}
               filingStatus={taxSettings.filingStatus}
               spouse1Age={taxSettings.spouse1Age}
+            />
+          </>
+        )}
+
+        {monteCarloResults && monteCarloSettings && onMonteCarloSettingsChange && (
+          <>
+            <Separator />
+            <MonteCarloResults
+              results={monteCarloResults}
+              settings={monteCarloSettings}
+              onSettingsChange={onMonteCarloSettingsChange}
             />
           </>
         )}

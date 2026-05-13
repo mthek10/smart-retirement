@@ -9,7 +9,6 @@ import { BalanceByAgeChart } from "@/components/BalanceByAgeChart";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
-import { MonteCarloResults } from "@/components/MonteCarloResults";
 import { IncomeAlertsBanner } from "@/components/IncomeAlertsBanner";
 import { BracketFillGauge } from "@/components/BracketFillGauge";
 import { ActionItems } from "@/components/ActionItems";
@@ -727,6 +726,9 @@ const Index = () => {
               hasSavedDraft={hasSavedDraft}
               onClearSavedDraft={handleForgetBrowserSave}
               projections={projections}
+              monteCarloResults={monteCarloResults}
+              monteCarloSettings={monteCarloSettings}
+              onMonteCarloSettingsChange={setMonteCarloSettings}
             />
           </TabsContent>
 
@@ -837,11 +839,6 @@ const Index = () => {
               currentStrategyKey={taxSettings.rothConversionStrategy || 'none'}
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22'}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
-            />
-            <MonteCarloResults
-              results={monteCarloResults}
-              settings={monteCarloSettings}
-              onSettingsChange={setMonteCarloSettings}
             />
             {/* RMD Year-by-Year & Tax Strategies */}
             <RMDPlanner
