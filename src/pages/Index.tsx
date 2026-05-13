@@ -727,6 +727,9 @@ const Index = () => {
               hasSavedDraft={hasSavedDraft}
               onClearSavedDraft={handleForgetBrowserSave}
               projections={projections}
+              monteCarloResults={monteCarloResults}
+              monteCarloSettings={monteCarloSettings}
+              onMonteCarloSettingsChange={setMonteCarloSettings}
             />
           </TabsContent>
 
@@ -837,11 +840,6 @@ const Index = () => {
               currentStrategyKey={taxSettings.rothConversionStrategy || 'none'}
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22'}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
-            />
-            <MonteCarloResults
-              results={monteCarloResults}
-              settings={monteCarloSettings}
-              onSettingsChange={setMonteCarloSettings}
             />
             {/* RMD Year-by-Year & Tax Strategies */}
             <RMDPlanner
