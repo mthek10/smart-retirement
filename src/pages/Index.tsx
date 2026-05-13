@@ -68,6 +68,7 @@ const DEFAULT_TAX_SETTINGS = {
   rothConversionStrategy: "none",
   rothConversionCustom: 94300,
   rothConversionTaxSource: "brokerage" as "brokerage" | "conversion",
+  neverTriggerIRMAA: false,
   acaSettings: {
     enabled: true,
     householdSize: 2,

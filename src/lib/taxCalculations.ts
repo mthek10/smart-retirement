@@ -320,6 +320,30 @@ export function calculateIRMAA(
   return bracket ? bracket.premium * 12 * inflationMultiplier : 0;
 }
 
+/**
+ * Returns the inflation-adjusted MAGI threshold of the next IRMAA tier above the
+ * given MAGI, or null if MAGI is already in the top tier.
+ */
+export function getNextIRMAAThreshold(
+  magi: number,
+  yearIndex: number = 0,
+  inflationRate: number = 0,
+  filingStatus: string = 'single'
+): number | null {
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
+  const brackets = filingStatus === 'married'
+    ? irmaaBracketsMarried2024
+    : irmaaBracketsSingle2024;
+
+  for (let i = 0; i < brackets.length; i++) {
+    const inflatedMin = brackets[i].min * inflationMultiplier;
+    if (magi < inflatedMin) {
+      return inflatedMin;
+    }
+  }
+  return null;
+}
+
 // Calculate Medicare Part B and D base premiums (applies per person age 65+)
 export function calculateMedicarePremiums(
   yearIndex: number = 0,

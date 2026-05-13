@@ -25,6 +25,7 @@ interface TaxSettingsProps {
     inflationRate: number;
     rothConversionStrategy: string;
     rothConversionCustom: number;
+    neverTriggerIRMAA?: boolean;
     
     stateRelocation?: {
       enabled: boolean;
@@ -384,6 +385,27 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio }: TaxSettin
                   ? 'Taxes are withheld from the conversion — only the after-tax portion lands in Roth.'
                   : 'Full conversion goes to Roth. Taxes increase your withdrawal target for the year.'}
               </p>
+            </div>
+          )}
+
+          {taxSettings.rothConversionStrategy !== 'none' && (
+            <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="neverTriggerIRMAA" className="cursor-pointer">
+                    Never trigger IRMAA surcharges
+                  </Label>
+                  <InfoTooltip text="When on, Roth conversions are capped so MAGI stays below the next Medicare IRMAA tier during ages 65+. Note: required withdrawals, Social Security, and RMDs may still cross IRMAA tiers if your spending target requires it." />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Hard-cap conversions at the next IRMAA tier threshold during Medicare years.
+                </p>
+              </div>
+              <Switch
+                id="neverTriggerIRMAA"
+                checked={!!taxSettings.neverTriggerIRMAA}
+                onCheckedChange={(checked) => handleChange('neverTriggerIRMAA', checked)}
+              />
             </div>
           )}
         </div>
