@@ -10,7 +10,6 @@ import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
 import { IncomeAlertsBanner } from "@/components/IncomeAlertsBanner";
-import { IncomeAlertsBanner } from "@/components/IncomeAlertsBanner";
 import { BracketFillGauge } from "@/components/BracketFillGauge";
 import { ActionItems } from "@/components/ActionItems";
 import { ScenarioManager } from "@/components/ScenarioManager";
