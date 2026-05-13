@@ -48,11 +48,6 @@ interface TaxSettingsProps {
   monteCarloSettings?: MonteCarloSettings;
   onMonteCarloSettingsChange?: (settings: MonteCarloSettings) => void;
 }
-    taxable: number;
-    taxableCostBasisPercent: number;
-    taxableReturn: number;
-  };
-}
 // Inline currency-formatted input with $ and commas
 function CurrencyInput({ id, value, onChange, max, placeholder }: {
   id: string;
