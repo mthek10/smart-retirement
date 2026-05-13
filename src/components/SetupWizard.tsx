@@ -70,6 +70,9 @@ export function SetupWizard({
   hasSavedDraft,
   onClearSavedDraft,
   projections,
+  monteCarloResults,
+  monteCarloSettings,
+  onMonteCarloSettingsChange,
 }: SetupWizardProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
