@@ -16,7 +16,6 @@ import { ActionItems } from "@/components/ActionItems";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { RMDPlanner } from "@/components/RMDPlanner";
-import { TaxLossHarvestingTracker } from "@/components/TaxLossHarvestingTracker";
 import { useTwoPassProjections, findDepletionAges } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
@@ -727,6 +726,7 @@ const Index = () => {
               saveStatus={saveStatus}
               hasSavedDraft={hasSavedDraft}
               onClearSavedDraft={handleForgetBrowserSave}
+              projections={projections}
             />
           </TabsContent>
 
@@ -858,14 +858,6 @@ const Index = () => {
               visibleTabs={['strategies']}
             />
 
-            <TaxLossHarvestingTracker
-              projections={projections}
-              taxableBalance={committedAccounts.taxable}
-              costBasisPercent={committedAccounts.taxableCostBasisPercent}
-              taxableReturn={committedAccounts.taxableReturn}
-              filingStatus={committedTaxSettings.filingStatus}
-              spouse1Age={committedTaxSettings.spouse1Age}
-            />
 
             <div className="flex justify-end pt-2">
               <Button onClick={() => { setActiveTab("charts"); window.scrollTo({ top: 0 }); }} className="px-8">
