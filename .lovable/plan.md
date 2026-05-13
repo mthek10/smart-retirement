@@ -1,34 +1,69 @@
-1. Fix the root cause of the duplicate column
-- Pass the raw selected Roth strategy key into `StrategyComparison` (for example: `none`, `fill_22`, `maximize_after_tax`) instead of relying only on the display label.
-- In `Index.tsx`, also add the missing display label for `maximize_after_tax` so it no longer falls back to `Current`.
+# Add "Never Trigger IRMAA" Mode
 
-2. Compare strategy identity, not column titles
-- Update the table visibility logic in `StrategyComparison.tsx` to determine whether the current column is redundant based on the effective strategy key, not the human-readable heading.
-- Hide the current column when it resolves to the same strategy as:
-  - Baseline (`none`)
-  - Optimized (`fill_22`)
-  - Auto-Max’s chosen strategy
-- This will correctly remove duplicates when:
-  - the user selected `maximize_after_tax` (current metrics already equal auto-max)
-  - the user selected `fill_12`, `fill_24`, or another bracket that auto-max also chose
+## Goal
 
-3. Keep labels accurate and aligned with the actual data
-- Ensure the visible column titles always match the strategy that produced the metrics.
-- Preserve the existing dynamic auto-max title, while making the current title reflect the true selected strategy instead of generic `Current`.
+Add a user-controlled toggle that, when enabled, ensures the plan's Roth conversions never push MAGI across the next IRMAA tier during any Medicare-eligible year (age 65–100). Today the model uses a soft heuristic ("IRMAA increase ≤ 50% of conversion tax cost") — this adds an explicit hard cap as an opt-in mode.
 
-4. Re-check table structure after column removal
-- Keep the dynamic column count / `colSpan` behavior already added.
-- Verify the Tax Efficiency and Longevity group headers still span the correct number of columns after the current column is hidden.
+## Scope
 
-Technical details
-- Likely issue found:
-  - `currentMetrics` can already equal `autoMaxMetrics` because `calculateProjections(...)` resolves `maximize_after_tax` into the optimizer’s chosen bracket.
-  - But `showCurrentColumn` currently compares display text (`currentStrategyName`) rather than strategy identity.
-  - `Index.tsx` currently does not map `maximize_after_tax`, so the label falls through to `Current`, which prevents duplicate detection.
-- Files to update:
-  - `src/pages/Index.tsx`
-  - `src/components/StrategyComparison.tsx`
+This applies to **Roth conversion sizing only**. Required withdrawals, RMDs, SS, pensions, and life-event income can still cross IRMAA tiers because they aren't discretionary — the plan can't refuse to fund the user's spending target. When baseline MAGI already exceeds the next tier with no conversion, the conversion is set to 0 (no extra IRMAA caused by conversions).
 
-Expected result
-- The Two-Pass Strategy Comparison table will only show distinct strategies.
-- If the current strategy is effectively the same as auto-max, baseline, or fill-to-22, its duplicate column will disappear.
+## UX
+
+In **Tax Settings → Roth Conversion Strategy** section, add a new toggle below the strategy dropdown:
+
+- **Label:** "Never trigger IRMAA surcharges"
+- **Help tooltip:** "When on, Roth conversions are capped so MAGI stays below the next Medicare IRMAA tier during ages 65+. Note: required withdrawals, Social Security, and RMDs may still cross IRMAA tiers if your spending target requires it."
+- **Default:** off (preserves current behavior).
+- Disabled/grayed when strategy is `none`.
+
+## Technical Changes
+
+### 1. State
+
+`taxSettings` shape (defined in `src/pages/Index.tsx` and consumed by `TaxSettings.tsx`, `useProjections.ts`, scenario save/load, CSV export/import):
+
+- Add `neverTriggerIRMAA: boolean` (default `false`).
+- Include in default tax settings, `ScenarioManager` snapshots, and `exportUtils` setup CSV serialization/parsing.
+
+### 2. UI — `src/components/TaxSettings.tsx`
+
+In the Roth Conversion section, after the strategy `<Select>`, add a `<Switch>` row bound to `taxSettings.neverTriggerIRMAA`. Disable when `rothConversionStrategy === 'none'`.
+
+### 3. Conversion sizing — `src/hooks/useProjections.ts` (~lines 1014–1067)
+
+Replace the existing soft heuristic block with branching logic:
+
+- Compute `isIRMAAAge` as today.
+- If `isIRMAAAge && proposedConversion > 0`:
+  - If `taxSettings.neverTriggerIRMAA === true` → **hard cap mode**:
+    - Determine the next IRMAA tier threshold above `magiWithoutConversion` using `irmaaBracketsMarried2024` / `irmaaBracketsSingle2024` (inflation-adjusted by `yearIndex` and `inflationRate`), based on `effectiveFilingStatus`.
+    - If `magiWithoutConversion >= nextTierThreshold` → `proposedConversion = 0` (already over a tier; conversion would only add more).
+    - Else → `headroom = nextTierThreshold - magiWithoutConversion - 1` (subtract $1 for safety); `proposedConversion = min(proposedConversion, max(0, headroom))`.
+  - Else → keep existing soft 50% heuristic block unchanged.
+- Helper: extract a small `getNextIRMAAThreshold(magi, yearIndex, inflationRate, filingStatus)` function in `src/lib/taxCalculations.ts` (mirrors logic in `getIRMAAProximity` in `incomeAlerts.ts`) and reuse it.
+
+### 4. Tests — `src/hooks/useProjections.test.ts`
+
+Add cases:
+
+- With `neverTriggerIRMAA: true` and a scenario where the unconstrained conversion would cross the first IRMAA tier, assert MAGI stays below that threshold every year age 65+.
+- With `neverTriggerIRMAA: false`, assert behavior unchanged from current snapshot.
+- Single-filer variant uses single brackets.
+
+### 5. Persistence
+
+- `src/lib/exportUtils.ts`: add `neverTriggerIRMAA` to setup CSV export and parser (default `false` when missing).
+- `src/hooks/useScenarios.ts` / `src/components/ScenarioManager.tsx`: include the flag in saved scenarios (defaulting to `false` for older saved scenarios).
+
+## Out of Scope
+
+- Throttling baseline withdrawals or SS timing to avoid IRMAA (would conflict with the user's take-home target).
+- A "soft cushion" mode (e.g., stay $X below next tier) — can be added later if requested.
+- Real-world 2-year MAGI lookback nuance — keeps current same-year MAGI approximation.
+
+## Verification
+
+1. Enable mode in a scenario with conversions normally crossing the $206k (married) tier at age 66 → conversions shrink so MAGI lands just under $206k.
+2. Disable mode → projections match prior snapshot.
+3. Single filer with high baseline income at 70 already over Tier 1 → conversion = 0 in that year when mode on.
