@@ -435,7 +435,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
               <Settings2 className="h-4 w-4 text-muted-foreground" />
               <div>
                 <div className="text-base font-medium">Advanced Options</div>
-                <div className="text-xs text-muted-foreground">Charitable giving, life events, survivor scenario</div>
+                <div className="text-xs text-muted-foreground">Charitable giving, life events, survivor scenario, tax-loss harvesting</div>
               </div>
             </div>
             <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
@@ -746,6 +746,20 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
                 </div>
               )}
             </div>
+          </>
+        )}
+
+        {projections && projections.length > 0 && accounts && (
+          <>
+            <Separator />
+            <TaxLossHarvestingTracker
+              projections={projections}
+              taxableBalance={accounts.taxable}
+              costBasisPercent={accounts.taxableCostBasisPercent}
+              taxableReturn={accounts.taxableReturn}
+              filingStatus={taxSettings.filingStatus}
+              spouse1Age={taxSettings.spouse1Age}
+            />
           </>
         )}
           </CollapsibleContent>

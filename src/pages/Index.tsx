@@ -858,14 +858,6 @@ const Index = () => {
               visibleTabs={['strategies']}
             />
 
-            <TaxLossHarvestingTracker
-              projections={projections}
-              taxableBalance={committedAccounts.taxable}
-              costBasisPercent={committedAccounts.taxableCostBasisPercent}
-              taxableReturn={committedAccounts.taxableReturn}
-              filingStatus={committedTaxSettings.filingStatus}
-              spouse1Age={committedTaxSettings.spouse1Age}
-            />
 
             <div className="flex justify-end pt-2">
               <Button onClick={() => { setActiveTab("charts"); window.scrollTo({ top: 0 }); }} className="px-8">
