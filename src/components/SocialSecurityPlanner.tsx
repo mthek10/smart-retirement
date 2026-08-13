@@ -12,18 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import { SSBreakevenAnalysis } from "@/components/SSBreakevenAnalysis";
 
 interface SocialSecurityPlannerProps {
-  ssData: {
-    spouse1: {
-      estimatedBenefit: number;
-      claimAge: number;
-      lifeExpectancy: number;
-    };
-    spouse2: {
-      estimatedBenefit: number;
-      claimAge: number;
-      lifeExpectancy: number;
-    };
-  };
+  ssData: SSData;
   onChange: (data: any) => void;
   filingStatus: string;
   spouse1Age: number;

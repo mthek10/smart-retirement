@@ -37,10 +37,7 @@ interface SetupWizardProps {
     taxableCostBasisPercent: number;
   };
   onAccountsChange: (accounts: SetupWizardProps["accounts"]) => void;
-  ssData: {
-    spouse1: { estimatedBenefit: number; claimAge: number; lifeExpectancy: number };
-    spouse2: { estimatedBenefit: number; claimAge: number; lifeExpectancy: number };
-  };
+  ssData: SSData;
   onSSDataChange: (ssData: SetupWizardProps["ssData"]) => void;
   taxSettings: any;
   onTaxSettingsChange: (settings: any) => void;
