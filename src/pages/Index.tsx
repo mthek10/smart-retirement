@@ -118,7 +118,7 @@ const DEFAULT_TAX_SETTINGS = {
 };
 
 type AccountsState = typeof DEFAULT_ACCOUNTS;
-type SSDataState = typeof DEFAULT_SS_DATA;
+type SSDataState = SSData;
 type TaxSettingsState = typeof DEFAULT_TAX_SETTINGS;
 
 interface SetupDraft {
