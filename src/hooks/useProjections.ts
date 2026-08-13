@@ -560,23 +560,23 @@ export function calculateProjections(
     const spouse1FRA = calculateFullRetirementAge(taxSettings.spouse1Age);
     const spouse2FRA = calculateFullRetirementAge(taxSettings.spouse2Age);
     
-    const ss1Base = spouse1Alive && spouse1CurrentAge >= ssData.spouse1.claimAge && spouse1CurrentAge <= 100
-      ? calculateSocialSecurityBenefit(
-          ssData.spouse1.estimatedBenefit, 
-          ssData.spouse1.claimAge, 
-          spouse1FRA
-        ) * 12 * spouse1ColaMultiplier
+    const ss1Monthly = spouse1AlreadyClaiming
+      ? ssData.spouse1.estimatedBenefit
+      : calculateSocialSecurityBenefit(ssData.spouse1.estimatedBenefit, ssData.spouse1.claimAge, spouse1FRA);
+
+    const ss2Monthly = spouse2AlreadyClaiming
+      ? ssData.spouse2.estimatedBenefit
+      : calculateSocialSecurityBenefit(ssData.spouse2.estimatedBenefit, ssData.spouse2.claimAge, spouse2FRA);
+
+    const ss1Base = spouse1Alive && spouse1CurrentAge >= spouse1EffectiveClaimAge && spouse1CurrentAge <= 100
+      ? ss1Monthly * 12 * spouse1ColaMultiplier
       : 0;
     
     const ss2Base = taxSettings.filingStatus === 'married' 
       && spouse2Alive
-      && spouse2CurrentAge >= ssData.spouse2.claimAge 
+      && spouse2CurrentAge >= spouse2EffectiveClaimAge 
       && spouse2CurrentAge <= 100
-      ? calculateSocialSecurityBenefit(
-          ssData.spouse2.estimatedBenefit, 
-          ssData.spouse2.claimAge, 
-          spouse2FRA
-        ) * 12 * spouse2ColaMultiplier
+      ? ss2Monthly * 12 * spouse2ColaMultiplier
       : 0;
     
     if (spouse1Alive && ss1Base > 0) spouse1SSAtDeath = ss1Base;
