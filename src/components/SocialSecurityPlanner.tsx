@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Label } from "@/components/ui/label";
@@ -30,8 +30,27 @@ interface SocialSecurityPlannerProps {
   spouse2Age: number;
 }
 
+const getMinClaimAge = (currentAge: number) => Math.min(Math.max(62, Math.floor(currentAge || 62)), 70);
+
 export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1Age, spouse2Age }: SocialSecurityPlannerProps) {
   const [openBreakeven, setOpenBreakeven] = useState<'spouse1' | 'spouse2' | null>(null);
+  const isSingle = filingStatus === 'single' || filingStatus === 'hoh';
+
+  // Claiming age can never be in the past: clamp up to the current age (max 70)
+  useEffect(() => {
+    const min1 = getMinClaimAge(spouse1Age);
+    const min2 = getMinClaimAge(spouse2Age);
+    const needs1 = ssData.spouse1.claimAge < min1;
+    const needs2 = !isSingle && ssData.spouse2.claimAge < min2;
+    if (!needs1 && !needs2) return;
+
+    onChange({
+      ...ssData,
+      spouse1: needs1 ? { ...ssData.spouse1, claimAge: min1 } : ssData.spouse1,
+      spouse2: needs2 ? { ...ssData.spouse2, claimAge: min2 } : ssData.spouse2,
+    });
+  }, [ssData, onChange, spouse1Age, spouse2Age, isSingle]);
+
 
   const handleChange = (spouse: 'spouse1' | 'spouse2', field: string, value: number) => {
     onChange({
@@ -55,6 +74,8 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
     const isDelayed = data.claimAge > fullRetirementAge;
     const isEarly = data.claimAge < fullRetirementAge;
     const isBreakevenOpen = openBreakeven === spouse;
+    const minClaimAge = getMinClaimAge(currentAge);
+    const claimAgeOptions = Array.from({ length: 9 }, (_, i) => 62 + i).filter((age) => age >= minClaimAge);
 
     return (
       <div className="space-y-4">
@@ -80,18 +101,23 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
         <div className="space-y-2">
           <Label>Claiming Age</Label>
           <Select
-            value={String(data.claimAge)}
+            value={String(Math.max(data.claimAge, minClaimAge))}
             onValueChange={(value) => handleChange(spouse, 'claimAge', parseInt(value))}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select claiming age" />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 9 }, (_, i) => 62 + i).map((age) => (
+              {claimAgeOptions.map((age) => (
                 <SelectItem key={age} value={String(age)}>{age}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {minClaimAge > 62 && (
+            <p className="text-xs text-muted-foreground">
+              Ages before {minClaimAge} aren't selectable — claiming can't start in the past.
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
