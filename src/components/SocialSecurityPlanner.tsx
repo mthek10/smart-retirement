@@ -130,23 +130,29 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
 
         <div className="p-4 bg-accent rounded-lg space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Adjusted Monthly Benefit</span>
+            <span className="text-sm font-medium">{alreadyClaiming ? 'Monthly Benefit In Payment' : 'Adjusted Monthly Benefit'}</span>
             <span className="text-2xl font-bold text-primary">
-              {formatCurrency(actualBenefit)}
+              {formatCurrency(effectiveBenefit)}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Annual Benefit</span>
             <span className="text-xl font-semibold">
-              {formatCurrency(actualBenefit * 12)}
+              {formatCurrency(effectiveBenefit * 12)}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className={`h-4 w-4 ${benefitChange >= 0 ? 'text-success' : 'text-destructive'}`} />
-            <span className={benefitChange >= 0 ? 'text-success' : 'text-destructive'}>
-              {benefitChange >= 0 ? '+' : ''}{benefitChange.toFixed(1)}% vs. Full Retirement Age
-            </span>
-          </div>
+          {alreadyClaiming ? (
+            <p className="text-sm text-muted-foreground">
+              Used as entered and grown by the cost-of-living assumption from today forward.
+            </p>
+          ) : (
+            <div className="flex items-center gap-2 text-sm">
+              <TrendingUp className={`h-4 w-4 ${benefitChange >= 0 ? 'text-success' : 'text-destructive'}`} />
+              <span className={benefitChange >= 0 ? 'text-success' : 'text-destructive'}>
+                {benefitChange >= 0 ? '+' : ''}{benefitChange.toFixed(1)}% vs. Full Retirement Age
+              </span>
+            </div>
+          )}
         </div>
 
         {!alreadyClaiming && isEarly && (
