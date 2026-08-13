@@ -10,20 +10,11 @@ import { Info, TrendingUp, ChevronDown, ChevronUp, Calculator } from "lucide-rea
 import { calculateSocialSecurityBenefit, calculateFullRetirementAge } from "@/lib/taxCalculations";
 import { formatCurrency } from "@/lib/utils";
 import { SSBreakevenAnalysis } from "@/components/SSBreakevenAnalysis";
+import { Switch } from "@/components/ui/switch";
+import type { SSData } from "@/hooks/useProjections";
 
 interface SocialSecurityPlannerProps {
-  ssData: {
-    spouse1: {
-      estimatedBenefit: number;
-      claimAge: number;
-      lifeExpectancy: number;
-    };
-    spouse2: {
-      estimatedBenefit: number;
-      claimAge: number;
-      lifeExpectancy: number;
-    };
-  };
+  ssData: SSData;
   onChange: (data: any) => void;
   filingStatus: string;
   spouse1Age: number;
@@ -36,12 +27,13 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
   const [openBreakeven, setOpenBreakeven] = useState<'spouse1' | 'spouse2' | null>(null);
   const isSingle = filingStatus === 'single' || filingStatus === 'hoh';
 
-  // Claiming age can never be in the past: clamp up to the current age (max 70)
+  // Claiming age can never be in the past: clamp up to the current age (max 70).
+  // Skipped for people already receiving benefits — their claim age is historical.
   useEffect(() => {
     const min1 = getMinClaimAge(spouse1Age);
     const min2 = getMinClaimAge(spouse2Age);
-    const needs1 = ssData.spouse1.claimAge < min1;
-    const needs2 = !isSingle && ssData.spouse2.claimAge < min2;
+    const needs1 = !ssData.spouse1.alreadyClaiming && ssData.spouse1.claimAge < min1;
+    const needs2 = !isSingle && !ssData.spouse2.alreadyClaiming && ssData.spouse2.claimAge < min2;
     if (!needs1 && !needs2) return;
 
     onChange({
@@ -62,6 +54,18 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
     });
   };
 
+  const handleToggleClaiming = (spouse: 'spouse1' | 'spouse2', checked: boolean, maxClaimedAtAge: number) => {
+    const current = ssData[spouse];
+    onChange({
+      ...ssData,
+      [spouse]: {
+        ...current,
+        alreadyClaiming: checked,
+        claimedAtAge: Math.min(Math.max(current.claimedAtAge ?? current.claimAge, 62), maxClaimedAtAge),
+      },
+    });
+  };
+
   const renderSpouseSection = (spouse: 'spouse1' | 'spouse2', title: string, currentAge: number) => {
     const data = ssData[spouse];
     const fullRetirementAge = calculateFullRetirementAge(currentAge);
@@ -76,14 +80,40 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
     const isBreakevenOpen = openBreakeven === spouse;
     const minClaimAge = getMinClaimAge(currentAge);
     const claimAgeOptions = Array.from({ length: 9 }, (_, i) => 62 + i).filter((age) => age >= minClaimAge);
+    const canAlreadyClaim = currentAge >= 62;
+    const alreadyClaiming = canAlreadyClaim && data.alreadyClaiming === true;
+    const effectiveBenefit = alreadyClaiming ? data.estimatedBenefit : actualBenefit;
+    const maxClaimedAtAge = Math.min(Math.floor(currentAge || 62), 70);
+    const claimedAtOptions = Array.from({ length: 9 }, (_, i) => 62 + i).filter((age) => age <= maxClaimedAtAge);
+    const claimedAtAge = Math.min(Math.max(data.claimedAtAge ?? Math.min(data.claimAge, maxClaimedAtAge), 62), maxClaimedAtAge);
 
     return (
       <div className="space-y-4">
         <h3 className="font-semibold text-lg">{title}</h3>
+
+        {canAlreadyClaim && (
+          <div className="flex items-center justify-between gap-4 p-3 rounded-lg border border-l-2 border-l-primary bg-muted/30">
+            <div>
+              <Label htmlFor={`${spouse}-alreadyClaiming`} className="text-base font-medium">
+                Already receiving Social Security
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Enter the actual check being received today instead of a future claiming estimate
+              </p>
+            </div>
+            <Switch
+              id={`${spouse}-alreadyClaiming`}
+              checked={alreadyClaiming}
+              onCheckedChange={(checked) => handleToggleClaiming(spouse, checked, maxClaimedAtAge)}
+            />
+          </div>
+        )}
         
         <div className="space-y-2">
           <Label htmlFor={`${spouse}-estimatedBenefit`}>
-            Estimated Monthly Benefit at Full Retirement Age (age {fullRetirementAge === Math.floor(fullRetirementAge) ? fullRetirementAge : `${Math.floor(fullRetirementAge)} yrs ${Math.round((fullRetirementAge % 1) * 12)} mo`})
+            {alreadyClaiming
+              ? 'Current Monthly Benefit (actual amount received)'
+              : `Estimated Monthly Benefit at Full Retirement Age (age ${fullRetirementAge === Math.floor(fullRetirementAge) ? fullRetirementAge : `${Math.floor(fullRetirementAge)} yrs ${Math.round((fullRetirementAge % 1) * 12)} mo`})`}
           </Label>
           <DebouncedInput
             id={`${spouse}-estimatedBenefit`}
@@ -98,27 +128,49 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
           </p>
         </div>
 
-        <div className="space-y-2">
-          <Label>Claiming Age</Label>
-          <Select
-            value={String(Math.max(data.claimAge, minClaimAge))}
-            onValueChange={(value) => handleChange(spouse, 'claimAge', parseInt(value))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select claiming age" />
-            </SelectTrigger>
-            <SelectContent>
-              {claimAgeOptions.map((age) => (
-                <SelectItem key={age} value={String(age)}>{age}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {minClaimAge > 62 && (
+        {alreadyClaiming ? (
+          <div className="space-y-2">
+            <Label>Age You Started Claiming</Label>
+            <Select
+              value={String(claimedAtAge)}
+              onValueChange={(value) => handleChange(spouse, 'claimedAtAge', parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select the age you claimed" />
+              </SelectTrigger>
+              <SelectContent>
+                {claimedAtOptions.map((age) => (
+                  <SelectItem key={age} value={String(age)}>{age}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
-              Ages before {minClaimAge} aren't selectable — claiming can't start in the past.
+              Informational only — the benefit amount entered above is used exactly as given.
             </p>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Claiming Age</Label>
+            <Select
+              value={String(Math.max(data.claimAge, minClaimAge))}
+              onValueChange={(value) => handleChange(spouse, 'claimAge', parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select claiming age" />
+              </SelectTrigger>
+              <SelectContent>
+                {claimAgeOptions.map((age) => (
+                  <SelectItem key={age} value={String(age)}>{age}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {minClaimAge > 62 && (
+              <p className="text-xs text-muted-foreground">
+                Ages before {minClaimAge} aren't selectable — claiming can't start in the past.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label>Life Expectancy</Label>
@@ -139,26 +191,32 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
 
         <div className="p-4 bg-accent rounded-lg space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Adjusted Monthly Benefit</span>
+            <span className="text-sm font-medium">{alreadyClaiming ? 'Monthly Benefit In Payment' : 'Adjusted Monthly Benefit'}</span>
             <span className="text-2xl font-bold text-primary">
-              {formatCurrency(actualBenefit)}
+              {formatCurrency(effectiveBenefit)}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Annual Benefit</span>
             <span className="text-xl font-semibold">
-              {formatCurrency(actualBenefit * 12)}
+              {formatCurrency(effectiveBenefit * 12)}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className={`h-4 w-4 ${benefitChange >= 0 ? 'text-success' : 'text-destructive'}`} />
-            <span className={benefitChange >= 0 ? 'text-success' : 'text-destructive'}>
-              {benefitChange >= 0 ? '+' : ''}{benefitChange.toFixed(1)}% vs. Full Retirement Age
-            </span>
-          </div>
+          {alreadyClaiming ? (
+            <p className="text-sm text-muted-foreground">
+              Used as entered and grown by the cost-of-living assumption from today forward.
+            </p>
+          ) : (
+            <div className="flex items-center gap-2 text-sm">
+              <TrendingUp className={`h-4 w-4 ${benefitChange >= 0 ? 'text-success' : 'text-destructive'}`} />
+              <span className={benefitChange >= 0 ? 'text-success' : 'text-destructive'}>
+                {benefitChange >= 0 ? '+' : ''}{benefitChange.toFixed(1)}% vs. Full Retirement Age
+              </span>
+            </div>
+          )}
         </div>
 
-        {isEarly && (
+        {!alreadyClaiming && isEarly && (
           <Alert className="border-none bg-transparent">
             <Info className="h-4 w-4 text-destructive" />
             <AlertDescription className="text-destructive">
@@ -168,7 +226,7 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
           </Alert>
         )}
 
-        {isDelayed && (
+        {!alreadyClaiming && isDelayed && (
           <Alert className="border-none bg-transparent">
             <TrendingUp className="h-4 w-4 text-success" />
             <AlertDescription className="text-success">
@@ -187,25 +245,33 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
         </div>
 
         {/* Breakeven Analysis Collapsible */}
-        <Collapsible open={isBreakevenOpen} onOpenChange={(open) => setOpenBreakeven(open ? spouse : null)}>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Calculator className="h-4 w-4" />
-                View Breakeven Analysis
-              </span>
-              {isBreakevenOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
-            <SSBreakevenAnalysis
-              monthlyBenefitAtFRA={data.estimatedBenefit}
-              currentAge={currentAge}
-              lifeExpectancy={data.lifeExpectancy}
-              selectedClaimAge={data.claimAge}
-            />
-          </CollapsibleContent>
-        </Collapsible>
+        {alreadyClaiming ? (
+          <div className="p-3 bg-muted/50 rounded-md">
+            <p className="text-sm text-muted-foreground">
+              Breakeven analysis isn't shown because benefits are already being received — the claiming decision is locked in.
+            </p>
+          </div>
+        ) : (
+          <Collapsible open={isBreakevenOpen} onOpenChange={(open) => setOpenBreakeven(open ? spouse : null)}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4" />
+                  View Breakeven Analysis
+                </span>
+                {isBreakevenOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <SSBreakevenAnalysis
+                monthlyBenefitAtFRA={data.estimatedBenefit}
+                currentAge={currentAge}
+                lifeExpectancy={data.lifeExpectancy}
+                selectedClaimAge={data.claimAge}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </div>
     );
   };

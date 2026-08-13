@@ -15,7 +15,7 @@ import { ActionItems } from "@/components/ActionItems";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { RMDPlanner } from "@/components/RMDPlanner";
-import { useTwoPassProjections, findDepletionAges } from "@/hooks/useProjections";
+import { useTwoPassProjections, findDepletionAges, type SSData } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,11 +47,15 @@ const DEFAULT_SS_DATA = {
     estimatedBenefit: 4000,
     claimAge: 67,
     lifeExpectancy: 90,
+    alreadyClaiming: false,
+    claimedAtAge: 67,
   },
   spouse2: {
     estimatedBenefit: 4000,
     claimAge: 67,
     lifeExpectancy: 90,
+    alreadyClaiming: false,
+    claimedAtAge: 67,
   },
 };
 
@@ -114,7 +118,7 @@ const DEFAULT_TAX_SETTINGS = {
 };
 
 type AccountsState = typeof DEFAULT_ACCOUNTS;
-type SSDataState = typeof DEFAULT_SS_DATA;
+type SSDataState = SSData;
 type TaxSettingsState = typeof DEFAULT_TAX_SETTINGS;
 
 interface SetupDraft {

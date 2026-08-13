@@ -141,3 +141,27 @@ test("pension start year still meets the inflation-adjusted take-home target", (
   assert.ok(age70.takeHome > age69.takeHome);
   assert.ok(age71.takeHome > age70.takeHome);
 });
+
+test("already-claiming person receives their actual check from year 1, unadjusted", () => {
+  const { accounts, ssData, taxSettings } = buildRegressionScenario();
+  taxSettings.spouse1Age = 68;
+  ssData.spouse1 = {
+    estimatedBenefit: 3000,
+    claimAge: 62,
+    lifeExpectancy: 100,
+    alreadyClaiming: true,
+    claimedAtAge: 62,
+  };
+
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  const first = projections.find((row) => row.age === 68);
+  const second = projections.find((row) => row.age === 69);
+
+  assert.ok(first, "expected an age 68 projection row");
+  assert.ok(second, "expected an age 69 projection row");
+
+  // Used exactly as entered in year 1 (no early-claim reduction, no delayed credits)
+  assert.equal(Math.round(first.ssIncome), 36000);
+  // COLA compounds from today forward
+  assert.equal(Math.round(second.ssIncome), Math.round(36000 * 1.025));
+});

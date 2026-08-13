@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Calculator, Loader2, Download, Upload, CheckCircle2, HardDrive, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { SSData } from "@/hooks/useProjections";
 import { exportSetupToCSV, parseSetupCSV, readFileAsText } from "@/lib/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,10 +38,7 @@ interface SetupWizardProps {
     taxableCostBasisPercent: number;
   };
   onAccountsChange: (accounts: SetupWizardProps["accounts"]) => void;
-  ssData: {
-    spouse1: { estimatedBenefit: number; claimAge: number; lifeExpectancy: number };
-    spouse2: { estimatedBenefit: number; claimAge: number; lifeExpectancy: number };
-  };
+  ssData: SSData;
   onSSDataChange: (ssData: SetupWizardProps["ssData"]) => void;
   taxSettings: any;
   onTaxSettingsChange: (settings: any) => void;

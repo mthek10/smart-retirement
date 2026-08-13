@@ -42,17 +42,20 @@ export interface Accounts {
   ordinaryDividendYield?: number;
 }
 
+export interface SSSpouseData {
+  /** When alreadyClaiming is false: estimated monthly benefit at FRA. When true: actual current monthly check. */
+  estimatedBenefit: number;
+  claimAge: number;
+  lifeExpectancy: number;
+  /** True when this person is already receiving Social Security today. */
+  alreadyClaiming?: boolean;
+  /** Age at which they started claiming (informational; used for display). */
+  claimedAtAge?: number;
+}
+
 export interface SSData {
-  spouse1: {
-    estimatedBenefit: number;
-    claimAge: number;
-    lifeExpectancy: number;
-  };
-  spouse2: {
-    estimatedBenefit: number;
-    claimAge: number;
-    lifeExpectancy: number;
-  };
+  spouse1: SSSpouseData;
+  spouse2: SSSpouseData;
 }
 
 export interface PensionSettings {
@@ -532,12 +535,20 @@ export function calculateProjections(
 
     const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, i);
     
-    const spouse1YearsSinceClaiming = spouse1CurrentAge >= ssData.spouse1.claimAge 
-      ? spouse1CurrentAge - ssData.spouse1.claimAge 
+    // People already receiving Social Security enter their ACTUAL current check, so benefits
+    // are active from year 1 and COLA compounds from today (not from the original claim age).
+    const spouse1AlreadyClaiming = ssData.spouse1.alreadyClaiming === true;
+    const spouse2AlreadyClaiming = ssData.spouse2.alreadyClaiming === true;
+    const spouse1EffectiveClaimAge = spouse1AlreadyClaiming ? taxSettings.spouse1Age : ssData.spouse1.claimAge;
+    const spouse2EffectiveClaimAge = spouse2AlreadyClaiming ? taxSettings.spouse2Age : ssData.spouse2.claimAge;
+
+    const spouse1YearsSinceClaiming = spouse1CurrentAge >= spouse1EffectiveClaimAge 
+      ? spouse1CurrentAge - spouse1EffectiveClaimAge 
       : 0;
-    const spouse2YearsSinceClaiming = spouse2CurrentAge >= ssData.spouse2.claimAge 
-      ? spouse2CurrentAge - ssData.spouse2.claimAge 
+    const spouse2YearsSinceClaiming = spouse2CurrentAge >= spouse2EffectiveClaimAge 
+      ? spouse2CurrentAge - spouse2EffectiveClaimAge 
       : 0;
+
     
     const spouse1ColaMultiplier = spouse1YearsSinceClaiming > 0 
       ? Math.pow(1 + taxSettings.inflationRate / 100, spouse1YearsSinceClaiming) 
@@ -549,23 +560,23 @@ export function calculateProjections(
     const spouse1FRA = calculateFullRetirementAge(taxSettings.spouse1Age);
     const spouse2FRA = calculateFullRetirementAge(taxSettings.spouse2Age);
     
-    const ss1Base = spouse1Alive && spouse1CurrentAge >= ssData.spouse1.claimAge && spouse1CurrentAge <= 100
-      ? calculateSocialSecurityBenefit(
-          ssData.spouse1.estimatedBenefit, 
-          ssData.spouse1.claimAge, 
-          spouse1FRA
-        ) * 12 * spouse1ColaMultiplier
+    const ss1Monthly = spouse1AlreadyClaiming
+      ? ssData.spouse1.estimatedBenefit
+      : calculateSocialSecurityBenefit(ssData.spouse1.estimatedBenefit, ssData.spouse1.claimAge, spouse1FRA);
+
+    const ss2Monthly = spouse2AlreadyClaiming
+      ? ssData.spouse2.estimatedBenefit
+      : calculateSocialSecurityBenefit(ssData.spouse2.estimatedBenefit, ssData.spouse2.claimAge, spouse2FRA);
+
+    const ss1Base = spouse1Alive && spouse1CurrentAge >= spouse1EffectiveClaimAge && spouse1CurrentAge <= 100
+      ? ss1Monthly * 12 * spouse1ColaMultiplier
       : 0;
     
     const ss2Base = taxSettings.filingStatus === 'married' 
       && spouse2Alive
-      && spouse2CurrentAge >= ssData.spouse2.claimAge 
+      && spouse2CurrentAge >= spouse2EffectiveClaimAge 
       && spouse2CurrentAge <= 100
-      ? calculateSocialSecurityBenefit(
-          ssData.spouse2.estimatedBenefit, 
-          ssData.spouse2.claimAge, 
-          spouse2FRA
-        ) * 12 * spouse2ColaMultiplier
+      ? ss2Monthly * 12 * spouse2ColaMultiplier
       : 0;
     
     if (spouse1Alive && ss1Base > 0) spouse1SSAtDeath = ss1Base;
