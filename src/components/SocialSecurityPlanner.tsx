@@ -101,18 +101,23 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
         <div className="space-y-2">
           <Label>Claiming Age</Label>
           <Select
-            value={String(data.claimAge)}
+            value={String(Math.max(data.claimAge, minClaimAge))}
             onValueChange={(value) => handleChange(spouse, 'claimAge', parseInt(value))}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select claiming age" />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 9 }, (_, i) => 62 + i).map((age) => (
+              {claimAgeOptions.map((age) => (
                 <SelectItem key={age} value={String(age)}>{age}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {minClaimAge > 62 && (
+            <p className="text-xs text-muted-foreground">
+              Ages before {minClaimAge} aren't selectable — claiming can't start in the past.
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
