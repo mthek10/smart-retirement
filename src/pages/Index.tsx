@@ -47,11 +47,15 @@ const DEFAULT_SS_DATA = {
     estimatedBenefit: 4000,
     claimAge: 67,
     lifeExpectancy: 90,
+    alreadyClaiming: false,
+    claimedAtAge: 67,
   },
   spouse2: {
     estimatedBenefit: 4000,
     claimAge: 67,
     lifeExpectancy: 90,
+    alreadyClaiming: false,
+    claimedAtAge: 67,
   },
 };
 
