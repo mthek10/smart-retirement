@@ -74,6 +74,8 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
     const isDelayed = data.claimAge > fullRetirementAge;
     const isEarly = data.claimAge < fullRetirementAge;
     const isBreakevenOpen = openBreakeven === spouse;
+    const minClaimAge = getMinClaimAge(currentAge);
+    const claimAgeOptions = Array.from({ length: 9 }, (_, i) => 62 + i).filter((age) => age >= minClaimAge);
 
     return (
       <div className="space-y-4">
