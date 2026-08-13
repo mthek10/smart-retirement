@@ -67,14 +67,40 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
     const isBreakevenOpen = openBreakeven === spouse;
     const minClaimAge = getMinClaimAge(currentAge);
     const claimAgeOptions = Array.from({ length: 9 }, (_, i) => 62 + i).filter((age) => age >= minClaimAge);
+    const canAlreadyClaim = currentAge >= 62;
+    const alreadyClaiming = canAlreadyClaim && data.alreadyClaiming === true;
+    const effectiveBenefit = alreadyClaiming ? data.estimatedBenefit : actualBenefit;
+    const maxClaimedAtAge = Math.min(Math.floor(currentAge || 62), 70);
+    const claimedAtOptions = Array.from({ length: 9 }, (_, i) => 62 + i).filter((age) => age <= maxClaimedAtAge);
+    const claimedAtAge = Math.min(Math.max(data.claimedAtAge ?? Math.min(data.claimAge, maxClaimedAtAge), 62), maxClaimedAtAge);
 
     return (
       <div className="space-y-4">
         <h3 className="font-semibold text-lg">{title}</h3>
+
+        {canAlreadyClaim && (
+          <div className="flex items-center justify-between gap-4 p-3 rounded-lg border border-l-2 border-l-primary bg-muted/30">
+            <div>
+              <Label htmlFor={`${spouse}-alreadyClaiming`} className="text-base font-medium">
+                Already receiving Social Security
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Enter the actual check being received today instead of a future claiming estimate
+              </p>
+            </div>
+            <Switch
+              id={`${spouse}-alreadyClaiming`}
+              checked={alreadyClaiming}
+              onCheckedChange={(checked) => handleToggleClaiming(spouse, checked, maxClaimedAtAge)}
+            />
+          </div>
+        )}
         
         <div className="space-y-2">
           <Label htmlFor={`${spouse}-estimatedBenefit`}>
-            Estimated Monthly Benefit at Full Retirement Age (age {fullRetirementAge === Math.floor(fullRetirementAge) ? fullRetirementAge : `${Math.floor(fullRetirementAge)} yrs ${Math.round((fullRetirementAge % 1) * 12)} mo`})
+            {alreadyClaiming
+              ? 'Current Monthly Benefit (actual amount received)'
+              : `Estimated Monthly Benefit at Full Retirement Age (age ${fullRetirementAge === Math.floor(fullRetirementAge) ? fullRetirementAge : `${Math.floor(fullRetirementAge)} yrs ${Math.round((fullRetirementAge % 1) * 12)} mo`})`}
           </Label>
           <DebouncedInput
             id={`${spouse}-estimatedBenefit`}
@@ -89,27 +115,49 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
           </p>
         </div>
 
-        <div className="space-y-2">
-          <Label>Claiming Age</Label>
-          <Select
-            value={String(Math.max(data.claimAge, minClaimAge))}
-            onValueChange={(value) => handleChange(spouse, 'claimAge', parseInt(value))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select claiming age" />
-            </SelectTrigger>
-            <SelectContent>
-              {claimAgeOptions.map((age) => (
-                <SelectItem key={age} value={String(age)}>{age}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {minClaimAge > 62 && (
+        {alreadyClaiming ? (
+          <div className="space-y-2">
+            <Label>Age You Started Claiming</Label>
+            <Select
+              value={String(claimedAtAge)}
+              onValueChange={(value) => handleChange(spouse, 'claimedAtAge', parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select the age you claimed" />
+              </SelectTrigger>
+              <SelectContent>
+                {claimedAtOptions.map((age) => (
+                  <SelectItem key={age} value={String(age)}>{age}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
-              Ages before {minClaimAge} aren't selectable — claiming can't start in the past.
+              Informational only — the benefit amount entered above is used exactly as given.
             </p>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Claiming Age</Label>
+            <Select
+              value={String(Math.max(data.claimAge, minClaimAge))}
+              onValueChange={(value) => handleChange(spouse, 'claimAge', parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select claiming age" />
+              </SelectTrigger>
+              <SelectContent>
+                {claimAgeOptions.map((age) => (
+                  <SelectItem key={age} value={String(age)}>{age}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {minClaimAge > 62 && (
+              <p className="text-xs text-muted-foreground">
+                Ages before {minClaimAge} aren't selectable — claiming can't start in the past.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label>Life Expectancy</Label>
