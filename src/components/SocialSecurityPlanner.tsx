@@ -149,7 +149,7 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
           </div>
         </div>
 
-        {isEarly && (
+        {!alreadyClaiming && isEarly && (
           <Alert className="border-none bg-transparent">
             <Info className="h-4 w-4 text-destructive" />
             <AlertDescription className="text-destructive">
@@ -159,7 +159,7 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
           </Alert>
         )}
 
-        {isDelayed && (
+        {!alreadyClaiming && isDelayed && (
           <Alert className="border-none bg-transparent">
             <TrendingUp className="h-4 w-4 text-success" />
             <AlertDescription className="text-success">
