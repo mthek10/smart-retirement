@@ -54,6 +54,18 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
     });
   };
 
+  const handleToggleClaiming = (spouse: 'spouse1' | 'spouse2', checked: boolean, maxClaimedAtAge: number) => {
+    const current = ssData[spouse];
+    onChange({
+      ...ssData,
+      [spouse]: {
+        ...current,
+        alreadyClaiming: checked,
+        claimedAtAge: Math.min(Math.max(current.claimedAtAge ?? current.claimAge, 62), maxClaimedAtAge),
+      },
+    });
+  };
+
   const renderSpouseSection = (spouse: 'spouse1' | 'spouse2', title: string, currentAge: number) => {
     const data = ssData[spouse];
     const fullRetirementAge = calculateFullRetirementAge(currentAge);
