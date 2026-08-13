@@ -178,25 +178,33 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
         </div>
 
         {/* Breakeven Analysis Collapsible */}
-        <Collapsible open={isBreakevenOpen} onOpenChange={(open) => setOpenBreakeven(open ? spouse : null)}>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Calculator className="h-4 w-4" />
-                View Breakeven Analysis
-              </span>
-              {isBreakevenOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
-            <SSBreakevenAnalysis
-              monthlyBenefitAtFRA={data.estimatedBenefit}
-              currentAge={currentAge}
-              lifeExpectancy={data.lifeExpectancy}
-              selectedClaimAge={data.claimAge}
-            />
-          </CollapsibleContent>
-        </Collapsible>
+        {alreadyClaiming ? (
+          <div className="p-3 bg-muted/50 rounded-md">
+            <p className="text-sm text-muted-foreground">
+              Breakeven analysis isn't shown because benefits are already being received — the claiming decision is locked in.
+            </p>
+          </div>
+        ) : (
+          <Collapsible open={isBreakevenOpen} onOpenChange={(open) => setOpenBreakeven(open ? spouse : null)}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4" />
+                  View Breakeven Analysis
+                </span>
+                {isBreakevenOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <SSBreakevenAnalysis
+                monthlyBenefitAtFRA={data.estimatedBenefit}
+                currentAge={currentAge}
+                lifeExpectancy={data.lifeExpectancy}
+                selectedClaimAge={data.claimAge}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </div>
     );
   };
