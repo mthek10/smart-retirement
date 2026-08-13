@@ -42,17 +42,20 @@ export interface Accounts {
   ordinaryDividendYield?: number;
 }
 
+export interface SSSpouseData {
+  /** When alreadyClaiming is false: estimated monthly benefit at FRA. When true: actual current monthly check. */
+  estimatedBenefit: number;
+  claimAge: number;
+  lifeExpectancy: number;
+  /** True when this person is already receiving Social Security today. */
+  alreadyClaiming?: boolean;
+  /** Age at which they started claiming (informational; used for display). */
+  claimedAtAge?: number;
+}
+
 export interface SSData {
-  spouse1: {
-    estimatedBenefit: number;
-    claimAge: number;
-    lifeExpectancy: number;
-  };
-  spouse2: {
-    estimatedBenefit: number;
-    claimAge: number;
-    lifeExpectancy: number;
-  };
+  spouse1: SSSpouseData;
+  spouse2: SSSpouseData;
 }
 
 export interface PensionSettings {
