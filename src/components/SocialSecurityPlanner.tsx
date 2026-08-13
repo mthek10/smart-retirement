@@ -30,8 +30,27 @@ interface SocialSecurityPlannerProps {
   spouse2Age: number;
 }
 
+const getMinClaimAge = (currentAge: number) => Math.min(Math.max(62, Math.floor(currentAge || 62)), 70);
+
 export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1Age, spouse2Age }: SocialSecurityPlannerProps) {
   const [openBreakeven, setOpenBreakeven] = useState<'spouse1' | 'spouse2' | null>(null);
+  const isSingle = filingStatus === 'single' || filingStatus === 'hoh';
+
+  // Claiming age can never be in the past: clamp up to the current age (max 70)
+  useEffect(() => {
+    const min1 = getMinClaimAge(spouse1Age);
+    const min2 = getMinClaimAge(spouse2Age);
+    const needs1 = ssData.spouse1.claimAge < min1;
+    const needs2 = !isSingle && ssData.spouse2.claimAge < min2;
+    if (!needs1 && !needs2) return;
+
+    onChange({
+      ...ssData,
+      spouse1: needs1 ? { ...ssData.spouse1, claimAge: min1 } : ssData.spouse1,
+      spouse2: needs2 ? { ...ssData.spouse2, claimAge: min2 } : ssData.spouse2,
+    });
+  }, [ssData, onChange, spouse1Age, spouse2Age, isSingle]);
+
 
   const handleChange = (spouse: 'spouse1' | 'spouse2', field: string, value: number) => {
     onChange({
