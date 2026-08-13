@@ -10,6 +10,8 @@ import { Info, TrendingUp, ChevronDown, ChevronUp, Calculator } from "lucide-rea
 import { calculateSocialSecurityBenefit, calculateFullRetirementAge } from "@/lib/taxCalculations";
 import { formatCurrency } from "@/lib/utils";
 import { SSBreakevenAnalysis } from "@/components/SSBreakevenAnalysis";
+import { Switch } from "@/components/ui/switch";
+import type { SSData } from "@/hooks/useProjections";
 
 interface SocialSecurityPlannerProps {
   ssData: SSData;
