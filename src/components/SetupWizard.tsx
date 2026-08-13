@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Calculator, Loader2, Download, Upload, CheckCircle2, HardDrive, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { SSData } from "@/hooks/useProjections";
 import { exportSetupToCSV, parseSetupCSV, readFileAsText } from "@/lib/exportUtils";
 import { useToast } from "@/hooks/use-toast";
 
