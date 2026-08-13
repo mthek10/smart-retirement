@@ -27,12 +27,13 @@ export function SocialSecurityPlanner({ ssData, onChange, filingStatus, spouse1A
   const [openBreakeven, setOpenBreakeven] = useState<'spouse1' | 'spouse2' | null>(null);
   const isSingle = filingStatus === 'single' || filingStatus === 'hoh';
 
-  // Claiming age can never be in the past: clamp up to the current age (max 70)
+  // Claiming age can never be in the past: clamp up to the current age (max 70).
+  // Skipped for people already receiving benefits — their claim age is historical.
   useEffect(() => {
     const min1 = getMinClaimAge(spouse1Age);
     const min2 = getMinClaimAge(spouse2Age);
-    const needs1 = ssData.spouse1.claimAge < min1;
-    const needs2 = !isSingle && ssData.spouse2.claimAge < min2;
+    const needs1 = !ssData.spouse1.alreadyClaiming && ssData.spouse1.claimAge < min1;
+    const needs2 = !isSingle && !ssData.spouse2.alreadyClaiming && ssData.spouse2.claimAge < min2;
     if (!needs1 && !needs2) return;
 
     onChange({
