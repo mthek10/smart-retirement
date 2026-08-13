@@ -535,12 +535,20 @@ export function calculateProjections(
 
     const inflationMultiplier = Math.pow(1 + taxSettings.inflationRate / 100, i);
     
-    const spouse1YearsSinceClaiming = spouse1CurrentAge >= ssData.spouse1.claimAge 
-      ? spouse1CurrentAge - ssData.spouse1.claimAge 
+    // People already receiving Social Security enter their ACTUAL current check, so benefits
+    // are active from year 1 and COLA compounds from today (not from the original claim age).
+    const spouse1AlreadyClaiming = ssData.spouse1.alreadyClaiming === true;
+    const spouse2AlreadyClaiming = ssData.spouse2.alreadyClaiming === true;
+    const spouse1EffectiveClaimAge = spouse1AlreadyClaiming ? taxSettings.spouse1Age : ssData.spouse1.claimAge;
+    const spouse2EffectiveClaimAge = spouse2AlreadyClaiming ? taxSettings.spouse2Age : ssData.spouse2.claimAge;
+
+    const spouse1YearsSinceClaiming = spouse1CurrentAge >= spouse1EffectiveClaimAge 
+      ? spouse1CurrentAge - spouse1EffectiveClaimAge 
       : 0;
-    const spouse2YearsSinceClaiming = spouse2CurrentAge >= ssData.spouse2.claimAge 
-      ? spouse2CurrentAge - ssData.spouse2.claimAge 
+    const spouse2YearsSinceClaiming = spouse2CurrentAge >= spouse2EffectiveClaimAge 
+      ? spouse2CurrentAge - spouse2EffectiveClaimAge 
       : 0;
+
     
     const spouse1ColaMultiplier = spouse1YearsSinceClaiming > 0 
       ? Math.pow(1 + taxSettings.inflationRate / 100, spouse1YearsSinceClaiming) 
