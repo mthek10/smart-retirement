@@ -1368,6 +1368,7 @@ export function calculateProjections(
       ordinaryIncome: totalOrdinaryIncome, // Gross ordinary income used for tax bracket calculations
       nonSocialSecurityOrdinaryIncome: ordinaryIncome,
       capitalGainsIncome: capitalGains,
+      capitalGainsHarvested,
       rothConversion,
       marginalBracket,
       conversionExcessReinvested,
