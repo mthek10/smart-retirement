@@ -24,7 +24,8 @@ import {
   getRothConversionLimit,
   calculateACASubsidy,
   calculateSurvivorSSBenefit,
-  calculateCapitalGainsHarvestingRoom
+  calculateCapitalGainsHarvestingRoom,
+  niitThresholds2024
 } from "@/lib/taxCalculations";
 
 export interface Accounts {
@@ -144,6 +145,8 @@ export interface TaxSettings {
   neverTriggerIRMAA?: boolean;
   /** When true (default), realize brokerage gains each year up to the top of the 0% federal LTCG bracket (basis step-up). */
   autoHarvestCapitalGains?: boolean;
+  /** When true (default false), also harvest gains up to the top of the 15% federal LTCG bracket. Pays 15% tax now (from sale proceeds) to step up basis. Requires autoHarvestCapitalGains. */
+  harvestFifteenBracket?: boolean;
   acaSettings: ACASettings;
   spouse1Employment: EmploymentSettings;
   spouse2Employment: EmploymentSettings;
@@ -188,6 +191,8 @@ export interface ProjectionRow {
   capitalGainsIncome: number;
   /** Gains auto-harvested into the 0% federal LTCG bracket this year (sell + rebuy; basis stepped up). */
   capitalGainsHarvested: number;
+  /** Gains harvested into the 15% federal LTCG bracket this year (tax paid from sale proceeds; basis stepped up). */
+  capitalGainsHarvested15: number;
   rothConversion: number;
   marginalBracket: number;
   conversionExcessReinvested: number;
@@ -1149,13 +1154,19 @@ export function calculateProjections(
     const realizedCapitalGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
 
     // ============================================================
-    // AUTO-HARVEST 0% LTCG BRACKET
+    // AUTO-HARVEST LTCG BRACKETS (0% always; 15% when enabled)
     // Sell + immediately rebuy brokerage shares to realize gains up to the
     // top of the 0% federal LTCG bracket. Balance is unchanged; the gain
     // becomes new cost basis (step-up), reducing tax on future withdrawals.
     // The harvested gain still counts toward MAGI (IRMAA/ACA/NIIT/state).
+    // Optional second tier (harvestFifteenBracket): keep harvesting up to
+    // the top of the 15% bracket. The 15% tax is paid from sale proceeds
+    // (balance reduced, take-home unaffected); capped below the NIIT
+    // threshold so harvesting never triggers the 3.8% surtax.
     // ============================================================
     let capitalGainsHarvested = 0;
+    let capitalGainsHarvested15 = 0;
+    let harvest15TaxFromProceeds = 0;
     if (taxSettings.autoHarvestCapitalGains !== false && taxableBalance > 0) {
       const qcdExclusionPre = Math.min(qcdAmount, traditionalWithdrawal);
       const preHarvestOrdinary = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends - qcdExclusionPre;
@@ -1173,7 +1184,7 @@ export function calculateProjections(
       );
       const taxableIncomeForCG =
         Math.max(0, preHarvestOrdinary + ssWithHarvest - stdInflated) + preHarvestGains;
-      const { roomInZeroBracket } = calculateCapitalGainsHarvestingRoom(
+      const { roomInZeroBracket, roomInFifteenBracket } = calculateCapitalGainsHarvestingRoom(
         taxableIncomeForCG,
         effectiveFilingStatus,
         i,
@@ -1181,8 +1192,17 @@ export function calculateProjections(
       );
       let harvest = Math.min(roomInZeroBracket, unrealizedGains);
 
-      // Respect "Never trigger IRMAA": cap harvest so MAGI stays under the next tier
-      if (harvest > 0 && taxSettings.neverTriggerIRMAA) {
+      // Optional second tier: fill the 15% bracket above the 0% harvest
+      let harvest15 = 0;
+      if (taxSettings.harvestFifteenBracket && unrealizedGains - harvest > 0) {
+        // Room above the 0% harvest, up to the top of the 15% bracket
+        const room15 = Math.max(0, roomInFifteenBracket - Math.max(roomInZeroBracket, 0) - Math.max(0, harvest - roomInZeroBracket));
+        harvest15 = Math.min(room15, unrealizedGains - harvest);
+      }
+
+      // Respect "Never trigger IRMAA": cap total harvest so MAGI stays under the next tier
+      let totalHarvest = harvest + harvest15;
+      if (totalHarvest > 0 && taxSettings.neverTriggerIRMAA) {
         const isIRMAAAgeHarvest =
           (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) ||
           (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100);
@@ -1190,19 +1210,36 @@ export function calculateProjections(
           const magiBase = preHarvestOrdinary + ssWithHarvest + preHarvestGains;
           const nextTier = getNextIRMAAThreshold(magiBase, i, inflationFractionHarvest, effectiveFilingStatus);
           if (nextTier !== null) {
-            harvest = Math.max(0, Math.min(harvest, nextTier - magiBase - 1));
+            totalHarvest = Math.max(0, Math.min(totalHarvest, nextTier - magiBase - 1));
           }
         }
       }
+
+      // NIIT guard: never let harvesting push MAGI over the 3.8% surtax threshold
+      // (only relevant when the 15% tier is enabled; preserves legacy 0%-only behavior otherwise)
+      if (totalHarvest > 0 && taxSettings.harvestFifteenBracket) {
+        const magiBase = preHarvestOrdinary + ssWithHarvest + preHarvestGains;
+        const niitBase = niitThresholds2024[effectiveFilingStatus] || niitThresholds2024.single;
+        const niitThreshold = niitBase * Math.pow(1 + inflationFractionHarvest, i);
+        totalHarvest = Math.max(0, Math.min(totalHarvest, niitThreshold - magiBase - 1));
+      }
+
+      // Split the (possibly capped) total: 0% tier first, remainder to the 15% tier
+      harvest = Math.min(harvest, totalHarvest);
+      harvest15 = Math.max(0, totalHarvest - harvest);
 
       if (harvest >= 1000) {
         capitalGainsHarvested = harvest;
         // Basis step-up: proceeds are reinvested, so the realized gain becomes new basis
         costBasisDollars += harvest;
       }
+      if (harvest15 >= 1000) {
+        capitalGainsHarvested15 = harvest15;
+        costBasisDollars += harvest15;
+      }
     }
 
-    const capitalGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain + capitalGainsHarvested;
+    const capitalGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain + capitalGainsHarvested + capitalGainsHarvested15;
     // QCD is excluded from AGI: subtract qcdAmount from ordinary income (capped at traditionalWithdrawal so we don't go negative)
     const qcdExclusion = Math.min(qcdAmount, traditionalWithdrawal);
     const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends - qcdExclusion;
@@ -1249,6 +1286,21 @@ export function calculateProjections(
       stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus);
       stateTax = stateSSTax + stateIncomeTax;
     }
+
+    // 15%-bracket harvest tax is paid from sale proceeds, not household cash flow:
+    // reduce the brokerage balance by the incremental tax so take-home stays on target.
+    if (capitalGainsHarvested15 > 0) {
+      const fedCGWithout = calculateCapitalGainsTax(capitalGains - capitalGainsHarvested15, totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction, extraDeduction);
+      let stateCGWithout = 0;
+      if (effectiveState === 'other') {
+        stateCGWithout = (capitalGains - capitalGainsHarvested15) * (taxSettings.stateRate / 100);
+      } else if (effectiveState && effectiveState !== 'none') {
+        stateCGWithout = calculateStateCapitalGainsTax(capitalGains - capitalGainsHarvested15, ordinaryIncome, effectiveState, effectiveFilingStatus);
+      }
+      harvest15TaxFromProceeds = Math.max(0, (federalTaxCapitalGains - fedCGWithout) + (stateCapitalGainsTax - stateCGWithout));
+      taxableBalance = Math.max(0, taxableBalance - harvest15TaxFromProceeds);
+    }
+
 
     const magi = totalOrdinaryIncome + capitalGains;
     let irmaa = 0;
@@ -1309,7 +1361,9 @@ export function calculateProjections(
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
     // Cash charitable donations come out of take-home; appreciated shares come from brokerage (already subtracted above);
     // QCD comes from Trad IRA (already subtracted above). Only cash reduces calculated take-home here.
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost - charitableCashDeduction;
+    // 15%-harvest tax was paid from sale proceeds (balance already reduced) — add it back
+    // so it doesn't double-count against take-home.
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost - charitableCashDeduction + harvest15TaxFromProceeds;
     
     // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
     let totalExcess = 0;
@@ -1369,6 +1423,7 @@ export function calculateProjections(
       nonSocialSecurityOrdinaryIncome: ordinaryIncome,
       capitalGainsIncome: capitalGains,
       capitalGainsHarvested,
+      capitalGainsHarvested15,
       rothConversion,
       marginalBracket,
       conversionExcessReinvested,

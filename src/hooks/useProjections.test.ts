@@ -228,3 +228,55 @@ test("no harvest when income already fills the 0% bracket", () => {
   const projections = calculateProjections(accounts, ssData, taxSettings);
   assert.equal(projections[0].capitalGainsHarvested, 0);
 });
+
+test("15% bracket harvest fills above the 0% band and pays 15% federal tax", () => {
+  const { accounts, ssData, taxSettings } = buildHarvestScenario();
+  taxSettings.autoHarvestCapitalGains = true;
+  taxSettings.harvestFifteenBracket = true;
+
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  const first = projections[0];
+
+  // 0% band filled first (~$47k single 2024), then the 15% tier on top
+  assert.ok(first.capitalGainsHarvested > 40000, `expected 0% harvest, got ${first.capitalGainsHarvested}`);
+  assert.ok(first.capitalGainsHarvested15 > 100000, `expected a large 15% harvest, got ${first.capitalGainsHarvested15}`);
+  // NIIT guard: total harvest must stay under the $200k single NIIT threshold
+  const total = first.capitalGainsHarvested + first.capitalGainsHarvested15;
+  assert.ok(total <= 200000, `harvest should stay below the NIIT threshold, got ${total}`);
+  // Federal CG tax on the 15% portion: 0% part is free, 15% part taxed at 15%
+  assert.equal(Math.round(first.federalCapitalGainsTax), Math.round(first.capitalGainsHarvested15 * 0.15));
+});
+
+test("15% harvest is off by default", () => {
+  const { accounts, ssData, taxSettings } = buildHarvestScenario();
+  taxSettings.autoHarvestCapitalGains = true;
+
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  assert.ok(projections.every(p => p.capitalGainsHarvested15 === 0), "expected zero 15% harvests by default");
+});
+
+test("15% harvest respects never-trigger-IRMAA cap", () => {
+  const { accounts, ssData, taxSettings } = buildHarvestScenario();
+  taxSettings.autoHarvestCapitalGains = true;
+  taxSettings.harvestFifteenBracket = true;
+  taxSettings.neverTriggerIRMAA = true;
+
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  const first = projections[0];
+  const total = first.capitalGainsHarvested + first.capitalGainsHarvested15;
+
+  // First single-filer IRMAA tier is $103k MAGI (2024) — harvest must stay under it
+  assert.ok(total > 0, "expected some harvest below the first IRMAA tier");
+  assert.ok(total <= 110000, `harvest should be capped near the first IRMAA tier, got ${total}`);
+});
+
+test("no 15% harvest when the account has no unrealized gains", () => {
+  const { accounts, ssData, taxSettings } = buildHarvestScenario();
+  taxSettings.autoHarvestCapitalGains = true;
+  taxSettings.harvestFifteenBracket = true;
+  accounts.taxableCostBasisPercent = 100; // basis = balance → no gains to harvest
+
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  assert.equal(projections[0].capitalGainsHarvested, 0);
+  assert.equal(projections[0].capitalGainsHarvested15, 0);
+});

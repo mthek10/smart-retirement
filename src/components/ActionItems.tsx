@@ -247,7 +247,7 @@ export function ActionItems({
     if (remainingGains < 1000) break;
     if (p.taxableBalance < 1000) break;
     // Gains the engine already auto-harvested this year don't need advice
-    const executed = p.capitalGainsHarvested || 0;
+    const executed = (p.capitalGainsHarvested || 0) + (p.capitalGainsHarvested15 || 0);
     if (executed > 0) {
       alreadyHarvested += executed;
       remainingGains -= executed;

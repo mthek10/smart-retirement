@@ -42,6 +42,7 @@ interface YearProjection {
   totalIncome: number;
   rothConversion?: number;
   capitalGainsHarvested?: number;
+  capitalGainsHarvested15?: number;
   marginalBracket?: number;
   lifeEventExpense?: number;
   lifeEventIncome?: number;
@@ -111,6 +112,8 @@ export const ProjectionTable = memo(function ProjectionTable({
   const hasBrokerage = projections.some(p => p.taxableBalance > 0);
   const harvestRows = projections.filter(p => (p.capitalGainsHarvested ?? 0) > 0);
   const totalHarvested = harvestRows.reduce((sum, p) => sum + (p.capitalGainsHarvested ?? 0), 0);
+  const harvest15Rows = projections.filter(p => (p.capitalGainsHarvested15 ?? 0) > 0);
+  const totalHarvested15 = harvest15Rows.reduce((sum, p) => sum + (p.capitalGainsHarvested15 ?? 0), 0);
   const showHarvestNote = show("income") && hasBrokerage && projections.length > 0;
 
   const handleExportToCSV = () => {
@@ -208,6 +211,9 @@ export const ProjectionTable = memo(function ProjectionTable({
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Conversion</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
                         <span className="inline-flex items-center gap-1">CG Harvest <InfoTooltip text="Brokerage gains automatically realized into the 0% federal LTCG bracket (sell + rebuy). Steps up cost basis tax-free; no cash leaves the account." /></span>
+                      </th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                        <span className="inline-flex items-center gap-1">15% Harvest <InfoTooltip text="Additional gains realized into the 15% federal LTCG bracket (only when enabled in Tax Settings). The 15% tax is paid from sale proceeds; cost basis still steps up by the full gain." /></span>
                       </th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Tax Bracket</th>
                     </>
@@ -362,6 +368,15 @@ export const ProjectionTable = memo(function ProjectionTable({
                           {projection.capitalGainsHarvested && projection.capitalGainsHarvested > 0 ? (
                             <span className="text-green-600 dark:text-green-400 font-medium">
                               {formatCurrency(projection.capitalGainsHarvested)}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="p-4 align-middle text-right">
+                          {projection.capitalGainsHarvested15 && projection.capitalGainsHarvested15 > 0 ? (
+                            <span className="text-green-700 dark:text-green-300 font-medium">
+                              {formatCurrency(projection.capitalGainsHarvested15)}
                             </span>
                           ) : (
                             '-'
@@ -541,12 +556,20 @@ export const ProjectionTable = memo(function ProjectionTable({
                 The "Auto-harvest 0% capital gains" option in Tax Settings is turned off, so the plan
                 never realizes brokerage gains into the free 0% band.
               </p>
-            ) : harvestRows.length > 0 ? (
+            ) : harvestRows.length > 0 || harvest15Rows.length > 0 ? (
               <p className="text-foreground">
                 <span className="font-semibold text-foreground">CG Harvest:</span>{" "}
                 {harvestRows.length} of {projections.length} years used the free 0% capital-gains band
                 — {formatCurrency(totalHarvested)} of gains realized at 0% federal tax and permanently
                 added to your cost basis. Blank years had no free room left.
+                {harvest15Rows.length > 0 && (
+                  <>
+                    {" "}Additionally, {formatCurrency(totalHarvested15)} was harvested into the 15%
+                    bracket over {harvest15Rows.length} year{harvest15Rows.length !== 1 ? "s" : ""} —
+                    the 15% tax was paid from sale proceeds and the full gain was added to your cost
+                    basis.
+                  </>
+                )}
               </p>
             ) : (
               <p className="text-foreground">
