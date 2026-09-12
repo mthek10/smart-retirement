@@ -23,7 +23,8 @@ import {
   get401kLimit,
   getRothConversionLimit,
   calculateACASubsidy,
-  calculateSurvivorSSBenefit
+  calculateSurvivorSSBenefit,
+  calculateCapitalGainsHarvestingRoom
 } from "@/lib/taxCalculations";
 
 export interface Accounts {
@@ -141,6 +142,8 @@ export interface TaxSettings {
   rothConversionTaxSource?: "brokerage" | "conversion";
   preSurvivorStrategy?: string;
   neverTriggerIRMAA?: boolean;
+  /** When true (default), realize brokerage gains each year up to the top of the 0% federal LTCG bracket (basis step-up). */
+  autoHarvestCapitalGains?: boolean;
   acaSettings: ACASettings;
   spouse1Employment: EmploymentSettings;
   spouse2Employment: EmploymentSettings;
@@ -183,6 +186,8 @@ export interface ProjectionRow {
   ordinaryIncome: number; // Gross ordinary income for tax bracket calculations (includes taxable SS)
   nonSocialSecurityOrdinaryIncome: number;
   capitalGainsIncome: number;
+  /** Gains auto-harvested into the 0% federal LTCG bracket this year (sell + rebuy; basis stepped up). */
+  capitalGainsHarvested: number;
   rothConversion: number;
   marginalBracket: number;
   conversionExcessReinvested: number;
