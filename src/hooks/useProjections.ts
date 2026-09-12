@@ -1164,6 +1164,7 @@ export function calculateProjections(
     // ============================================================
     let capitalGainsHarvested = 0;
     let capitalGainsHarvested15 = 0;
+    let harvest15TaxFromProceeds = 0;
     if (taxSettings.autoHarvestCapitalGains !== false && taxableBalance > 0) {
       const qcdExclusionPre = Math.min(qcdAmount, traditionalWithdrawal);
       const preHarvestOrdinary = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends - qcdExclusionPre;
@@ -1283,6 +1284,21 @@ export function calculateProjections(
       stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus);
       stateTax = stateSSTax + stateIncomeTax;
     }
+
+    // 15%-bracket harvest tax is paid from sale proceeds, not household cash flow:
+    // reduce the brokerage balance by the incremental tax so take-home stays on target.
+    if (capitalGainsHarvested15 > 0) {
+      const fedCGWithout = calculateCapitalGainsTax(capitalGains - capitalGainsHarvested15, totalOrdinaryIncome, effectiveFilingStatus, i, inflationFraction, extraDeduction);
+      let stateCGWithout = 0;
+      if (effectiveState === 'other') {
+        stateCGWithout = (capitalGains - capitalGainsHarvested15) * (taxSettings.stateRate / 100);
+      } else if (effectiveState && effectiveState !== 'none') {
+        stateCGWithout = calculateStateCapitalGainsTax(capitalGains - capitalGainsHarvested15, ordinaryIncome, effectiveState, effectiveFilingStatus);
+      }
+      harvest15TaxFromProceeds = Math.max(0, (federalTaxCapitalGains - fedCGWithout) + (stateCapitalGainsTax - stateCGWithout));
+      taxableBalance = Math.max(0, taxableBalance - harvest15TaxFromProceeds);
+    }
+
 
     const magi = totalOrdinaryIncome + capitalGains;
     let irmaa = 0;
