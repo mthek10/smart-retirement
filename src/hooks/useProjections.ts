@@ -191,6 +191,8 @@ export interface ProjectionRow {
   capitalGainsIncome: number;
   /** Gains auto-harvested into the 0% federal LTCG bracket this year (sell + rebuy; basis stepped up). */
   capitalGainsHarvested: number;
+  /** Gains harvested into the 15% federal LTCG bracket this year (tax paid from sale proceeds; basis stepped up). */
+  capitalGainsHarvested15: number;
   rothConversion: number;
   marginalBracket: number;
   conversionExcessReinvested: number;
@@ -1359,7 +1361,9 @@ export function calculateProjections(
     const totalWithdrawals = taxableWithdrawal + traditionalWithdrawal + rothWithdrawal;
     // Cash charitable donations come out of take-home; appreciated shares come from brokerage (already subtracted above);
     // QCD comes from Trad IRA (already subtracted above). Only cash reduces calculated take-home here.
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost - charitableCashDeduction;
+    // 15%-harvest tax was paid from sale proceeds (balance already reduced) — add it back
+    // so it doesn't double-count against take-home.
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost - charitableCashDeduction + harvest15TaxFromProceeds;
     
     // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
     let totalExcess = 0;
@@ -1419,6 +1423,7 @@ export function calculateProjections(
       nonSocialSecurityOrdinaryIncome: ordinaryIncome,
       capitalGainsIncome: capitalGains,
       capitalGainsHarvested,
+      capitalGainsHarvested15,
       rothConversion,
       marginalBracket,
       conversionExcessReinvested,
