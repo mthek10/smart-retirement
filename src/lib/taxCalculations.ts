@@ -155,26 +155,38 @@ export const capitalGainsBrackets2024: Record<string, TaxBracket[]> = {
   ],
 };
 
-// Calculate capital gains harvesting opportunity (room in 0% LTCG bracket)
+// Calculate capital gains harvesting opportunity (room in 0% and 15% LTCG brackets)
 export function calculateCapitalGainsHarvestingRoom(
   taxableIncome: number,
   filingStatus: string,
   yearIndex: number = 0,
   inflationRate: number = 0
-): { zeroRateBracketTop: number; roomInZeroBracket: number; harvestingAvailable: boolean } {
+): {
+  zeroRateBracketTop: number;
+  roomInZeroBracket: number;
+  harvestingAvailable: boolean;
+  fifteenRateBracketTop: number;
+  roomInFifteenBracket: number;
+} {
   const brackets = capitalGainsBrackets2024[filingStatus] || capitalGainsBrackets2024.single;
   const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
-  
+
   // The 0% LTCG bracket top (first bracket max)
   const zeroRateBracketTop = brackets[0].max * inflationMultiplier;
-  
+
   // Room remaining in 0% bracket = bracket top - taxable income (but not less than 0)
   const roomInZeroBracket = Math.max(0, zeroRateBracketTop - taxableIncome);
-  
+
+  // The 15% LTCG bracket top (second bracket max) and room up to it
+  const fifteenRateBracketTop = brackets[1].max * inflationMultiplier;
+  const roomInFifteenBracket = Math.max(0, fifteenRateBracketTop - taxableIncome);
+
   return {
     zeroRateBracketTop,
     roomInZeroBracket,
     harvestingAvailable: roomInZeroBracket > 1000, // Consider meaningful if > $1000
+    fifteenRateBracketTop,
+    roomInFifteenBracket,
   };
 }
 

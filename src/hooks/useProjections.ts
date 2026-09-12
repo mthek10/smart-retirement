@@ -144,6 +144,8 @@ export interface TaxSettings {
   neverTriggerIRMAA?: boolean;
   /** When true (default), realize brokerage gains each year up to the top of the 0% federal LTCG bracket (basis step-up). */
   autoHarvestCapitalGains?: boolean;
+  /** When true (default false), also harvest gains up to the top of the 15% federal LTCG bracket. Pays 15% tax now (from sale proceeds) to step up basis. Requires autoHarvestCapitalGains. */
+  harvestFifteenBracket?: boolean;
   acaSettings: ACASettings;
   spouse1Employment: EmploymentSettings;
   spouse2Employment: EmploymentSettings;
