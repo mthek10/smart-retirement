@@ -1147,7 +1147,62 @@ export function calculateProjections(
     }
 
     const realizedCapitalGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
-    const capitalGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain;
+
+    // ============================================================
+    // AUTO-HARVEST 0% LTCG BRACKET
+    // Sell + immediately rebuy brokerage shares to realize gains up to the
+    // top of the 0% federal LTCG bracket. Balance is unchanged; the gain
+    // becomes new cost basis (step-up), reducing tax on future withdrawals.
+    // The harvested gain still counts toward MAGI (IRMAA/ACA/NIIT/state).
+    // ============================================================
+    let capitalGainsHarvested = 0;
+    if (taxSettings.autoHarvestCapitalGains !== false && taxableBalance > 0) {
+      const qcdExclusionPre = Math.min(qcdAmount, traditionalWithdrawal);
+      const preHarvestOrdinary = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends - qcdExclusionPre;
+      const preHarvestGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain;
+      const inflationFractionHarvest = taxSettings.inflationRate / 100;
+      const baseStd = effectiveFilingStatus === 'married' ? 29200 : effectiveFilingStatus === 'hoh' ? 21900 : 14600;
+      const stdInflated = baseStd * Math.pow(1 + inflationFractionHarvest, i) + extraDeduction;
+      // Size the harvest assuming SS torpedo at full harvest (conservative: avoids spilling into 15%)
+      const unrealizedGains = Math.max(0, taxableBalance - costBasisDollars);
+      const tentativeHarvest = Math.min(unrealizedGains, Number.MAX_SAFE_INTEGER);
+      const ssWithHarvest = calculateTaxableSocialSecurity(
+        ssAnnual,
+        preHarvestOrdinary + preHarvestGains + Math.min(tentativeHarvest, 1e9),
+        effectiveFilingStatus
+      );
+      const taxableIncomeForCG =
+        Math.max(0, preHarvestOrdinary + ssWithHarvest - stdInflated) + preHarvestGains;
+      const { roomInZeroBracket } = calculateCapitalGainsHarvestingRoom(
+        taxableIncomeForCG,
+        effectiveFilingStatus,
+        i,
+        inflationFractionHarvest
+      );
+      let harvest = Math.min(roomInZeroBracket, unrealizedGains);
+
+      // Respect "Never trigger IRMAA": cap harvest so MAGI stays under the next tier
+      if (harvest > 0 && taxSettings.neverTriggerIRMAA) {
+        const isIRMAAAgeHarvest =
+          (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) ||
+          (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100);
+        if (isIRMAAAgeHarvest) {
+          const magiBase = preHarvestOrdinary + ssWithHarvest + preHarvestGains;
+          const nextTier = getNextIRMAAThreshold(magiBase, i, inflationFractionHarvest, effectiveFilingStatus);
+          if (nextTier !== null) {
+            harvest = Math.max(0, Math.min(harvest, nextTier - magiBase - 1));
+          }
+        }
+      }
+
+      if (harvest >= 1000) {
+        capitalGainsHarvested = harvest;
+        // Basis step-up: proceeds are reinvested, so the realized gain becomes new basis
+        costBasisDollars += harvest;
+      }
+    }
+
+    const capitalGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain + capitalGainsHarvested;
     // QCD is excluded from AGI: subtract qcdAmount from ordinary income (capped at traditionalWithdrawal so we don't go negative)
     const qcdExclusion = Math.min(qcdAmount, traditionalWithdrawal);
     const ordinaryIncome = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends - qcdExclusion;
