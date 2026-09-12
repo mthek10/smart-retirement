@@ -556,12 +556,20 @@ export const ProjectionTable = memo(function ProjectionTable({
                 The "Auto-harvest 0% capital gains" option in Tax Settings is turned off, so the plan
                 never realizes brokerage gains into the free 0% band.
               </p>
-            ) : harvestRows.length > 0 ? (
+            ) : harvestRows.length > 0 || harvest15Rows.length > 0 ? (
               <p className="text-foreground">
                 <span className="font-semibold text-foreground">CG Harvest:</span>{" "}
                 {harvestRows.length} of {projections.length} years used the free 0% capital-gains band
                 — {formatCurrency(totalHarvested)} of gains realized at 0% federal tax and permanently
                 added to your cost basis. Blank years had no free room left.
+                {harvest15Rows.length > 0 && (
+                  <>
+                    {" "}Additionally, {formatCurrency(totalHarvested15)} was harvested into the 15%
+                    bracket over {harvest15Rows.length} year{harvest15Rows.length !== 1 ? "s" : ""} —
+                    the 15% tax was paid from sale proceeds and the full gain was added to your cost
+                    basis.
+                  </>
+                )}
               </p>
             ) : (
               <p className="text-foreground">
