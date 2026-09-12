@@ -241,10 +241,18 @@ export function ActionItems({
   let totalCGHarvestable = 0;
   let remainingGains = taxableUnrealizedGains || 0;
 
+  let alreadyHarvested = 0;
   for (let i = 0; i < Math.min(maxRothYears, projections.length); i++) {
     const p = projections[i];
     if (remainingGains < 1000) break;
     if (p.taxableBalance < 1000) break;
+    // Gains the engine already auto-harvested this year don't need advice
+    const executed = p.capitalGainsHarvested || 0;
+    if (executed > 0) {
+      alreadyHarvested += executed;
+      remainingGains -= executed;
+      continue;
+    }
     const taxableIncomeForCG = Math.max(0, p.ordinaryIncome - standardDeduction * Math.pow(1 + inflationRate / 100, i));
     const cgRoom = calculateCapitalGainsHarvestingRoom(
       taxableIncomeForCG,

@@ -41,6 +41,7 @@ interface YearProjection {
   rmd: number;
   totalIncome: number;
   rothConversion?: number;
+  capitalGainsHarvested?: number;
   marginalBracket?: number;
   lifeEventExpense?: number;
   lifeEventIncome?: number;
@@ -194,6 +195,9 @@ export const ProjectionTable = memo(function ProjectionTable({ projections }: Pr
                         <span className="inline-flex items-center gap-1">RMD <InfoTooltip text="Required Minimum Distribution — mandatory annual withdrawals from Traditional IRA starting at age 73." /></span>
                       </th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Conversion</th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                        <span className="inline-flex items-center gap-1">CG Harvest <InfoTooltip text="Brokerage gains automatically realized into the 0% federal LTCG bracket (sell + rebuy). Steps up cost basis tax-free; no cash leaves the account." /></span>
+                      </th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Tax Bracket</th>
                     </>
                   )}
@@ -338,6 +342,15 @@ export const ProjectionTable = memo(function ProjectionTable({ projections }: Pr
                           {projection.rothConversion && projection.rothConversion > 0 ? (
                             <span className="text-primary font-medium">
                               {formatCurrency(projection.rothConversion)}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="p-4 align-middle text-right">
+                          {projection.capitalGainsHarvested && projection.capitalGainsHarvested > 0 ? (
+                            <span className="text-green-600 dark:text-green-400 font-medium">
+                              {formatCurrency(projection.capitalGainsHarvested)}
                             </span>
                           ) : (
                             '-'
