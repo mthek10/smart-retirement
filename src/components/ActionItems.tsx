@@ -268,6 +268,18 @@ export function ActionItems({
     }
   }
 
+  if (alreadyHarvested > 1000) {
+    actionItems.push({
+      id: 'cg-harvesting-auto',
+      priority: 'low',
+      category: 'cg-harvest',
+      title: 'Auto-Harvest Active — 0% Capital Gains Bracket',
+      description: `Your plan automatically realizes ${formatCurrency(alreadyHarvested)} in brokerage gains at 0% federal tax over the projection, stepping up your cost basis each year. This is already reflected in your projections.`,
+      impact: 'Turn this off anytime under Tax Settings → "Auto-harvest 0% capital gains bracket".',
+      icon: <Coins className="h-5 w-5 text-success" />,
+    });
+  }
+
   if (cgSchedule.length > 0 && taxableUnrealizedGains && taxableUnrealizedGains > 1000) {
     const scheduleLines = cgSchedule.slice(0, 5).map(
       s => `Age ${s.age} (${s.year}): Realize ${formatCurrency(s.harvestable)} in gains at 0% federal tax (${formatCurrency(s.room)} bracket room)`
