@@ -532,6 +532,34 @@ export const ProjectionTable = memo(function ProjectionTable({
             </div>
           </div>
         </div>
+
+        {showHarvestNote && (
+          <div className="mt-3 rounded-md border border-green-700/20 border-l-4 border-l-green-700 bg-green-600/5 px-3 py-2 text-xs sm:text-sm leading-relaxed">
+            {autoHarvestCapitalGains === false ? (
+              <p className="text-foreground">
+                <span className="font-semibold text-foreground">CG Harvest is switched off.</span>{" "}
+                The "Auto-harvest 0% capital gains" option in Tax Settings is turned off, so the plan
+                never realizes brokerage gains into the free 0% band.
+              </p>
+            ) : harvestRows.length > 0 ? (
+              <p className="text-foreground">
+                <span className="font-semibold text-foreground">CG Harvest:</span>{" "}
+                {harvestRows.length} of {projections.length} years used the free 0% capital-gains band
+                — {formatCurrency(totalHarvested)} of gains realized at 0% federal tax and permanently
+                added to your cost basis. Blank years had no free room left.
+              </p>
+            ) : (
+              <p className="text-foreground">
+                <span className="font-semibold text-foreground">Why CG Harvest is blank:</span>{" "}
+                your income already fills the 0% capital-gains band — roughly $47,000 single or $94,000
+                married of taxable income after the standard deduction, rising with inflation each year.
+                Roth conversions, RMDs, wages or pension income usually take that space first, and
+                filling it with conversions is generally worth more than harvesting gains.
+              </p>
+            )}
+          </div>
+        )}
+        
         
         {projections.some(p => hasIRMAAWarning(p.irmaa)) && (
           <Alert className="mt-4 border-warning/50 bg-warning/10">
