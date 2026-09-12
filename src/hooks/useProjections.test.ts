@@ -165,3 +165,66 @@ test("already-claiming person receives their actual check from year 1, unadjuste
   // COLA compounds from today forward
   assert.equal(Math.round(second.ssIncome), Math.round(36000 * 1.025));
 });
+
+function buildHarvestScenario() {
+  const base = buildRegressionScenario();
+  base.accounts = {
+    spouse1Traditional: 0,
+    spouse2Traditional: 0,
+    roth: 0,
+    taxable: 1000000,
+    traditionalReturn: 3,
+    rothReturn: 3,
+    taxableReturn: 3,
+    taxableCostBasisPercent: 50,
+  };
+  base.taxSettings.targetTakeHome = 0; // no withdrawals needed → pure harvesting
+  base.taxSettings.state = "none";
+  base.taxSettings.stateRate = 0;
+  base.taxSettings.spouse1Employment = {
+    ...base.taxSettings.spouse1Employment,
+    currentIncome: 0,
+    retirementAge: 66,
+    contributes401k: false,
+    contribution401kAmount: 0,
+    roth401kAmount: 0,
+    employerMatchAmount: 0,
+    pension: { monthlyAmount: 0, startAge: 100, cola: 0 },
+  };
+  base.ssData.spouse1 = { estimatedBenefit: 0, claimAge: 100, lifeExpectancy: 100 };
+  return base;
+}
+
+test("auto-harvest fills the 0% LTCG bracket and steps up basis at $0 federal tax", () => {
+  const { accounts, ssData, taxSettings } = buildHarvestScenario();
+  taxSettings.autoHarvestCapitalGains = true;
+
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  const first = projections[0];
+
+  // Single filer 0% LTCG top is $47,025 (2024), inflation-indexed.
+  // No other income → harvest should fill close to the bracket top.
+  assert.ok(first.capitalGainsHarvested > 40000, `expected a large harvest, got ${first.capitalGainsHarvested}`);
+  assert.ok(first.capitalGainsHarvested <= 50000, `harvest should stay within the 0% bracket, got ${first.capitalGainsHarvested}`);
+  assert.equal(Math.round(first.federalCapitalGainsTax), 0);
+  // Basis step-up: second-year harvest should still be possible (gains remain)
+  assert.ok(first.taxableBalance > 0);
+});
+
+test("auto-harvest disabled produces zero harvest", () => {
+  const { accounts, ssData, taxSettings } = buildHarvestScenario();
+  taxSettings.autoHarvestCapitalGains = false;
+
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  assert.equal(projections[0].capitalGainsHarvested, 0);
+});
+
+test("no harvest when income already fills the 0% bracket", () => {
+  const { accounts, ssData, taxSettings } = buildHarvestScenario();
+  taxSettings.autoHarvestCapitalGains = true;
+  // Large SS benefit pushes ordinary income past the 0% LTCG bracket top
+  ssData.spouse1 = { estimatedBenefit: 8000, claimAge: 66, lifeExpectancy: 100 };
+
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  assert.equal(projections[0].capitalGainsHarvested, 0);
+});

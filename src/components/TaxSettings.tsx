@@ -29,6 +29,7 @@ interface TaxSettingsProps {
     rothConversionStrategy: string;
     rothConversionCustom: number;
     neverTriggerIRMAA?: boolean;
+    autoHarvestCapitalGains?: boolean;
     
     stateRelocation?: {
       enabled: boolean;
@@ -420,6 +421,25 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
               />
             </div>
           )}
+
+          <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2.5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="autoHarvestCapitalGains" className="cursor-pointer">
+                  Auto-harvest 0% capital gains bracket
+                </Label>
+                <InfoTooltip text="Each year, automatically realize brokerage gains up to the top of the 0% federal long-term capital gains bracket (sell and rebuy). This steps up your cost basis tax-free, reducing taxes on future withdrawals. Harvested gains still count toward MAGI for IRMAA, ACA subsidies, and state taxes." />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Realize gains tax-free each year and step up basis — no cash leaves the account.
+              </p>
+            </div>
+            <Switch
+              id="autoHarvestCapitalGains"
+              checked={taxSettings.autoHarvestCapitalGains !== false}
+              onCheckedChange={(checked) => handleChange('autoHarvestCapitalGains', checked)}
+            />
+          </div>
         </div>
 
         <div className="pt-4 border-t space-y-4">

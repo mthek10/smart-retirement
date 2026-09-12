@@ -241,10 +241,18 @@ export function ActionItems({
   let totalCGHarvestable = 0;
   let remainingGains = taxableUnrealizedGains || 0;
 
+  let alreadyHarvested = 0;
   for (let i = 0; i < Math.min(maxRothYears, projections.length); i++) {
     const p = projections[i];
     if (remainingGains < 1000) break;
     if (p.taxableBalance < 1000) break;
+    // Gains the engine already auto-harvested this year don't need advice
+    const executed = p.capitalGainsHarvested || 0;
+    if (executed > 0) {
+      alreadyHarvested += executed;
+      remainingGains -= executed;
+      continue;
+    }
     const taxableIncomeForCG = Math.max(0, p.ordinaryIncome - standardDeduction * Math.pow(1 + inflationRate / 100, i));
     const cgRoom = calculateCapitalGainsHarvestingRoom(
       taxableIncomeForCG,
@@ -258,6 +266,18 @@ export function ActionItems({
       totalCGHarvestable += harvestable;
       remainingGains -= harvestable;
     }
+  }
+
+  if (alreadyHarvested > 1000) {
+    actionItems.push({
+      id: 'cg-harvesting-auto',
+      priority: 'low',
+      category: 'cg-harvest',
+      title: 'Auto-Harvest Active — 0% Capital Gains Bracket',
+      description: `Your plan automatically realizes ${formatCurrency(alreadyHarvested)} in brokerage gains at 0% federal tax over the projection, stepping up your cost basis each year. This is already reflected in your projections.`,
+      impact: 'Turn this off anytime under Tax Settings → "Auto-harvest 0% capital gains bracket".',
+      icon: <Coins className="h-5 w-5 text-success" />,
+    });
   }
 
   if (cgSchedule.length > 0 && taxableUnrealizedGains && taxableUnrealizedGains > 1000) {
