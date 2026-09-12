@@ -814,7 +814,10 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="projections" className="mt-6 space-y-6">
-            <ProjectionTable projections={projections} />
+            <ProjectionTable
+              projections={projections}
+              autoHarvestCapitalGains={taxSettings.autoHarvestCapitalGains !== false}
+            />
 
             <div className="flex justify-end pt-2">
               <Button onClick={() => setActiveTab("analysis")} className="px-8">
