@@ -56,6 +56,8 @@ interface YearProjection {
 
 interface ProjectionTableProps {
   projections: YearProjection[];
+  /** Whether the "Auto-harvest 0% capital gains" switch is on in Tax Settings. */
+  autoHarvestCapitalGains?: boolean;
 }
 
 type ColumnGroup = "balances" | "income" | "taxes" | "healthcare" | "lifeEvents" | "charitable";
@@ -69,7 +71,10 @@ const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] =
   { id: "charitable", label: "Charitable", description: "Annual donations, QCDs, and itemized deductions" },
 ];
 
-export const ProjectionTable = memo(function ProjectionTable({ projections }: ProjectionTableProps) {
+export const ProjectionTable = memo(function ProjectionTable({
+  projections,
+  autoHarvestCapitalGains = true,
+}: ProjectionTableProps) {
   const [activeGroups, setActiveGroups] = useState<Set<ColumnGroup>>(
     new Set(["balances", "income"])
   );
@@ -101,6 +106,12 @@ export const ProjectionTable = memo(function ProjectionTable({ projections }: Pr
 
 
   const hasIRMAAWarning = (irmaa: number) => irmaa > 0;
+
+  // CG Harvest footnote state
+  const hasBrokerage = projections.some(p => p.taxableBalance > 0);
+  const harvestRows = projections.filter(p => (p.capitalGainsHarvested ?? 0) > 0);
+  const totalHarvested = harvestRows.reduce((sum, p) => sum + (p.capitalGainsHarvested ?? 0), 0);
+  const showHarvestNote = show("income") && hasBrokerage && projections.length > 0;
 
   const handleExportToCSV = () => {
     if (projections.length === 0) return;
