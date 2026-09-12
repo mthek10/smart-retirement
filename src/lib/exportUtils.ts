@@ -119,6 +119,7 @@ const PROJECTION_COLUMNS: { key: keyof ProjectionRow; header: string }[] = [
   { key: "excessSavings", header: "Excess Saved" },
   { key: "rmd", header: "RMD" },
   { key: "rothConversion", header: "Conversion" },
+  { key: "capitalGainsHarvested", header: "CG Harvested (0% Bracket)" },
   { key: "marginalBracket", header: "Tax Bracket" },
   // Taxes group
   { key: "payrollTax", header: "Payroll Tax" },
