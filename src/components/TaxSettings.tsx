@@ -30,6 +30,7 @@ interface TaxSettingsProps {
     rothConversionCustom: number;
     neverTriggerIRMAA?: boolean;
     autoHarvestCapitalGains?: boolean;
+    harvestFifteenBracket?: boolean;
     
     stateRelocation?: {
       enabled: boolean;
@@ -438,6 +439,26 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
               id="autoHarvestCapitalGains"
               checked={taxSettings.autoHarvestCapitalGains !== false}
               onCheckedChange={(checked) => handleChange('autoHarvestCapitalGains', checked)}
+            />
+          </div>
+
+          <div className={`flex items-start justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2.5 ml-4 ${taxSettings.autoHarvestCapitalGains === false ? 'opacity-50' : ''}`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="harvestFifteenBracket" className="cursor-pointer">
+                  Also harvest into the 15% capital gains bracket
+                </Label>
+                <InfoTooltip text="After filling the 0% bracket, keep realizing gains up to the top of the 15% federal LTCG bracket. The 15% tax is paid from the sale proceeds (your take-home is unaffected) and your cost basis steps up, cutting taxes on future withdrawals. Best for large brokerage accounts that would otherwise hit the 20% bracket + NIIT later. Harvesting is automatically capped so it never triggers IRMAA (when that option is on) or the 3.8% NIIT surtax." />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Prepay 15% now to step up basis — only wins for large brokerage accounts facing 20% + NIIT later.
+              </p>
+            </div>
+            <Switch
+              id="harvestFifteenBracket"
+              disabled={taxSettings.autoHarvestCapitalGains === false}
+              checked={!!taxSettings.harvestFifteenBracket && taxSettings.autoHarvestCapitalGains !== false}
+              onCheckedChange={(checked) => handleChange('harvestFifteenBracket', checked)}
             />
           </div>
         </div>
