@@ -10,6 +10,7 @@ interface StrategyComparisonProps {
   currentMetrics: StrategyMetrics;
   autoMaxMetrics: StrategyMetrics;
   autoMaxStrategy: string;
+  autoMaxLabel?: string;
   survivorSmoothedMetrics: StrategyMetrics | null;
   currentStrategyName: string;
   currentStrategyKey: string;
@@ -32,6 +33,7 @@ export function StrategyComparison({
   currentMetrics,
   autoMaxMetrics,
   autoMaxStrategy,
+  autoMaxLabel,
   survivorSmoothedMetrics,
   currentStrategyName,
   currentStrategyKey,
@@ -39,7 +41,9 @@ export function StrategyComparison({
   survivorEnabled = false,
 }: StrategyComparisonProps) {
 
-  const autoMaxName = `Maximize Lifetime Wealth (${STRATEGY_LABEL[autoMaxStrategy] ?? autoMaxStrategy})`;
+  const plainAutoLabel = STRATEGY_LABEL[autoMaxStrategy] ?? autoMaxStrategy;
+  const autoIsSequenced = !!autoMaxLabel && autoMaxLabel !== plainAutoLabel && autoMaxStrategy !== 'none';
+  const autoMaxName = `Maximize Lifetime Wealth (${autoIsSequenced ? autoMaxLabel : plainAutoLabel})`;
 
   // Hide the "current" column when its underlying strategy duplicates baseline,
   // optimized, or auto-max. Compare strategy keys, not display labels.
@@ -47,10 +51,10 @@ export function StrategyComparison({
   const effectiveCurrentKey = currentStrategyKey === 'maximize_after_tax' ? autoMaxStrategy : currentStrategyKey;
   const showCurrentColumn = effectiveCurrentKey !== 'none'
     && effectiveCurrentKey !== 'fill_22'
-    && effectiveCurrentKey !== autoMaxStrategy;
+    && (effectiveCurrentKey !== autoMaxStrategy || autoIsSequenced) && currentStrategyKey !== 'maximize_after_tax';
   // Hide Baseline / Optimized columns when auto-max already represents them
   const showBaselineColumn = autoMaxStrategy !== 'none';
-  const showOptimizedColumn = autoMaxStrategy !== 'fill_22';
+  const showOptimizedColumn = autoMaxStrategy !== 'fill_22' || autoIsSequenced;
   const visibleStrategyCols = (showBaselineColumn ? 1 : 0) + (showCurrentColumn ? 1 : 0) + (showOptimizedColumn ? 1 : 0) + 1;
   const colCount = visibleStrategyCols + 1;
 

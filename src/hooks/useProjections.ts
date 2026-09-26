@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { pickBestAfterTaxStrategyCached } from "@/lib/strategyOptimizer";
+import { pickBestAfterTaxStrategyCached, applySequencing } from "@/lib/strategyOptimizer";
 import { 
   calculateFederalTax, 
   calculateIRMAA,
@@ -149,6 +149,10 @@ export interface TaxSettings {
   autoHarvestCapitalGains?: boolean;
   /** When true (default false), also harvest gains up to the top of the 15% federal LTCG bracket. Pays 15% tax now (from sale proceeds) to step up basis. Requires autoHarvestCapitalGains. */
   harvestFifteenBracket?: boolean;
+  /** Roth conversions only begin at this (primary) age. null/undefined = start now. */
+  rothConversionStartAge?: number | null;
+  /** In years where both compete: 'harvest_first' caps conversions to preserve 0% LTCG room for unrealized gains. */
+  conversionPriority?: 'conversions_first' | 'harvest_first';
   acaSettings: ACASettings;
   spouse1Employment: EmploymentSettings;
   spouse2Employment: EmploymentSettings;
@@ -195,6 +199,8 @@ export interface ProjectionRow {
   capitalGainsHarvested: number;
   /** Gains harvested into the 15% federal LTCG bracket this year (tax paid from sale proceeds; basis stepped up). */
   capitalGainsHarvested15: number;
+  /** End-of-year brokerage cost basis (average-cost). */
+  taxableCostBasis?: number;
   rothConversion: number;
   marginalBracket: number;
   conversionExcessReinvested: number;
@@ -497,10 +503,15 @@ export function calculateProjections(
   
   // Use override strategy if provided, otherwise use settings
   let effectiveConversionStrategy = strategyOverride ?? taxSettings.rothConversionStrategy;
-  // "Maximize Lifetime Wealth (Auto)" — resolve to the candidate that produces
-  // the highest After-Tax Equivalent. Guard against re-entry from the optimizer.
+  let effectiveConversionStartAge: number | null = taxSettings.rothConversionStartAge ?? null;
+  let effectiveConversionPriority = taxSettings.conversionPriority ?? 'conversions_first';
+  // "Maximize Lifetime Wealth (Auto)" — resolve to the candidate (size + start age +
+  // harvest/conversion priority) with the highest After-Tax Equivalent.
   if (effectiveConversionStrategy === 'maximize_after_tax' && !strategyOverride) {
-    effectiveConversionStrategy = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
+    const best = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings);
+    effectiveConversionStrategy = best.best;
+    effectiveConversionStartAge = best.startAge;
+    effectiveConversionPriority = best.priority;
   } else if (effectiveConversionStrategy === 'maximize_after_tax') {
     effectiveConversionStrategy = 'fill_22';
   }
@@ -1030,7 +1041,8 @@ export function calculateProjections(
     
     const remainingTradForConversion = spouse1TradBalance + spouse2TradBalance;
     
-    if (targetIncomeLimit > 0 && remainingTradForConversion > 0) {
+    const conversionStarted = effectiveConversionStartAge == null || age >= effectiveConversionStartAge;
+    if (conversionStarted && targetIncomeLimit > 0 && remainingTradForConversion > 0) {
       const realizedGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
       const capitalGains = realizedGains + qualifiedDividends + homeSaleTaxableGain;
       const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages + totalPensionIncome + ordinaryDividends;
@@ -1120,6 +1132,21 @@ export function calculateProjections(
         }
       }
       
+      // Harvest-first: leave the 0% LTCG band free for unrealized brokerage gains
+      if (
+        proposedConversion > 0 &&
+        effectiveConversionPriority === 'harvest_first' &&
+        taxSettings.autoHarvestCapitalGains !== false &&
+        taxableBalance > 0
+      ) {
+        const unrealizedForReserve = Math.max(0, taxableBalance - costBasisDollars);
+        const { zeroRateBracketTop } = calculateCapitalGainsHarvestingRoom(0, effectiveFilingStatus, i, taxSettings.inflationRate / 100);
+        const deductionForReserve = stdInflatedBase + extraDeduction;
+        const maxOrdinaryGross = zeroRateBracketTop + deductionForReserve - capitalGains - unrealizedForReserve;
+        const cap = Math.max(0, maxOrdinaryGross - totalOrdinaryIncomePreConversion);
+        proposedConversion = Math.min(proposedConversion, cap);
+      }
+
       rothConversion = proposedConversion;
       
       // Calculate excess from aggressive conversion (income beyond spending needs)
@@ -1434,6 +1461,7 @@ export function calculateProjections(
       capitalGainsIncome: capitalGains,
       capitalGainsHarvested,
       capitalGainsHarvested15,
+      taxableCostBasis: Math.min(costBasisDollars, Math.max(0, taxableBalance)),
       rothConversion,
       marginalBracket,
       conversionExcessReinvested,
@@ -1464,6 +1492,8 @@ export interface TwoPassResult {
   optimizedMetrics: StrategyMetrics;
   autoMaxMetrics: StrategyMetrics;
   autoMaxStrategy: string;
+  /** Human-readable Auto choice incl. sequencing (e.g. "Fill to 22%, from 65, 0% harvest first"). */
+  autoMaxLabel: string;
   survivorSmoothedMetrics: StrategyMetrics | null;
   taxSavings: number;
   survivorTaxSavings: number;
@@ -1657,8 +1687,10 @@ export function useTwoPassProjections(
     const optimizedProjections = calculateProjections(accounts, ssData, taxSettings, 'fill_22');
 
     // Maximize Lifetime Wealth (Auto) — pick best fill-bracket strategy by After-Tax Equivalent
-    const autoMaxStrategy = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
-    const autoMaxProjections = calculateProjections(accounts, ssData, taxSettings, autoMaxStrategy);
+    const autoMaxResult = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings);
+    const autoMaxStrategy = autoMaxResult.best;
+    const autoMaxSettings = applySequencing(taxSettings, autoMaxResult);
+    const autoMaxProjections = calculateProjections(accounts, ssData, autoMaxSettings, autoMaxStrategy);
 
     // Survivor-smoothed projections (only if survivor scenario is enabled)
     const survivorEnabled = taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married';
@@ -1678,7 +1710,7 @@ export function useTwoPassProjections(
     currentMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings);
     baselineMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'none');
     optimizedMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'fill_22');
-    autoMaxMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, autoMaxStrategy);
+    autoMaxMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, autoMaxSettings, autoMaxStrategy);
 
     // After-tax final balance: Trad − federal lump-sum tax + Roth + Taxable × (1 − LTCG × gainFraction)
     const ASSUMED_LTCG_RATE = 0.15;
@@ -1737,6 +1769,7 @@ export function useTwoPassProjections(
       optimizedMetrics,
       autoMaxMetrics,
       autoMaxStrategy,
+      autoMaxLabel: autoMaxResult.label,
       survivorSmoothedMetrics,
       taxSavings,
       survivorTaxSavings,

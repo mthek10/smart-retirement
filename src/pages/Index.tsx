@@ -73,6 +73,8 @@ const DEFAULT_TAX_SETTINGS = {
   neverTriggerIRMAA: false,
   autoHarvestCapitalGains: true,
   harvestFifteenBracket: false,
+  rothConversionStartAge: null as number | null,
+  conversionPriority: 'conversions_first' as 'conversions_first' | 'harvest_first',
   acaSettings: {
     enabled: true,
     householdSize: 2,
@@ -733,6 +735,7 @@ const Index = () => {
               onClearSavedDraft={handleForgetBrowserSave}
               projections={projections}
               monteCarloResults={monteCarloResults}
+              autoStrategyLabel={twoPassResults?.autoMaxLabel}
               monteCarloSettings={monteCarloSettings}
               onMonteCarloSettingsChange={setMonteCarloSettings}
             />
@@ -843,6 +846,7 @@ const Index = () => {
               currentMetrics={twoPassResults.currentMetrics}
               autoMaxMetrics={twoPassResults.autoMaxMetrics}
               autoMaxStrategy={twoPassResults.autoMaxStrategy}
+              autoMaxLabel={twoPassResults.autoMaxLabel}
               survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
               currentStrategyName={currentStrategyName}
               currentStrategyKey={taxSettings.rothConversionStrategy || 'none'}

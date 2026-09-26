@@ -301,3 +301,49 @@ test("senior bonus expires after 2028", () => {
   // yearIndex 3 = 2029 → only the additional standard deduction remains
   assert.equal(getSeniorDeduction("single", 70, 0, 50000, 3, 0), 2050);
 });
+
+import { pickBestAfterTaxStrategy } from "@/lib/strategyOptimizer";
+
+function buildSequencingScenario() {
+  const base = buildHarvestScenario();
+  base.taxSettings.spouse1Age = 60;
+  base.accounts.spouse1Traditional = 800000;
+  base.accounts.taxable = 800000;
+  base.accounts.taxableCostBasisPercent = 20;
+  base.taxSettings.targetTakeHome = 40000;
+  base.taxSettings.autoHarvestCapitalGains = true;
+  base.taxSettings.rothConversionStrategy = "fill_12";
+  base.ssData.spouse1 = { estimatedBenefit: 2500, claimAge: 70, lifeExpectancy: 100 };
+  return base;
+}
+
+test("harvest_first keeps more 0% harvest than conversions_first in the same year", () => {
+  const { accounts, ssData, taxSettings } = buildSequencingScenario();
+  const convFirst = calculateProjections(accounts, ssData, { ...taxSettings, conversionPriority: "conversions_first" });
+  const harvFirst = calculateProjections(accounts, ssData, { ...taxSettings, conversionPriority: "harvest_first" });
+  assert.ok(harvFirst[0].capitalGainsHarvested >= convFirst[0].capitalGainsHarvested);
+  assert.ok(harvFirst[0].capitalGainsHarvested > 0);
+});
+
+test("conversion start age delays conversions", () => {
+  const { accounts, ssData, taxSettings } = buildSequencingScenario();
+  const proj = calculateProjections(accounts, ssData, { ...taxSettings, rothConversionStartAge: 65 });
+  assert.ok(proj.filter(r => r.age < 65).every(r => r.rothConversion === 0));
+  assert.ok(proj.some(r => r.age >= 65 && r.rothConversion > 0));
+});
+
+test("optimizer returns a sequencing choice with a readable label", () => {
+  const { accounts, ssData, taxSettings } = buildSequencingScenario();
+  const r = pickBestAfterTaxStrategy(accounts, ssData, taxSettings);
+  assert.ok(r.label.length > 0);
+  assert.ok(r.ranking.length > 5);
+  assert.ok(r.ranking[0].terminalAfterTax >= r.ranking[r.ranking.length - 1].terminalAfterTax);
+  console.log("best:", r.label);
+});
+
+test("defaults (no start age, conversions first) match explicit conversions_first", () => {
+  const { accounts, ssData, taxSettings } = buildSequencingScenario();
+  const a = calculateProjections(accounts, ssData, taxSettings);
+  const b = calculateProjections(accounts, ssData, { ...taxSettings, rothConversionStartAge: null, conversionPriority: "conversions_first" });
+  assert.equal(a[a.length - 1].taxableBalance, b[b.length - 1].taxableBalance);
+});

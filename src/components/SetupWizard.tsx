@@ -50,6 +50,7 @@ interface SetupWizardProps {
   onClearSavedDraft: () => void;
   projections?: import("@/hooks/useProjections").ProjectionRow[];
   monteCarloResults?: import("@/hooks/useMonteCarloSimulation").MonteCarloResult;
+  autoStrategyLabel?: string;
   monteCarloSettings?: import("@/hooks/useMonteCarloSimulation").MonteCarloSettings;
   onMonteCarloSettingsChange?: (settings: import("@/hooks/useMonteCarloSimulation").MonteCarloSettings) => void;
 }
@@ -69,6 +70,7 @@ export function SetupWizard({
   onClearSavedDraft,
   projections,
   monteCarloResults,
+  autoStrategyLabel,
   monteCarloSettings,
   onMonteCarloSettingsChange,
 }: SetupWizardProps) {
@@ -181,7 +183,7 @@ export function SetupWizard({
       case "tax": {
         const isMarried = taxSettings.filingStatus === 'married';
         const totalPortfolio = accounts.spouse1Traditional + (isMarried ? accounts.spouse2Traditional : 0) + accounts.roth + accounts.taxable;
-        return <TaxSettings taxSettings={taxSettings} onChange={onTaxSettingsChange} totalPortfolio={totalPortfolio} projections={projections} accounts={accounts} monteCarloResults={monteCarloResults} monteCarloSettings={monteCarloSettings} onMonteCarloSettingsChange={onMonteCarloSettingsChange} />;
+        return <TaxSettings taxSettings={taxSettings} onChange={onTaxSettingsChange} totalPortfolio={totalPortfolio} projections={projections} accounts={accounts} monteCarloResults={monteCarloResults} autoStrategyLabel={autoStrategyLabel} monteCarloSettings={monteCarloSettings} onMonteCarloSettingsChange={onMonteCarloSettingsChange} />;
       }
       case "aca":
         return (
