@@ -435,7 +435,8 @@ export function calculateACASubsidy(
   householdSize: number,
   enrolleeAges: number[],
   yearIndex: number = 0,
-  inflationRate: number = 0
+  inflationRate: number = 0,
+  benchmarkPremiumOverride?: number
 ): { subsidy: number; premium: number; netPremium: number } {
   // No subsidy if no one is enrolled
   if (enrolleeAges.length === 0) {
@@ -448,12 +449,15 @@ export function calculateACASubsidy(
   const fpl = (federalPovertyLevel2024[householdSize] || federalPovertyLevel2024[8]) * inflationMultiplier;
   const fplPercent = (magi / fpl) * 100;
   
-  // Calculate benchmark premium for all enrollees
-  let totalBenchmarkPremium = 0;
-  for (const age of enrolleeAges) {
-    if (age < 65) {
-      const monthlyPremium = interpolatePremium(age) * inflationMultiplier;
-      totalBenchmarkPremium += monthlyPremium * 12;
+  // Calculate benchmark premium for all enrollees, unless the household supplied
+  // its local annual benchmark premium.
+  let totalBenchmarkPremium = benchmarkPremiumOverride ?? 0;
+  if (benchmarkPremiumOverride === undefined) {
+    for (const age of enrolleeAges) {
+      if (age < 65) {
+        const monthlyPremium = interpolatePremium(age) * inflationMultiplier;
+        totalBenchmarkPremium += monthlyPremium * 12;
+      }
     }
   }
   

@@ -362,17 +362,13 @@ function buildHealthcareScenario() {
   return base;
 }
 
-test("ACA enabled: manual health insurance cost is not stacked on top of the ACA premium", () => {
+test("ACA enabled: entered annual premium is the actual premium before subsidy", () => {
   const { accounts, ssData, taxSettings } = buildHealthcareScenario();
-  const withManual = calculateProjections(accounts, ssData, taxSettings);
-  const withoutManual = calculateProjections(accounts, ssData, {
-    ...taxSettings,
-    acaSettings: { ...taxSettings.acaSettings, annualHealthInsuranceCost: 0 },
-  });
-  const year1With = withManual.find((row) => row.age === 60)!;
-  const year1Without = withoutManual.find((row) => row.age === 60)!;
-  assert.ok(year1With.acaSubsidy > 0 || year1With.healthcareCost > 0);
-  assert.equal(year1With.healthcareCost, year1Without.healthcareCost);
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  const year1 = projections.find((row) => row.age === 60);
+  assert.ok(year1);
+  assert.equal(year1.acaPremium, 10000);
+  assert.equal(year1.healthcareCost, Math.max(0, 10000 - year1.acaSubsidy));
 });
 
 test("ACA disabled: manual health insurance cost is used as-is pre-Medicare", () => {
@@ -385,18 +381,64 @@ test("ACA disabled: manual health insurance cost is used as-is pre-Medicare", ()
   assert.ok(at65.healthcareCost < 10000, "manual cost stops at Medicare age");
 });
 
-test("mixed-age married year: manual cost excluded, ACA covers the under-65 spouse", () => {
+test("MFJ: entered annual premium is used once rather than per spouse", () => {
   const base = buildHealthcareScenario();
   base.taxSettings.filingStatus = "married";
-  base.taxSettings.spouse1Age = 66;
+  base.taxSettings.spouse1Age = 60;
+  base.taxSettings.spouse2Age = 61;
+  base.taxSettings.acaSettings.householdSize = 2;
+  const projections = calculateProjections(base.accounts, base.ssData, base.taxSettings);
+  const year1 = projections.find((row) => row.age === 61);
+  assert.ok(year1);
+  assert.equal(year1.acaPremium, 10000);
+  assert.equal(year1.healthcareCost, Math.max(0, 10000 - year1.acaSubsidy));
+});
+
+test("MFJ: entered premium replaces a higher modeled benchmark", () => {
+  const base = buildHealthcareScenario();
+  base.taxSettings.filingStatus = "married";
+  base.taxSettings.spouse1Age = 63;
+  base.taxSettings.spouse2Age = 64;
+  base.taxSettings.acaSettings.householdSize = 2;
+  const projections = calculateProjections(base.accounts, base.ssData, base.taxSettings);
+  const year1 = projections.find((row) => row.age === 64);
+  assert.ok(year1);
+  assert.equal(year1.acaPremium, 10000);
+  assert.ok(year1.healthcareCost <= 10000);
+});
+
+test("mixed-age married year: household premium is allocated to the under-65 spouse", () => {
+  const base = buildHealthcareScenario();
+  base.taxSettings.filingStatus = "married";
+  base.taxSettings.spouse1Age = 64;
   base.taxSettings.spouse2Age = 60;
   base.taxSettings.acaSettings.householdSize = 2;
   const projections = calculateProjections(base.accounts, base.ssData, base.taxSettings);
-  const year1 = projections.find((row) => row.age === 66)!;
-  // Healthcare = Medicare premiums (66yo) + net ACA (60yo) only; no $10,000 manual cost stacked.
-  const withZeroManual = calculateProjections(base.accounts, base.ssData, {
-    ...base.taxSettings,
-    acaSettings: { ...base.taxSettings.acaSettings, annualHealthInsuranceCost: 0 },
-  });
-  assert.equal(year1.healthcareCost, withZeroManual.find((row) => row.age === 66)!.healthcareCost);
+  const mixedAgeYear = projections.find((row) => row.age === 65);
+  assert.ok(mixedAgeYear);
+  assert.equal(mixedAgeYear.acaPremium, 5000);
+  assert.equal(
+    mixedAgeYear.healthcareCost,
+    mixedAgeYear.medicarePremiums + mixedAgeYear.irmaa + Math.max(0, 5000 - mixedAgeYear.acaSubsidy),
+  );
+});
+
+test("ACA subsidy cannot reduce the entered premium below zero", () => {
+  const { accounts, ssData, taxSettings } = buildHealthcareScenario();
+  taxSettings.acaSettings.annualHealthInsuranceCost = 1000;
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  const year1 = projections.find((row) => row.age === 60);
+  assert.ok(year1);
+  assert.equal(year1.acaSubsidy, 1000);
+  assert.equal(year1.healthcareCost, 0);
+});
+
+test("ACA enabled without an entered premium falls back to the modeled benchmark", () => {
+  const { accounts, ssData, taxSettings } = buildHealthcareScenario();
+  taxSettings.acaSettings.annualHealthInsuranceCost = 0;
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  const year1 = projections.find((row) => row.age === 60);
+  assert.ok(year1);
+  assert.ok(year1.acaPremium > 0);
+  assert.equal(year1.healthcareCost, year1.acaPremium - year1.acaSubsidy);
 });
