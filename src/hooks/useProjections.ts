@@ -25,7 +25,9 @@ import {
   calculateACASubsidy,
   calculateSurvivorSSBenefit,
   calculateCapitalGainsHarvestingRoom,
-  niitThresholds2024
+  niitThresholds2024,
+  standardDeductions2024,
+  getSeniorDeduction,
 } from "@/lib/taxCalculations";
 
 export interface Accounts {
@@ -508,6 +510,7 @@ export function calculateProjections(
   let spouse1DeathYearIndex: number | null = null;
   let spouse2DeathYearIndex: number | null = null;
 
+  let prevYearMagi = taxSettings.targetTakeHome || 0;
   for (let i = 0; i <= maxYears; i++) {
     const year = new Date().getFullYear() + i;
     const spouse1CurrentAge = taxSettings.spouse1Age + i;
@@ -858,12 +861,19 @@ export function calculateProjections(
 
     const otherItemized = giving?.enabled ? (giving.otherItemizedDeductions || 0) : 0;
     const itemizedTotal = charitableCashDeduction + charitableSharesDeduction + otherItemized;
-    const extraDeduction = (() => {
-      if (itemizedTotal <= 0) return 0;
-      const baseStd = effectiveFilingStatus === 'married' ? 29200 : effectiveFilingStatus === 'hoh' ? 21900 : 14600;
-      const stdInflated = baseStd * Math.pow(1 + taxSettings.inflationRate / 100, i);
-      return Math.max(0, itemizedTotal - stdInflated);
-    })();
+    // Standard deduction (2026 base) + 65+ additions / OBBBA senior bonus (uses prior-year MAGI).
+    const baseStd = standardDeductions2024[effectiveFilingStatus] || standardDeductions2024.single;
+    const stdInflatedBase = baseStd * Math.pow(1 + taxSettings.inflationRate / 100, i);
+    const seniorDeduction = getSeniorDeduction(
+      effectiveFilingStatus,
+      effectiveFilingStatus === 'married' ? spouse1CurrentAge : age,
+      spouse2CurrentAge,
+      prevYearMagi,
+      i,
+      taxSettings.inflationRate / 100,
+    );
+    const usesItemized = itemizedTotal > stdInflatedBase + seniorDeduction;
+    const extraDeduction = usesItemized ? itemizedTotal - stdInflatedBase : seniorDeduction;
 
     // Brokerage dividends: paid annually, taxed, then reinvested (increases basis)
     const qualifiedDividends = taxableBalance * (qualifiedDividendYield / 100);
@@ -1220,7 +1230,7 @@ export function calculateProjections(
       if (totalHarvest > 0 && taxSettings.harvestFifteenBracket) {
         const magiBase = preHarvestOrdinary + ssWithHarvest + preHarvestGains;
         const niitBase = niitThresholds2024[effectiveFilingStatus] || niitThresholds2024.single;
-        const niitThreshold = niitBase * Math.pow(1 + inflationFractionHarvest, i);
+        const niitThreshold = niitBase; // statutory, not inflation-indexed
         totalHarvest = Math.max(0, Math.min(totalHarvest, niitThreshold - magiBase - 1));
       }
 
@@ -1303,6 +1313,7 @@ export function calculateProjections(
 
 
     const magi = totalOrdinaryIncome + capitalGains;
+    prevYearMagi = magi;
     let irmaa = 0;
     if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
       irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
@@ -1436,7 +1447,7 @@ export function calculateProjections(
       homeSaleNetProceeds,
       charitableDonation,
       qcdAmount,
-      itemizedDeduction: extraDeduction > 0 ? itemizedTotal : 0,
+      itemizedDeduction: usesItemized ? itemizedTotal : 0,
     });
   }
 
