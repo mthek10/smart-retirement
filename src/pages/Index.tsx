@@ -73,6 +73,8 @@ const DEFAULT_TAX_SETTINGS = {
   neverTriggerIRMAA: false,
   autoHarvestCapitalGains: true,
   harvestFifteenBracket: false,
+  rothConversionStartAge: null,
+  conversionPriority: 'conversions_first',
   acaSettings: {
     enabled: true,
     householdSize: 2,
@@ -733,6 +735,7 @@ const Index = () => {
               onClearSavedDraft={handleForgetBrowserSave}
               projections={projections}
               monteCarloResults={monteCarloResults}
+              autoStrategyLabel={twoPassResults?.autoMaxLabel}
               monteCarloSettings={monteCarloSettings}
               onMonteCarloSettingsChange={setMonteCarloSettings}
             />

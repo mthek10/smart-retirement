@@ -31,6 +31,8 @@ interface TaxSettingsProps {
     neverTriggerIRMAA?: boolean;
     autoHarvestCapitalGains?: boolean;
     harvestFifteenBracket?: boolean;
+    rothConversionStartAge?: number | null;
+    conversionPriority?: 'conversions_first' | 'harvest_first';
     
     stateRelocation?: {
       enabled: boolean;
@@ -49,6 +51,7 @@ interface TaxSettingsProps {
   monteCarloResults?: MonteCarloResult;
   monteCarloSettings?: MonteCarloSettings;
   onMonteCarloSettingsChange?: (settings: MonteCarloSettings) => void;
+  autoStrategyLabel?: string;
 }
 // Inline currency-formatted input with $ and commas
 function CurrencyInput({ id, value, onChange, max, placeholder }: {
@@ -342,8 +345,13 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
             </Select>
             {taxSettings.rothConversionStrategy === 'maximize_after_tax' ? (
               <p className="text-xs text-muted-foreground">
-                Auto-picks the fill bracket (None / 12% / 22% / 24% / 32%) that produces the highest <strong>After-Tax Equivalent</strong> for your situation. The chosen bracket updates automatically as your inputs change.
+                Tests every combination of fill bracket (None / 12% / 22% / 24% / 32%), when to start converting, and whether to harvest 0% capital gains first — and keeps the one with the highest <strong>After-Tax Equivalent</strong>.
               </p>
+              {autoStrategyLabel && (
+                <p className="text-sm font-medium text-foreground border-l-4 border-primary pl-3 py-1 bg-primary/5 rounded-r">
+                  Current best plan: {autoStrategyLabel}
+                </p>
+              )}
             ) : (
               <p className="text-xs text-muted-foreground">
                 Convert Traditional to Roth to fill your target tax bracket. "Survivor Tax Smoothing" applies aggressive 24% bracket targeting after a spouse passes to prevent tax spikes.
@@ -420,6 +428,39 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
                 checked={!!taxSettings.neverTriggerIRMAA}
                 onCheckedChange={(checked) => handleChange('neverTriggerIRMAA', checked)}
               />
+            </div>
+          )}
+
+          {taxSettings.rothConversionStrategy !== 'none' && taxSettings.rothConversionStrategy !== 'maximize_after_tax' && (
+            <div className="grid gap-3 sm:grid-cols-2 rounded-lg border bg-muted/30 px-3 py-2.5">
+              <div className="space-y-1">
+                <Label htmlFor="rothConversionStartAge">Start Roth conversions at age</Label>
+                <Select
+                  value={taxSettings.rothConversionStartAge == null ? 'now' : String(taxSettings.rothConversionStartAge)}
+                  onValueChange={(v) => handleChange('rothConversionStartAge', v === 'now' ? null : Number(v))}
+                >
+                  <SelectTrigger id="rothConversionStartAge"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="now">Now</SelectItem>
+                    {Array.from({ length: Math.max(0, 80 - taxSettings.spouse1Age) }, (_, k) => taxSettings.spouse1Age + 1 + k).map((a) => (
+                      <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Earlier years are left for 0% gain harvesting.</p>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="conversionPriority" className="cursor-pointer">Harvest 0% gains before converting</Label>
+                  <p className="text-xs text-muted-foreground">Shrinks conversions so they don't use up the 0% capital gains room.</p>
+                </div>
+                <Switch
+                  id="conversionPriority"
+                  disabled={taxSettings.autoHarvestCapitalGains === false}
+                  checked={taxSettings.conversionPriority === 'harvest_first'}
+                  onCheckedChange={(c) => handleChange('conversionPriority', c ? 'harvest_first' : 'conversions_first')}
+                />
+              </div>
             </div>
           )}
 
