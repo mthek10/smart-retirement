@@ -41,6 +41,11 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
           <p className="text-xs text-muted-foreground">
             Enter your annual pre-Medicare health insurance premium. This cost increases annually at the inflation rate and stops once the covered filer reaches Medicare eligibility.
           </p>
+          {acaSettings.enabled && (
+            <p className="text-xs text-muted-foreground italic">
+              Ignored while ACA subsidy calculation is enabled — the modeled marketplace premium (or your Custom Benchmark Premium below) is used instead, so the two never add together.
+            </p>
+          )}
           <p className="text-xs text-muted-foreground italic">
             Note: Medicare eligibility begins at age 65. Mixed-age married years use Medicare for the 65+ spouse and ACA modeling for the under-65 spouse instead of this manual premium.
           </p>
