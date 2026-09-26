@@ -1492,6 +1492,8 @@ export interface TwoPassResult {
   optimizedMetrics: StrategyMetrics;
   autoMaxMetrics: StrategyMetrics;
   autoMaxStrategy: string;
+  /** Human-readable Auto choice incl. sequencing (e.g. "Fill to 22%, from 65, 0% harvest first"). */
+  autoMaxLabel: string;
   survivorSmoothedMetrics: StrategyMetrics | null;
   taxSavings: number;
   survivorTaxSavings: number;
@@ -1767,6 +1769,7 @@ export function useTwoPassProjections(
       optimizedMetrics,
       autoMaxMetrics,
       autoMaxStrategy,
+      autoMaxLabel: autoMaxResult.label,
       survivorSmoothedMetrics,
       taxSavings,
       survivorTaxSavings,

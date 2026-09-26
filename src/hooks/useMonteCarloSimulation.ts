@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Accounts, SSData, TaxSettings } from "./useProjections";
 import { calculateProjections } from "./useProjections";
-import { pickBestAfterTaxStrategyCached, STRATEGY_LABELS } from "@/lib/strategyOptimizer";
+import { pickBestAfterTaxStrategyCached, applySequencing } from "@/lib/strategyOptimizer";
 import { calculateFederalTax } from "@/lib/taxCalculations";
 
 export interface MonteCarloSettings {
@@ -383,12 +383,15 @@ export function useMonteCarloSimulation(
       settings
     );
     
+    const autoResult = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings);
+    const autoSettings = applySequencing(taxSettings, autoResult);
     let currentStrategy = taxSettings.rothConversionStrategy;
+    let currentSettings = taxSettings;
     let currentLabel: string;
     if (currentStrategy === 'maximize_after_tax') {
-      const picked = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
-      currentStrategy = picked;
-      currentLabel = `Auto-Max (${STRATEGY_LABELS[picked]})`;
+      currentStrategy = autoResult.best;
+      currentSettings = autoSettings;
+      currentLabel = `Auto-Max (${autoResult.label})`;
     } else {
       currentLabel =
         currentStrategy === 'none' ? 'No Conversions' :
@@ -399,7 +402,7 @@ export function useMonteCarloSimulation(
         'Custom';
     }
     const current = runStrategySimulation(
-      accounts, ssData, taxSettings,
+      accounts, ssData, currentSettings,
       currentStrategy, currentLabel,
       settings
     );
@@ -411,10 +414,9 @@ export function useMonteCarloSimulation(
     );
 
     // Always include "Maximize Lifetime Wealth" as a comparison strategy
-    const autoPicked = pickBestAfterTaxStrategyCached(accounts, ssData, taxSettings).best;
     const autoMax = runStrategySimulation(
-      accounts, ssData, taxSettings,
-      autoPicked, `Maximize Lifetime Wealth (${STRATEGY_LABELS[autoPicked]})`,
+      accounts, ssData, autoSettings,
+      autoResult.best, `Maximize Lifetime Wealth (${autoResult.label})`,
       settings
     );
 
