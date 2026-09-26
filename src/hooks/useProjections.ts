@@ -1182,8 +1182,7 @@ export function calculateProjections(
       const preHarvestOrdinary = traditionalWithdrawal + rothConversion + taxableWages + totalPensionIncome + yearTaxableIncome + ordinaryDividends - qcdExclusionPre;
       const preHarvestGains = realizedCapitalGains + qualifiedDividends + homeSaleTaxableGain;
       const inflationFractionHarvest = taxSettings.inflationRate / 100;
-      const baseStd = effectiveFilingStatus === 'married' ? 29200 : effectiveFilingStatus === 'hoh' ? 21900 : 14600;
-      const stdInflated = baseStd * Math.pow(1 + inflationFractionHarvest, i) + extraDeduction;
+      const stdInflated = stdInflatedBase + extraDeduction;
       // Size the harvest assuming SS torpedo at full harvest (conservative: avoids spilling into 15%)
       const unrealizedGains = Math.max(0, taxableBalance - costBasisDollars);
       const tentativeHarvest = Math.min(unrealizedGains, Number.MAX_SAFE_INTEGER);
