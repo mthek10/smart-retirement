@@ -1705,7 +1705,7 @@ export function useTwoPassProjections(
     currentMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings);
     baselineMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'none');
     optimizedMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, 'fill_22');
-    autoMaxMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, taxSettings, autoMaxStrategy);
+    autoMaxMetrics.maxAnnualWithdrawalToZero = solveMaxWithdrawalToZero(accounts, ssData, autoMaxSettings, autoMaxStrategy);
 
     // After-tax final balance: Trad − federal lump-sum tax + Roth + Taxable × (1 − LTCG × gainFraction)
     const ASSUMED_LTCG_RATE = 0.15;
