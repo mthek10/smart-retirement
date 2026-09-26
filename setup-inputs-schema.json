@@ -308,12 +308,19 @@
         "max": 8,
         "description": "Total number of people in the household for ACA Federal Poverty Level (FPL) calculation. Includes the filer(s) and any dependents. A larger household size raises the FPL threshold, which can increase the ACA premium tax credit. For a married couple with no dependents, this is typically 2."
       },
+      "annualHealthInsuranceCost": {
+        "value": 0,
+        "type": "number",
+        "unit": "USD/year",
+        "min": 0,
+        "description": "The household's total annual pre-Medicare health insurance premium before ACA subsidies. This is an annual household total and is not multiplied by the number of spouses. When ACA calculation is enabled, the calculated premium tax credit is subtracted from this actual plan premium. If set to 0, the modeled benchmark premium is used as the plan premium."
+      },
       "customBenchmarkPremium": {
         "value": 0,
         "type": "number",
         "unit": "USD/month",
         "min": 0,
-        "description": "Custom monthly benchmark (second-lowest-cost Silver plan) premium to use instead of national age-based averages. Set to 0 to use the model's built-in national average premiums (which vary by age). If you know your local marketplace benchmark premium, enter it here for more accurate subsidy calculations. The premium tax credit is calculated as: benchmark premium minus expected household contribution (based on income as % of FPL)."
+        "description": "Custom monthly benchmark (second-lowest-cost Silver plan) premium per covered person to use instead of national age-based averages. This determines the premium tax credit, while annualHealthInsuranceCost determines the household's actual plan premium. Set to 0 to use the model's built-in national average benchmark premiums."
       }
     },
 

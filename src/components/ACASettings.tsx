@@ -29,7 +29,7 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="annualHealthInsuranceCost">Annual Health Insurance Cost</Label>
+          <Label htmlFor="annualHealthInsuranceCost">Annual Household Health Insurance Premium</Label>
           <DebouncedInput
             id="annualHealthInsuranceCost"
             type="number"
@@ -39,11 +39,11 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
             onChange={(value) => handleChange('annualHealthInsuranceCost', parseFloat(value) || 0)}
           />
           <p className="text-xs text-muted-foreground">
-            Enter your annual pre-Medicare health insurance premium. This cost increases annually at the inflation rate and stops once the covered filer reaches Medicare eligibility.
+            Enter the household's total annual pre-Medicare premium before ACA subsidies. It increases annually with inflation and is never multiplied by the number of spouses.
           </p>
           {acaSettings.enabled && (
             <p className="text-xs text-muted-foreground italic">
-              Ignored while ACA subsidy calculation is enabled — the modeled marketplace premium (or your Custom Benchmark Premium below) is used instead, so the two never add together.
+              This is your actual plan premium. The modeled marketplace premium (or Custom Benchmark Premium below) is used only to calculate the ACA credit, which is then subtracted from this amount.
             </p>
           )}
           <p className="text-xs text-muted-foreground italic">
@@ -105,7 +105,7 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
                     onChange={(value) => handleChange('customBenchmarkPremium', parseFloat(value) || 0)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Override default premium calculation with your local marketplace silver plan rate (monthly). Leave at 0 to use national averages.
+                    Enter the monthly benchmark Silver premium per covered person for subsidy calculation. Leave at 0 to use national age-based averages.
                   </p>
                 </div>
 
