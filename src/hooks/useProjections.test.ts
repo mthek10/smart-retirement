@@ -347,3 +347,56 @@ test("defaults (no start age, conversions first) match explicit conversions_firs
   const b = calculateProjections(accounts, ssData, { ...taxSettings, rothConversionStartAge: null, conversionPriority: "conversions_first" });
   assert.equal(a[a.length - 1].taxableBalance, b[b.length - 1].taxableBalance);
 });
+
+function buildHealthcareScenario() {
+  const base = buildHarvestScenario();
+  base.taxSettings.spouse1Age = 60;
+  base.taxSettings.inflationRate = 0;
+  base.taxSettings.targetTakeHome = 40000;
+  base.taxSettings.acaSettings = {
+    enabled: true,
+    householdSize: 1,
+    customBenchmarkPremium: 0,
+    annualHealthInsuranceCost: 10000,
+  };
+  return base;
+}
+
+test("ACA enabled: manual health insurance cost is not stacked on top of the ACA premium", () => {
+  const { accounts, ssData, taxSettings } = buildHealthcareScenario();
+  const withManual = calculateProjections(accounts, ssData, taxSettings);
+  const withoutManual = calculateProjections(accounts, ssData, {
+    ...taxSettings,
+    acaSettings: { ...taxSettings.acaSettings, annualHealthInsuranceCost: 0 },
+  });
+  const year1With = withManual.find((row) => row.age === 60)!;
+  const year1Without = withoutManual.find((row) => row.age === 60)!;
+  assert.ok(year1With.acaSubsidy > 0 || year1With.healthcareCost > 0);
+  assert.equal(year1With.healthcareCost, year1Without.healthcareCost);
+});
+
+test("ACA disabled: manual health insurance cost is used as-is pre-Medicare", () => {
+  const { accounts, ssData, taxSettings } = buildHealthcareScenario();
+  taxSettings.acaSettings.enabled = false;
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+  const year1 = projections.find((row) => row.age === 60)!;
+  assert.equal(year1.healthcareCost, 10000);
+  const at65 = projections.find((row) => row.age === 65)!;
+  assert.ok(at65.healthcareCost < 10000, "manual cost stops at Medicare age");
+});
+
+test("mixed-age married year: manual cost excluded, ACA covers the under-65 spouse", () => {
+  const base = buildHealthcareScenario();
+  base.taxSettings.filingStatus = "married";
+  base.taxSettings.spouse1Age = 66;
+  base.taxSettings.spouse2Age = 60;
+  base.taxSettings.acaSettings.householdSize = 2;
+  const projections = calculateProjections(base.accounts, base.ssData, base.taxSettings);
+  const year1 = projections.find((row) => row.age === 66)!;
+  // Healthcare = Medicare premiums (66yo) + net ACA (60yo) only; no $10,000 manual cost stacked.
+  const withZeroManual = calculateProjections(base.accounts, base.ssData, {
+    ...base.taxSettings,
+    acaSettings: { ...base.taxSettings.acaSettings, annualHealthInsuranceCost: 0 },
+  });
+  assert.equal(year1.healthcareCost, withZeroManual.find((row) => row.age === 66)!.healthcareCost);
+});
