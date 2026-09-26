@@ -344,6 +344,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
               </SelectContent>
             </Select>
             {taxSettings.rothConversionStrategy === 'maximize_after_tax' ? (
+              <>
               <p className="text-xs text-muted-foreground">
                 Tests every combination of fill bracket (None / 12% / 22% / 24% / 32%), when to start converting, and whether to harvest 0% capital gains first — and keeps the one with the highest <strong>After-Tax Equivalent</strong>.
               </p>
@@ -352,6 +353,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
                   Current best plan: {autoStrategyLabel}
                 </p>
               )}
+              </>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Convert Traditional to Roth to fill your target tax bracket. "Survivor Tax Smoothing" applies aggressive 24% bracket targeting after a spouse passes to prevent tax spikes.
