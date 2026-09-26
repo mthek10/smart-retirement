@@ -238,9 +238,16 @@ export const ProjectionTable = memo(function ProjectionTable({
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
                         <span className="inline-flex items-center gap-1">IRMAA <InfoTooltip text="Income-Related Monthly Adjustment Amount — a surcharge on Medicare premiums for higher-income retirees (based on income from 2 years prior)." /></span>
                       </th>
-                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Medicare B & D</th>
-                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">ACA Subsidy</th>
-                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Healthcare Cost</th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                        <span className="inline-flex items-center gap-1">Medicare B &amp; D <InfoTooltip text="Standard Medicare Part B and Part D premiums, applied automatically for each person age 65 or older and inflated each year." /></span>
+                      </th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                        <span className="inline-flex items-center gap-1">ACA Subsidy <InfoTooltip text="Estimated premium tax credit for marketplace coverage before age 65. It is subtracted from your health insurance premium." /></span>
+                      </th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                        <span className="inline-flex items-center gap-1">Healthcare Cost <InfoTooltip text="Total of ALL healthcare items for the year: pre-65 health insurance premium (after any ACA subsidy) + Medicare Part B & D premiums at 65+ + IRMAA surcharges. Hover a value to see that year's breakdown." /></span>
+                      </th>
+
                     </>
                   )}
                   {show("lifeEvents") && (
