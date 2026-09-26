@@ -73,8 +73,8 @@ const DEFAULT_TAX_SETTINGS = {
   neverTriggerIRMAA: false,
   autoHarvestCapitalGains: true,
   harvestFifteenBracket: false,
-  rothConversionStartAge: null,
-  conversionPriority: 'conversions_first',
+  rothConversionStartAge: null as number | null,
+  conversionPriority: 'conversions_first' as 'conversions_first' | 'harvest_first',
   acaSettings: {
     enabled: true,
     householdSize: 2,

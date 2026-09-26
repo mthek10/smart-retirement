@@ -345,5 +345,5 @@ test("defaults (no start age, conversions first) match explicit conversions_firs
   const { accounts, ssData, taxSettings } = buildSequencingScenario();
   const a = calculateProjections(accounts, ssData, taxSettings);
   const b = calculateProjections(accounts, ssData, { ...taxSettings, rothConversionStartAge: null, conversionPriority: "conversions_first" });
-  assert.equal(a[a.length - 1].totalBalance, b[b.length - 1].totalBalance);
+  assert.equal(a[a.length - 1].taxableBalance, b[b.length - 1].taxableBalance);
 });
