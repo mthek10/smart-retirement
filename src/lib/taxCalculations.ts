@@ -277,6 +277,39 @@ export function computeExtraDeduction(
   return Math.max(0, itemizedTotal - standardDeduction);
 }
 
+/** Projection base year: yearIndex 0 = 2026. */
+export const TAX_BASE_YEAR = 2026;
+
+/**
+ * Extra deductions for taxpayers age 65+ (2026 law), returned as an amount to add
+ * to `extraDeduction`:
+ *  - Additional standard deduction: $2,050 Single/HOH, $1,650 per spouse (MFJ), inflation-indexed.
+ *  - OBBBA senior bonus: $6,000 per person 65+, tax years 2025–2028 only (not indexed),
+ *    phased out at 6% of MAGI over $75k (Single/HOH) / $150k (MFJ).
+ * Single filers ignore spouse age. Only applies when the standard deduction is used.
+ */
+export function getSeniorDeduction(
+  filingStatus: string,
+  age1: number,
+  age2: number,
+  magi: number,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const married = filingStatus === 'married';
+  const count = (age1 >= 65 ? 1 : 0) + (married && age2 >= 65 ? 1 : 0);
+  if (count === 0) return 0;
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
+  const additional = (married ? 1650 : 2050) * count * inflationMultiplier;
+  const calendarYear = TAX_BASE_YEAR + yearIndex;
+  let bonus = 0;
+  if (calendarYear <= 2028) {
+    const threshold = married ? 150000 : 75000;
+    bonus = Math.max(0, 6000 * count - 0.06 * Math.max(0, magi - threshold));
+  }
+  return additional + bonus;
+}
+
 // State tax data is imported from ./stateTaxData
 
 // State tax data re-exported from ./stateTaxData
@@ -428,7 +461,7 @@ export function calculateACASubsidy(
   const bracket = acaContributionRates2024.find(
     b => fplPercent >= b.minFPL && fplPercent < b.maxFPL
   );
-  const contributionRate = bracket?.rate || 0.085;
+  const contributionRate = bracket?.rate ?? Infinity;
   
   // Calculate expected contribution (capped at benchmark premium)
   const expectedContribution = Math.min(magi * contributionRate, totalBenchmarkPremium);
@@ -790,9 +823,9 @@ export function calculateNIIT(
   // 2. MAGI exceeding the threshold
   
   const baseThreshold = niitThresholds2024[filingStatus] || niitThresholds2024.single;
-  // inflationRate expected as decimal (e.g., 0.03 for 3%)
-  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
-  const threshold = baseThreshold * inflationMultiplier;
+  // NIIT thresholds are fixed by statute (never inflation-indexed)
+  void yearIndex; void inflationRate;
+  const threshold = baseThreshold;
   
   if (magi <= threshold) {
     return 0;
