@@ -280,3 +280,24 @@ test("no 15% harvest when the account has no unrealized gains", () => {
   assert.equal(projections[0].capitalGainsHarvested, 0);
   assert.equal(projections[0].capitalGainsHarvested15, 0);
 });
+
+import { getSeniorDeduction } from "@/lib/taxCalculations";
+
+test("65+ additional deduction + OBBBA senior bonus (single, low MAGI)", () => {
+  assert.equal(getSeniorDeduction("single", 66, 0, 50000, 0, 0), 2050 + 6000);
+});
+
+test("senior bonus phases out at 6% of MAGI over $75k single", () => {
+  // 100k MAGI → 6000 - 0.06*25000 = 4500
+  assert.equal(getSeniorDeduction("single", 66, 0, 100000, 0, 0), 2050 + 4500);
+});
+
+test("married: both spouses 65+ get per-person amounts; single ignores spouse age", () => {
+  assert.equal(getSeniorDeduction("married", 66, 67, 100000, 0, 0), 1650 * 2 + 12000);
+  assert.equal(getSeniorDeduction("single", 60, 70, 50000, 0, 0), 0);
+});
+
+test("senior bonus expires after 2028", () => {
+  // yearIndex 3 = 2029 → only the additional standard deduction remains
+  assert.equal(getSeniorDeduction("single", 70, 0, 50000, 3, 0), 2050);
+});

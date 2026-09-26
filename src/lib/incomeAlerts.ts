@@ -73,7 +73,7 @@ export function getIRMAAProximity(
 
 /**
  * Get ACA subsidy cliff proximity
- * Enhanced subsidies apply through 2025, then 400% FPL cliff returns
+ * Enhanced subsidies expired after 2025; the 400% FPL cliff applies from 2026
  */
 export function getACACliffProximity(
   magi: number,

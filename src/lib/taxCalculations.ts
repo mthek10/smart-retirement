@@ -11,32 +11,33 @@ export interface TaxBracket {
 }
 
 export const federalTaxBrackets2024: Record<string, TaxBracket[]> = {
+  // 2026 IRS values (Rev. Proc. 2025-32; TCJA rates made permanent by OBBBA)
   single: [
-    { min: 0, max: 11600, rate: 0.10 },
-    { min: 11600, max: 47150, rate: 0.12 },
-    { min: 47150, max: 100525, rate: 0.22 },
-    { min: 100525, max: 191950, rate: 0.24 },
-    { min: 191950, max: 243725, rate: 0.32 },
-    { min: 243725, max: 609350, rate: 0.35 },
-    { min: 609350, max: Infinity, rate: 0.37 },
+    { min: 0, max: 12400, rate: 0.10 },
+    { min: 12400, max: 50400, rate: 0.12 },
+    { min: 50400, max: 105700, rate: 0.22 },
+    { min: 105700, max: 201775, rate: 0.24 },
+    { min: 201775, max: 256225, rate: 0.32 },
+    { min: 256225, max: 640600, rate: 0.35 },
+    { min: 640600, max: Infinity, rate: 0.37 },
   ],
   married: [
-    { min: 0, max: 23200, rate: 0.10 },
-    { min: 23200, max: 94300, rate: 0.12 },
-    { min: 94300, max: 201050, rate: 0.22 },
-    { min: 201050, max: 383900, rate: 0.24 },
-    { min: 383900, max: 487450, rate: 0.32 },
-    { min: 487450, max: 731200, rate: 0.35 },
-    { min: 731200, max: Infinity, rate: 0.37 },
+    { min: 0, max: 24800, rate: 0.10 },
+    { min: 24800, max: 100800, rate: 0.12 },
+    { min: 100800, max: 211400, rate: 0.22 },
+    { min: 211400, max: 403550, rate: 0.24 },
+    { min: 403550, max: 512450, rate: 0.32 },
+    { min: 512450, max: 768700, rate: 0.35 },
+    { min: 768700, max: Infinity, rate: 0.37 },
   ],
   hoh: [
-    { min: 0, max: 16550, rate: 0.10 },
-    { min: 16550, max: 63100, rate: 0.12 },
-    { min: 63100, max: 100500, rate: 0.22 },
-    { min: 100500, max: 191950, rate: 0.24 },
-    { min: 191950, max: 243700, rate: 0.32 },
-    { min: 243700, max: 609350, rate: 0.35 },
-    { min: 609350, max: Infinity, rate: 0.37 },
+    { min: 0, max: 17700, rate: 0.10 },
+    { min: 17700, max: 67450, rate: 0.12 },
+    { min: 67450, max: 105700, rate: 0.22 },
+    { min: 105700, max: 201750, rate: 0.24 },
+    { min: 201750, max: 256200, rate: 0.32 },
+    { min: 256200, max: 640600, rate: 0.35 },
+    { min: 640600, max: Infinity, rate: 0.37 },
   ],
 };
 
@@ -73,62 +74,64 @@ export function getRothConversionLimit(
   return grossIncomeLimit * inflationMultiplier;
 }
 
-// IRS 2024 standard deduction values
+// IRS 2026 standard deduction values (base year of the projection)
 export const standardDeductions2024: Record<string, number> = {
-  single: 14600,
-  married: 29200,
-  hoh: 21900,
+  single: 16100,
+  married: 32200,
+  hoh: 24150,
 };
 
-// IRMAA brackets by filing status (2024)
+// IRMAA brackets by filing status (2026)
 // Single/Head of Household thresholds
 export const irmaaBracketsSingle2024 = [
-  { min: 0, max: 103000, premium: 0 },
-  { min: 103000, max: 129000, premium: 69.90 },
-  { min: 129000, max: 161000, premium: 174.70 },
-  { min: 161000, max: 193000, premium: 279.50 },
-  { min: 193000, max: 500000, premium: 384.30 },
-  { min: 500000, max: Infinity, premium: 419.30 },
+  { min: 0, max: 109000, premium: 0 },
+  { min: 109000, max: 137000, premium: 81.20 },
+  { min: 137000, max: 171000, premium: 202.90 },
+  { min: 171000, max: 205000, premium: 324.60 },
+  { min: 205000, max: 500000, premium: 446.30 },
+  { min: 500000, max: Infinity, premium: 487.00 },
 ];
 
 // Married Filing Jointly thresholds (higher thresholds)
 export const irmaaBracketsMarried2024 = [
-  { min: 0, max: 206000, premium: 0 },
-  { min: 206000, max: 258000, premium: 69.90 },
-  { min: 258000, max: 322000, premium: 174.70 },
-  { min: 322000, max: 386000, premium: 279.50 },
-  { min: 386000, max: 750000, premium: 384.30 },
-  { min: 750000, max: Infinity, premium: 419.30 },
+  { min: 0, max: 218000, premium: 0 },
+  { min: 218000, max: 274000, premium: 81.20 },
+  { min: 274000, max: 342000, premium: 202.90 },
+  { min: 342000, max: 410000, premium: 324.60 },
+  { min: 410000, max: 750000, premium: 446.30 },
+  { min: 750000, max: Infinity, premium: 487.00 },
 ];
 
 // Default export for backwards compatibility
 export const irmaaBrackets2024 = irmaaBracketsSingle2024;
 
-// Medicare Part B and D base premiums (2024)
-export const medicarePartBPremium2024 = 174.70; // Monthly premium
+// Medicare Part B and D base premiums (2026)
+export const medicarePartBPremium2024 = 202.90; // Monthly premium (2026)
 export const medicarePartDPremium2024 = 50; // Average monthly premium
 
-// Federal Poverty Level 2024 (48 contiguous states)
+// Federal Poverty Level 2025 guidelines (used for 2026 ACA coverage; 48 states)
 export const federalPovertyLevel2024: Record<number, number> = {
-  1: 15060,
-  2: 20440,
-  3: 25820,
-  4: 31200,
-  5: 36580,
-  6: 41960,
-  7: 47340,
-  8: 52720,
+  1: 15650,
+  2: 21150,
+  3: 26650,
+  4: 32150,
+  5: 37650,
+  6: 43150,
+  7: 48650,
+  8: 54150,
 };
 
-// Enhanced ACA contribution percentages (through 2025)
+// 2026 ACA required-contribution percentages. Enhanced (ARPA/IRA) subsidies
+// expired after 2025, so the 400% FPL "subsidy cliff" is back.
 // Income as % of FPL → Expected contribution as % of income
 export const acaContributionRates2024 = [
-  { minFPL: 0, maxFPL: 150, rate: 0 },      // 0% of income
-  { minFPL: 150, maxFPL: 200, rate: 0.02 },  // 2% of income  
-  { minFPL: 200, maxFPL: 250, rate: 0.04 },  // 4% of income
-  { minFPL: 250, maxFPL: 300, rate: 0.06 },  // 6% of income
-  { minFPL: 300, maxFPL: 400, rate: 0.085 }, // 8.5% of income
-  { minFPL: 400, maxFPL: Infinity, rate: 0.085 }, // Enhanced: 8.5% cap continues above 400%
+  { minFPL: 0, maxFPL: 133, rate: 0.021 },
+  { minFPL: 133, maxFPL: 150, rate: 0.0314 },
+  { minFPL: 150, maxFPL: 200, rate: 0.0419 },
+  { minFPL: 200, maxFPL: 250, rate: 0.066 },
+  { minFPL: 250, maxFPL: 300, rate: 0.0844 },
+  { minFPL: 300, maxFPL: 400, rate: 0.0996 },
+  { minFPL: 400, maxFPL: Infinity, rate: Infinity }, // Cliff: no subsidy above 400% FPL
 ];
 
 // Average benchmark silver plan premiums by age (monthly, 2024 national average)
@@ -139,19 +142,19 @@ export const silverPlanPremiumsByAge2024: Record<number, number> = {
 
 export const capitalGainsBrackets2024: Record<string, TaxBracket[]> = {
   single: [
-    { min: 0, max: 47025, rate: 0 },
-    { min: 47025, max: 518900, rate: 0.15 },
-    { min: 518900, max: Infinity, rate: 0.20 },
+    { min: 0, max: 49450, rate: 0 },
+    { min: 49450, max: 545500, rate: 0.15 },
+    { min: 545500, max: Infinity, rate: 0.20 },
   ],
   married: [
-    { min: 0, max: 94050, rate: 0 },
-    { min: 94050, max: 583750, rate: 0.15 },
-    { min: 583750, max: Infinity, rate: 0.20 },
+    { min: 0, max: 98900, rate: 0 },
+    { min: 98900, max: 613700, rate: 0.15 },
+    { min: 613700, max: Infinity, rate: 0.20 },
   ],
   hoh: [
-    { min: 0, max: 63000, rate: 0 },
-    { min: 63000, max: 551350, rate: 0.15 },
-    { min: 551350, max: Infinity, rate: 0.20 },
+    { min: 0, max: 66200, rate: 0 },
+    { min: 66200, max: 579600, rate: 0.15 },
+    { min: 579600, max: Infinity, rate: 0.20 },
   ],
 };
 
@@ -190,7 +193,7 @@ export function calculateCapitalGainsHarvestingRoom(
   };
 }
 
-// Net Investment Income Tax (NIIT) thresholds for 2024
+// Net Investment Income Tax (NIIT) thresholds (fixed by statute, NOT inflation-indexed)
 export const niitThresholds2024: Record<string, number> = {
   single: 200000,
   married: 250000,
@@ -198,22 +201,22 @@ export const niitThresholds2024: Record<string, number> = {
   separate: 125000,
 };
 
-// Alternative Minimum Tax (AMT) brackets for 2024
+// Alternative Minimum Tax (AMT) brackets for 2026
 export const amtBrackets2024: TaxBracket[] = [
-  { min: 0, max: 220700, rate: 0.26 },
-  { min: 220700, max: Infinity, rate: 0.28 },
+  { min: 0, max: 244500, rate: 0.26 },
+  { min: 244500, max: Infinity, rate: 0.28 },
 ];
 
-// AMT exemption amounts and phase-out thresholds for 2024
+// AMT exemption amounts and phase-out thresholds for 2026 (OBBBA phase-out reset)
 export const amtExemptions2024: Record<string, { exemption: number; phaseoutStart: number }> = {
-  single: { exemption: 85700, phaseoutStart: 609350 },
-  married: { exemption: 133300, phaseoutStart: 1218700 },
-  hoh: { exemption: 85700, phaseoutStart: 609350 },
-  separate: { exemption: 66650, phaseoutStart: 609350 },
+  single: { exemption: 90100, phaseoutStart: 500000 },
+  married: { exemption: 140200, phaseoutStart: 1000000 },
+  hoh: { exemption: 90100, phaseoutStart: 500000 },
+  separate: { exemption: 70100, phaseoutStart: 500000 },
 };
 
 // Social Security and Medicare tax rates
-export const socialSecurityWageBase2024 = 168600;
+export const socialSecurityWageBase2024 = 184500; // 2026
 export const socialSecurityRate = 0.062;
 export const medicareRate = 0.0145;
 export const additionalMedicareRate = 0.009;
@@ -248,13 +251,13 @@ export function calculateSurvivorSSBenefit(
   return Math.max(survivorOwnBenefit, reducedSurvivorBenefit);
 }
 
-// 401(k) contribution limits (2024 base, inflated forward)
-export const contribution401kLimit2024 = 23000;
-export const contribution401kCatchup2024 = 7500; // Age 50+
+// 401(k) contribution limits (2026 base, inflated forward)
+export const contribution401kLimit2024 = 24500;
+export const contribution401kCatchup2024 = 8000; // Age 50+
 export const contribution401kSuperCatchup2024 = 11250; // SECURE 2.0: Age 60-63
 
-// Annual QCD (Qualified Charitable Distribution) limit (2024 base, inflation-adj per SECURE 2.0)
-export const qcdAnnualLimit2024 = 105_000;
+// Annual QCD (Qualified Charitable Distribution) limit (2026 base, inflation-adj per SECURE 2.0)
+export const qcdAnnualLimit2024 = 111_000;
 
 /**
  * Returns the EXTRA deduction beyond the inflated standard deduction when itemizing
@@ -272,6 +275,39 @@ export function computeExtraDeduction(
   const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const standardDeduction = baseDeduction * inflationMultiplier;
   return Math.max(0, itemizedTotal - standardDeduction);
+}
+
+/** Projection base year: yearIndex 0 = 2026. */
+export const TAX_BASE_YEAR = 2026;
+
+/**
+ * Extra deductions for taxpayers age 65+ (2026 law), returned as an amount to add
+ * to `extraDeduction`:
+ *  - Additional standard deduction: $2,050 Single/HOH, $1,650 per spouse (MFJ), inflation-indexed.
+ *  - OBBBA senior bonus: $6,000 per person 65+, tax years 2025–2028 only (not indexed),
+ *    phased out at 6% of MAGI over $75k (Single/HOH) / $150k (MFJ).
+ * Single filers ignore spouse age. Only applies when the standard deduction is used.
+ */
+export function getSeniorDeduction(
+  filingStatus: string,
+  age1: number,
+  age2: number,
+  magi: number,
+  yearIndex: number = 0,
+  inflationRate: number = 0
+): number {
+  const married = filingStatus === 'married';
+  const count = (age1 >= 65 ? 1 : 0) + (married && age2 >= 65 ? 1 : 0);
+  if (count === 0) return 0;
+  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
+  const additional = (married ? 1650 : 2050) * count * inflationMultiplier;
+  const calendarYear = TAX_BASE_YEAR + yearIndex;
+  let bonus = 0;
+  if (calendarYear <= 2028) {
+    const threshold = married ? 150000 : 75000;
+    bonus = Math.max(0, 6000 * count - 0.06 * Math.max(0, magi - threshold));
+  }
+  return additional + bonus;
 }
 
 // State tax data is imported from ./stateTaxData
@@ -425,7 +461,7 @@ export function calculateACASubsidy(
   const bracket = acaContributionRates2024.find(
     b => fplPercent >= b.minFPL && fplPercent < b.maxFPL
   );
-  const contributionRate = bracket?.rate || 0.085;
+  const contributionRate = bracket?.rate ?? Infinity;
   
   // Calculate expected contribution (capped at benchmark premium)
   const expectedContribution = Math.min(magi * contributionRate, totalBenchmarkPremium);
@@ -787,9 +823,9 @@ export function calculateNIIT(
   // 2. MAGI exceeding the threshold
   
   const baseThreshold = niitThresholds2024[filingStatus] || niitThresholds2024.single;
-  // inflationRate expected as decimal (e.g., 0.03 for 3%)
-  const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
-  const threshold = baseThreshold * inflationMultiplier;
+  // NIIT thresholds are fixed by statute (never inflation-indexed)
+  void yearIndex; void inflationRate;
+  const threshold = baseThreshold;
   
   if (magi <= threshold) {
     return 0;
