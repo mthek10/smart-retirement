@@ -446,8 +446,11 @@ function solveRequiredWithdrawal(
       netAcaCost = acaPremium - acaResult.subsidy;
     }
 
-    // Annual health insurance cost (inflation-adjusted, pre-Medicare only)
-    const healthInsuranceCost = calculateManualHealthInsuranceCost(
+    // Annual health insurance cost (inflation-adjusted, pre-Medicare only).
+    // Skipped when ACA subsidy calculation is active for this year — the ACA
+    // marketplace premium is the single premium source, so the two never stack.
+    const acaActiveThisYear = !!(acaSettings?.enabled && acaEnrolleeAges && acaEnrolleeAges.length > 0);
+    const healthInsuranceCost = acaActiveThisYear ? 0 : calculateManualHealthInsuranceCost(
       acaSettings?.annualHealthInsuranceCost,
       yearIndex,
       inflationFraction,
@@ -1378,8 +1381,11 @@ export function calculateProjections(
       }
     }
 
-    // Annual health insurance cost (inflation-adjusted, pre-Medicare only)
-    const healthInsuranceCost = calculateManualHealthInsuranceCost(
+    // Annual health insurance cost (inflation-adjusted, pre-Medicare only).
+    // Skipped when ACA subsidy calculation produced a premium this year — the
+    // ACA marketplace premium is the single premium source, so the two never stack.
+    const acaActiveThisYear = taxSettings.acaSettings.enabled && solverEnrolleeAges.length > 0;
+    const healthInsuranceCost = acaActiveThisYear ? 0 : calculateManualHealthInsuranceCost(
       taxSettings.acaSettings.annualHealthInsuranceCost,
       i,
       taxSettings.inflationRate / 100,
