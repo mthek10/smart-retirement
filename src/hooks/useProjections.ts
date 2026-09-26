@@ -288,6 +288,53 @@ function calculateManualHealthInsuranceCost(
   return annualHealthInsuranceCost * Math.pow(1 + inflationFraction, yearIndex);
 }
 
+interface HealthcarePremiumResult {
+  grossPremium: number;
+  subsidy: number;
+  netPremium: number;
+}
+
+function calculateHealthcarePremium(
+  magi: number,
+  householdSize: number,
+  enrolleeAges: number[],
+  coveredPeople: Array<{ age: number; isActive: boolean }>,
+  acaSettings: ACASettings | undefined,
+  yearIndex: number,
+  inflationFraction: number,
+): HealthcarePremiumResult {
+  if (!acaSettings?.enabled || enrolleeAges.length === 0) {
+    return { grossPremium: 0, subsidy: 0, netPremium: 0 };
+  }
+
+  const inflationMultiplier = Math.pow(1 + inflationFraction, yearIndex);
+  const customAnnualBenchmark = acaSettings.customBenchmarkPremium > 0
+    ? acaSettings.customBenchmarkPremium * 12 * inflationMultiplier * enrolleeAges.length
+    : undefined;
+  const acaResult = calculateACASubsidy(
+    magi,
+    householdSize,
+    enrolleeAges,
+    yearIndex,
+    inflationFraction,
+    customAnnualBenchmark,
+  );
+
+  const activeCoveredCount = coveredPeople.filter((person) => person.isActive && person.age <= 100).length;
+  const enrolledShare = activeCoveredCount > 0 ? enrolleeAges.length / activeCoveredCount : 0;
+  const enteredHouseholdPremium = acaSettings.annualHealthInsuranceCost > 0
+    ? acaSettings.annualHealthInsuranceCost * inflationMultiplier * enrolledShare
+    : 0;
+  const grossPremium = enteredHouseholdPremium > 0 ? enteredHouseholdPremium : acaResult.premium;
+  const subsidy = Math.min(grossPremium, acaResult.subsidy);
+
+  return {
+    grossPremium,
+    subsidy,
+    netPremium: Math.max(0, grossPremium - subsidy),
+  };
+}
+
 /**
  * Iterative binary search solver to find withdrawal amount achieving target take-home.
  * Extracted from calculateProjections for readability.
@@ -430,21 +477,20 @@ function solveRequiredWithdrawal(
     const niit = calculateNIIT(totalCapitalGains, magi, effectiveFilingStatus, yearIndex, inflationFraction);
     const amt = calculateAMT(totalOrdinaryIncome, totalCapitalGains, effectiveFilingStatus, yearIndex, inflationFraction);
     
-    // ACA cost calculation
-    let netAcaCost = 0;
-    if (acaSettings?.enabled && acaEnrolleeAges && acaEnrolleeAges.length > 0) {
-      const acaResult = calculateACASubsidy(
-        magi,
-        acaSettings.householdSize,
-        acaEnrolleeAges,
-        yearIndex,
-        inflationFraction
-      );
-      const acaPremium = acaSettings.customBenchmarkPremium > 0
-        ? acaSettings.customBenchmarkPremium * 12 * Math.pow(1 + inflationFraction, yearIndex) * acaEnrolleeAges.length
-        : acaResult.premium;
-      netAcaCost = acaPremium - acaResult.subsidy;
-    }
+    const coveredPeople = [
+      { age: spouse1Age, isActive: spouse1Alive },
+      { age: spouse2Age, isActive: spouse2Alive },
+    ];
+    const acaCost = calculateHealthcarePremium(
+      magi,
+      acaSettings?.householdSize ?? 1,
+      acaEnrolleeAges ?? [],
+      coveredPeople,
+      acaSettings,
+      yearIndex,
+      inflationFraction,
+    );
+    const netAcaCost = acaCost.netPremium;
 
     // Annual health insurance cost (inflation-adjusted, pre-Medicare only).
     // Skipped when ACA subsidy calculation is active for this year — the ACA
@@ -455,10 +501,7 @@ function solveRequiredWithdrawal(
       yearIndex,
       inflationFraction,
       effectiveFilingStatus,
-      [
-        { age: spouse1Age, isActive: spouse1Alive },
-        { age: spouse2Age, isActive: spouse2Alive },
-      ]
+      coveredPeople
     );
 
     // `targetTakeHome` has already been reduced by wages and pension before calling
@@ -1359,27 +1402,22 @@ export function calculateProjections(
       medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
     }
 
-    let acaPremium = 0;
-    let acaSubsidy = 0;
-    let netAcaCost = 0;
-    
-    if (taxSettings.acaSettings.enabled) {
-      if (solverEnrolleeAges.length > 0) {
-        const acaResult = calculateACASubsidy(
-          magi,
-          effectiveHouseholdSize,
-          solverEnrolleeAges,
-          i,
-          taxSettings.inflationRate / 100
-        );
-        
-        acaPremium = taxSettings.acaSettings.customBenchmarkPremium > 0
-          ? taxSettings.acaSettings.customBenchmarkPremium * 12 * Math.pow(1 + taxSettings.inflationRate / 100, i) * solverEnrolleeAges.length
-          : acaResult.premium;
-        acaSubsidy = acaResult.subsidy;
-        netAcaCost = acaPremium - acaSubsidy;
-      }
-    }
+    const coveredPeople = [
+      { age: spouse1CurrentAge, isActive: spouse1Alive },
+      { age: spouse2CurrentAge, isActive: spouse2Alive },
+    ];
+    const acaCost = calculateHealthcarePremium(
+      magi,
+      effectiveHouseholdSize,
+      solverEnrolleeAges,
+      coveredPeople,
+      taxSettings.acaSettings,
+      i,
+      taxSettings.inflationRate / 100,
+    );
+    const acaPremium = acaCost.grossPremium;
+    const acaSubsidy = acaCost.subsidy;
+    const netAcaCost = acaCost.netPremium;
 
     // Annual health insurance cost (inflation-adjusted, pre-Medicare only).
     // Skipped when ACA subsidy calculation produced a premium this year — the
@@ -1390,10 +1428,7 @@ export function calculateProjections(
       i,
       taxSettings.inflationRate / 100,
       effectiveFilingStatus,
-      [
-        { age: spouse1CurrentAge, isActive: spouse1Alive },
-        { age: spouse2CurrentAge, isActive: spouse2Alive },
-      ]
+      coveredPeople
     );
 
     const totalHealthcareCost = netAcaCost + medicarePremiums + irmaa + healthInsuranceCost;
