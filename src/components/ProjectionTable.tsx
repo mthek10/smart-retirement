@@ -467,11 +467,27 @@ export const ProjectionTable = memo(function ProjectionTable({
                         </td>
                         <td className="p-4 align-middle text-right font-medium">
                           {projection.healthcareCost && projection.healthcareCost > 0 ? (
-                            formatCurrency(projection.healthcareCost)
+                            (() => {
+                              const medicare = projection.medicarePremiums ?? 0;
+                              const irmaa = projection.irmaa ?? 0;
+                              const preMedicareNet = Math.max(0, projection.healthcareCost - medicare - irmaa);
+                              const parts = [
+                                `Pre-65 premium (after subsidy): ${formatCurrency(preMedicareNet)}`,
+                                `Medicare B & D: ${formatCurrency(medicare)}`,
+                                `IRMAA surcharge: ${formatCurrency(irmaa)}`,
+                                `Total: ${formatCurrency(projection.healthcareCost)}`,
+                              ];
+                              return (
+                                <span title={parts.join("\n")}>
+                                  {formatCurrency(projection.healthcareCost)}
+                                </span>
+                              );
+                            })()
                           ) : (
                             '-'
                           )}
                         </td>
+
                       </>
                     )}
                     {show("lifeEvents") && (
