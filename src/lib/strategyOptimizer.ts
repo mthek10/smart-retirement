@@ -117,10 +117,13 @@ export function pickBestAfterTaxStrategy(
           taxSettings.inflationRate / 100,
         );
 
+        const terminalGainFraction = last?.taxableCostBasis != null && terminalTaxable > 0
+          ? Math.max(0, Math.min(1, 1 - last.taxableCostBasis / terminalTaxable))
+          : gainFraction;
         const terminalAfterTax =
           (terminalTrad - lumpSumTax) +
           terminalRoth +
-          terminalTaxable * (1 - ASSUMED_LTCG_RATE * gainFraction);
+          terminalTaxable * (1 - ASSUMED_LTCG_RATE * terminalGainFraction);
 
         ranking.push({
           strategy,

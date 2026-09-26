@@ -199,6 +199,8 @@ export interface ProjectionRow {
   capitalGainsHarvested: number;
   /** Gains harvested into the 15% federal LTCG bracket this year (tax paid from sale proceeds; basis stepped up). */
   capitalGainsHarvested15: number;
+  /** End-of-year brokerage cost basis (average-cost). */
+  taxableCostBasis?: number;
   rothConversion: number;
   marginalBracket: number;
   conversionExcessReinvested: number;
@@ -1459,6 +1461,7 @@ export function calculateProjections(
       capitalGainsIncome: capitalGains,
       capitalGainsHarvested,
       capitalGainsHarvested15,
+      taxableCostBasis: Math.min(costBasisDollars, Math.max(0, taxableBalance)),
       rothConversion,
       marginalBracket,
       conversionExcessReinvested,
