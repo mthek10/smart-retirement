@@ -843,6 +843,7 @@ const Index = () => {
               currentMetrics={twoPassResults.currentMetrics}
               autoMaxMetrics={twoPassResults.autoMaxMetrics}
               autoMaxStrategy={twoPassResults.autoMaxStrategy}
+              autoMaxLabel={twoPassResults.autoMaxLabel}
               survivorSmoothedMetrics={twoPassResults.survivorSmoothedMetrics}
               currentStrategyName={currentStrategyName}
               currentStrategyKey={taxSettings.rothConversionStrategy || 'none'}
