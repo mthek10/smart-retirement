@@ -574,7 +574,7 @@ export const ProjectionTable = memo(function ProjectionTable({
             ) : (
               <p className="text-foreground">
                 <span className="font-semibold text-foreground">Why CG Harvest is blank:</span>{" "}
-                your income already fills the 0% capital-gains band — roughly $47,000 single or $94,000
+                your income already fills the 0% capital-gains band — roughly $49,000 single or $99,000
                 married of taxable income after the standard deduction, rising with inflation each year.
                 Roth conversions, RMDs, wages or pension income usually take that space first, and
                 filling it with conversions is generally worth more than harvesting gains.

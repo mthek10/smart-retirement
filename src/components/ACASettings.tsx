@@ -107,11 +107,11 @@ export function ACASettings({ acaSettings, onChange }: ACASettingsProps) {
                 <div className="pt-2 border-t space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Enhanced subsidies:</span>
-                    <span className="font-medium">Through 2025</span>
+                    <span className="font-medium">Expired after 2025 (400% FPL cliff)</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Max contribution:</span>
-                    <span className="font-medium">8.5% of income</span>
+                    <span className="font-medium">9.96% of income (up to 400% FPL)</span>
                   </div>
                   <p className="text-xs text-muted-foreground pt-2">
                     Note: Premiums vary by state/county. Using national averages if no custom rate specified.

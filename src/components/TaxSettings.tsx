@@ -465,11 +465,11 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
 
         <div className="pt-4 border-t space-y-4">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">2025 Standard Deduction</span>
+            <span className="text-muted-foreground">2026 Standard Deduction (+ extra for age 65+)</span>
             <span className="font-medium">
-              {taxSettings.filingStatus === 'married' && '$30,000'}
-              {taxSettings.filingStatus === 'single' && '$15,000'}
-              {taxSettings.filingStatus === 'hoh' && '$22,500'}
+              {taxSettings.filingStatus === 'married' && '$32,200'}
+              {taxSettings.filingStatus === 'single' && '$16,100'}
+              {taxSettings.filingStatus === 'hoh' && '$24,150'}
             </span>
           </div>
         </div>
