@@ -21,6 +21,7 @@ interface TaxSettingsProps {
   taxSettings: {
     filingStatus: string;
     state: string;
+    nycResident?: boolean;
     stateRate: number;
     spouse1Age: number;
     spouse2Age: number;
@@ -38,6 +39,7 @@ interface TaxSettingsProps {
       enabled: boolean;
       targetState: string;
       relocationAge: number;
+      targetNycResident?: boolean;
     };
   };
   onChange: (settings: any) => void;
@@ -275,6 +277,26 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
             return null;
           })()}
         </div>
+
+        {taxSettings.state === 'NY' && (
+          <div className="flex items-start justify-between gap-3 rounded-lg border-l-4 border-l-primary bg-muted/30 px-3 py-2.5">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="nycResident" className="font-medium">New York City Resident</Label>
+                <InfoTooltip text="NYC residents pay a local personal income tax of 3.078%–3.876% on top of New York State tax. It applies to IRA/401(k) withdrawals, Roth conversions, pensions and realized capital gains. Social Security is exempt." />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Adds NYC local income tax (3.08% – 3.88%) on top of New York State tax
+              </p>
+            </div>
+            <Switch
+              id="nycResident"
+              checked={taxSettings.nycResident || false}
+              onCheckedChange={(checked) => handleChange('nycResident', checked)}
+            />
+          </div>
+        )}
+
 
         {taxSettings.state === 'other' && (
           <div className="space-y-2">
@@ -624,9 +646,28 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
                 </Select>
               </div>
               </div>
+              {taxSettings.stateRelocation?.targetState === 'NY' && (
+                <div className="flex items-start justify-between gap-3 rounded-lg border-l-4 border-l-primary bg-muted/30 px-3 py-2.5">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="targetNycResident" className="font-medium">Moving into New York City</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Adds NYC local income tax (3.08% – 3.88%) after the move
+                    </p>
+                  </div>
+                  <Switch
+                    id="targetNycResident"
+                    checked={taxSettings.stateRelocation?.targetNycResident || false}
+                    onCheckedChange={(checked) => {
+                      const current = taxSettings.stateRelocation || { enabled: true, targetState: 'NY', relocationAge: 65 };
+                      onChange({ ...taxSettings, stateRelocation: { ...current, targetNycResident: checked } });
+                    }}
+                  />
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
               </p>
+
             </div>
           )}
         </div>

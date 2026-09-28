@@ -63,6 +63,7 @@ const DEFAULT_SS_DATA = {
 const DEFAULT_TAX_SETTINGS = {
   filingStatus: "married",
   state: "other",
+  nycResident: false,
   stateRate: 5,
   spouse1Age: 60,
   spouse2Age: 58,
@@ -784,6 +785,7 @@ const Index = () => {
                 taxableCostBasisPercent={accounts.taxableCostBasisPercent}
                 stateCode={taxSettings.state}
                 stateRate={taxSettings.stateRate}
+                nycResident={taxSettings.nycResident}
                 stateRelocation={taxSettings.stateRelocation}
                 onNavigateToSetup={navigateToSetupStep}
               />

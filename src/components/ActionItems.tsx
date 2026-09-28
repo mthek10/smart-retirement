@@ -41,10 +41,12 @@ interface ActionItemsProps {
   taxableCostBasisPercent?: number;
   stateCode?: string;
   stateRate?: number;
+  nycResident?: boolean;
   stateRelocation?: {
     enabled: boolean;
     targetState: string;
     relocationAge: number;
+    targetNycResident?: boolean;
   };
   onNavigateToSetup?: (stepIndex: number) => void;
 }
@@ -93,11 +95,12 @@ function estimateStateCapitalGainsRate(
   filingStatus: string,
   ordinaryIncome: number,
   sampleGain: number,
-  customStateRate: number = 0
+  customStateRate: number = 0,
+  isNycResident: boolean = false
 ) {
   if (!state || state === 'none' || sampleGain <= 0) return 0;
   if (state === 'other') return Math.max(0, customStateRate) / 100;
-  return calculateStateCapitalGainsTax(sampleGain, ordinaryIncome, state, filingStatus) / sampleGain;
+  return calculateStateCapitalGainsTax(sampleGain, ordinaryIncome, state, filingStatus, isNycResident) / sampleGain;
 }
 
 function estimateStateTaxesForProjection(
@@ -106,7 +109,8 @@ function estimateStateTaxesForProjection(
   filingStatus: string,
   customStateRate: number,
   spouse1StartAge: number,
-  spouse2StartAge: number
+  spouse2StartAge: number,
+  isNycResident: boolean = false
 ) {
   if (!state || state === 'none') {
     return { stateTax: 0, stateCapitalGainsTax: 0, total: 0 };
@@ -128,16 +132,18 @@ function estimateStateTaxesForProjection(
     filingStatus,
     state,
     olderLivingSpouseAge
-  ) + calculateStateIncomeTax(projection.nonSocialSecurityOrdinaryIncome, state, filingStatus);
+  ) + calculateStateIncomeTax(projection.nonSocialSecurityOrdinaryIncome, state, filingStatus, isNycResident);
   const stateCapitalGainsTax = calculateStateCapitalGainsTax(
     projection.capitalGainsIncome,
     projection.nonSocialSecurityOrdinaryIncome,
     state,
-    filingStatus
+    filingStatus,
+    isNycResident
   );
 
   return { stateTax, stateCapitalGainsTax, total: stateTax + stateCapitalGainsTax };
 }
+
 
 export function ActionItems({
   projections,
@@ -153,6 +159,7 @@ export function ActionItems({
   taxableCostBasisPercent,
   stateCode,
   stateRate = 0,
+  nycResident = false,
   stateRelocation,
   onNavigateToSetup,
 }: ActionItemsProps) {
@@ -169,7 +176,8 @@ export function ActionItems({
     filingStatus,
     currentYear.nonSocialSecurityOrdinaryIncome,
     sampleGainAmount,
-    stateRate
+    stateRate,
+    nycResident
   );
   const targetStateRateEstimate = hasRelocation
     ? estimateStateCapitalGainsRate(
@@ -177,7 +185,8 @@ export function ActionItems({
         filingStatus,
         currentYear.nonSocialSecurityOrdinaryIncome,
         sampleGainAmount,
-        stateRate
+        stateRate,
+        !!stateRelocation.targetNycResident
       )
     : 0;
   const movingToHigherTaxState = Boolean(hasRelocation && targetStateRateEstimate > currentStateRateEstimate + 0.002);
@@ -520,7 +529,7 @@ export function ActionItems({
     : 0;
   const estimatedNoMoveStateTax = isInTaxableState
     ? projections.reduce(
-        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age).total,
+        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age, nycResident).total,
         0
       )
     : 0;
@@ -564,6 +573,8 @@ export function ActionItems({
         inflationRate: inflationRate > 1 ? inflationRate / 100 : inflationRate,
         acaEnabled,
         ssClaimAge: spouse1SSClaimAge,
+        fromNycResident: stateCode === 'NY' && nycResident,
+        toNycResident: stateRelocation.targetState === 'NY' && !!stateRelocation.targetNycResident,
         formatMoney: formatCurrency,
       })
     : undefined;
@@ -821,7 +832,7 @@ export function ActionItems({
     const postMoveStateTaxWithoutRelocation = projections
       .filter(p => p.age >= stateRelocation.relocationAge)
       .reduce(
-        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age).total,
+        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age, nycResident).total,
         0
       );
     const postMoveActualTax = projections

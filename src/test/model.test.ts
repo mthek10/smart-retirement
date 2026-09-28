@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   calculateFederalTax, calculateCapitalGainsTax, calculateNIIT, calculateTaxableSocialSecurity,
   calculateRMD, calculateIRMAA, getSeniorDeduction, calculateACASubsidy,
+  calculateNycIncomeTax, calculateNycCapitalGainsTax, calculateStateIncomeTax, calculateStateCapitalGainsTax,
 } from "@/lib/taxCalculations";
 import { calculateProjections } from "@/hooks/useProjections";
 import { pickBestAfterTaxStrategy, pickBestAfterTaxStrategyCached } from "@/lib/strategyOptimizer";
@@ -167,4 +168,57 @@ test("Monte Carlo: fixed seed is reproducible, zero volatility matches the mean"
   setMonteCarloSeed(null);
   assert.equal(a.finalBalance, b.finalBalance);
   assert.notEqual(a.finalBalance, c.finalBalance);
+});
+
+// ---------- New York City local income tax ----------
+test("nyc: single bracket walk at $100k", () => {
+  // 12,000*3.078% + 13,000*3.762% + 25,000*3.819% + 50,000*3.876%
+  near(calculateNycIncomeTax(100_000, "single"), 369.36 + 489.06 + 954.75 + 1938, 0.01);
+});
+test("nyc: MFJ bracket walk at $150k", () => {
+  // 21,600*3.078% + 23,400*3.762% + 45,000*3.819% + 60,000*3.876%
+  near(calculateNycIncomeTax(150_000, "married"), 664.848 + 880.308 + 1718.55 + 2325.6, 0.01);
+});
+test("nyc: HOH bracket walk at $40k", () => {
+  // 14,400*3.078% + 15,600*3.762% + 10,000*3.819%
+  near(calculateNycIncomeTax(40_000, "hoh"), 443.232 + 586.872 + 381.9, 0.01);
+});
+test("nyc: zero and negative income owe nothing", () => {
+  assert.equal(calculateNycIncomeTax(0, "single"), 0);
+  assert.equal(calculateNycIncomeTax(-5000, "married"), 0);
+});
+test("nyc: capital gains stack on top of ordinary income", () => {
+  const ordinary = 60_000;
+  const gains = 40_000;
+  near(
+    calculateNycCapitalGainsTax(gains, ordinary, "married"),
+    calculateNycIncomeTax(ordinary + gains, "married") - calculateNycIncomeTax(ordinary, "married"),
+    0.01,
+  );
+});
+test("nyc: adds to NY state tax only when resident flag set", () => {
+  const stateOnly = calculateStateIncomeTax(120_000, "NY", "married", false);
+  const withCity = calculateStateIncomeTax(120_000, "NY", "married", true);
+  near(withCity - stateOnly, calculateNycIncomeTax(120_000, "married"), 0.01);
+});
+test("nyc: flag has no effect outside New York", () => {
+  assert.equal(
+    calculateStateIncomeTax(120_000, "FL", "married", true),
+    calculateStateIncomeTax(120_000, "FL", "married", false),
+  );
+  assert.equal(
+    calculateStateIncomeTax(120_000, "CA", "single", true),
+    calculateStateIncomeTax(120_000, "CA", "single", false),
+  );
+});
+test("nyc: state capital gains tax includes city portion", () => {
+  const without = calculateStateCapitalGainsTax(40_000, 60_000, "NY", "married", false);
+  const withCity = calculateStateCapitalGainsTax(40_000, 60_000, "NY", "married", true);
+  near(withCity - without, calculateNycCapitalGainsTax(40_000, 60_000, "married"), 0.01);
+});
+test("nyc: projections pay more state tax than NY state alone", () => {
+  const nyOnly = calculateProjections(accounts(), ss(), tax({ state: "NY", stateRate: 0 }) as any);
+  const nyc = calculateProjections(accounts(), ss(), tax({ state: "NY", stateRate: 0, nycResident: true }) as any);
+  const sum = (rows: any[]) => rows.reduce((s, r) => s + r.stateTax + r.stateCapitalGainsTax, 0);
+  assert.ok(sum(nyc) > sum(nyOnly), "NYC resident should owe more state+local tax");
 });

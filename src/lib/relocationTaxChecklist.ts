@@ -45,6 +45,10 @@ export interface RelocationTaxChecklistInput {
   inflationRate: number; // decimal
   acaEnabled: boolean;
   ssClaimAge: number;
+  /** Household is currently a New York City resident (adds NYC local income tax). */
+  fromNycResident?: boolean;
+  /** Household will be a New York City resident after the move. */
+  toNycResident?: boolean;
   formatMoney?: (n: number) => string;
 }
 
@@ -175,6 +179,24 @@ export function buildRelocationTaxChecklist(input: RelocationTaxChecklistInput):
     ];
     if (direction !== 'zero') {
       items.push({ timing: 'after', text: `Claim ${to}'s retirement income exclusions (pension/IRA/age-based) on your first ${to} return.` });
+    }
+    if (input.fromNycResident) {
+      items.push({
+        timing: 'before',
+        text: 'Leaving New York City also ends the NYC local income tax (3.08% – 3.88%) — but only once you change domicile, not just your mailing address.',
+        detail: 'NYC tax follows domicile. Keep dated evidence of the move (lease/deed, driver\'s license, voter registration, where you spend your days). Staying 184+ days in the city with a residence there can keep you taxable as a statutory resident.',
+      });
+      items.push({
+        timing: 'before',
+        text: 'Do large Roth conversions and gain realizations after you leave NYC, not before — each $100,000 converted while a city resident costs about $3,900 in NYC tax alone.',
+      });
+    }
+    if (input.toNycResident) {
+      items.push({
+        timing: 'before',
+        text: 'Moving into New York City adds a local income tax of 3.08% – 3.88% on top of New York State tax — realize gains and complete Roth conversions before the move.',
+        detail: 'NYC tax applies to IRA/401(k) withdrawals, pensions, Roth conversions and capital gains. Social Security is exempt.',
+      });
     }
     sections.push({ title: 'State income tax', items });
   }

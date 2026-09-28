@@ -96,6 +96,8 @@ export interface StateRelocationSettings {
   enabled: boolean;
   targetState: string;
   relocationAge: number;
+  /** After relocating, will the household be a New York City resident? Only meaningful when targetState is 'NY'. */
+  targetNycResident?: boolean;
 }
 
 export interface LifeEvent {
@@ -135,6 +137,8 @@ export interface CharitableGivingSettings {
 export interface TaxSettings {
   filingStatus: string;
   state: string;
+  /** New York City resident local income tax (3.078%–3.876%). Only applies when state is 'NY'. */
+  nycResident?: boolean;
   stateRate: number;
   spouse1Age: number;
   spouse2Age: number;
@@ -366,6 +370,7 @@ function solveRequiredWithdrawal(
   qualifiedDividends: number = 0,
   ordinaryDividends: number = 0,
   extraCapitalGains: number = 0,
+  isNycResident: boolean = false,
 ): number {
   let low = Math.max(0, currentRMD);
   let high = Math.max(
@@ -455,8 +460,8 @@ function solveRequiredWithdrawal(
         : (spouse1Alive ? spouse1Age : spouse2Age);
       const stateSSTax = calculateStateSocialSecurityTax(ssAnnual, agi, effectiveFilingStatus, state, olderLivingSpouseAge);
       const nonSSIncome = ordinaryIncome;
-      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, state, effectiveFilingStatus);
-      stateCapitalGainsTax = calculateStateCapitalGainsTax(totalCapitalGains, nonSSIncome, state, effectiveFilingStatus);
+      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, state, effectiveFilingStatus, isNycResident);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(totalCapitalGains, nonSSIncome, state, effectiveFilingStatus, isNycResident);
       stateTax = stateSSTax + stateIncomeTax;
     }
     
@@ -960,10 +965,14 @@ export function calculateProjections(
       : Math.max(1, taxSettings.acaSettings.householdSize - 1);
     
     // Determine effective state BEFORE solver call (must match main loop)
-    const effectiveState = taxSettings.stateRelocation?.enabled && 
-      spouse1CurrentAge >= (taxSettings.stateRelocation?.relocationAge || 65)
-      ? taxSettings.stateRelocation.targetState
+    const hasRelocated = !!taxSettings.stateRelocation?.enabled &&
+      spouse1CurrentAge >= (taxSettings.stateRelocation?.relocationAge || 65);
+    const effectiveState = hasRelocated
+      ? taxSettings.stateRelocation!.targetState
       : taxSettings.state;
+    const effectiveNycResident = hasRelocated
+      ? !!taxSettings.stateRelocation?.targetNycResident
+      : !!taxSettings.nycResident;
 
     // Determine effective conversion strategy for solver (must match main loop)
     const isSurvivorYear = (!spouse1Alive || !spouse2Alive) && survivorEnabled;
@@ -1000,6 +1009,7 @@ export function calculateProjections(
       qualifiedDividends,
       ordinaryDividends,
       homeSaleTaxableGain,
+      effectiveNycResident,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
@@ -1367,8 +1377,8 @@ export function calculateProjections(
       );
       
       const nonSSIncome = ordinaryIncome;
-      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, effectiveState, effectiveFilingStatus);
-      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus);
+      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
       stateTax = stateSSTax + stateIncomeTax;
     }
 
@@ -1380,7 +1390,7 @@ export function calculateProjections(
       if (effectiveState === 'other') {
         stateCGWithout = (capitalGains - capitalGainsHarvested15) * (taxSettings.stateRate / 100);
       } else if (effectiveState && effectiveState !== 'none') {
-        stateCGWithout = calculateStateCapitalGainsTax(capitalGains - capitalGainsHarvested15, ordinaryIncome, effectiveState, effectiveFilingStatus);
+        stateCGWithout = calculateStateCapitalGainsTax(capitalGains - capitalGainsHarvested15, ordinaryIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
       }
       harvest15TaxFromProceeds = Math.max(0, (federalTaxCapitalGains - fedCGWithout) + (stateCapitalGainsTax - stateCGWithout));
       taxableBalance = Math.max(0, taxableBalance - harvest15TaxFromProceeds);
