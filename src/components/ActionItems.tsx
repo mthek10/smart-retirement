@@ -159,6 +159,7 @@ export function ActionItems({
   taxableCostBasisPercent,
   stateCode,
   stateRate = 0,
+  nycResident = false,
   stateRelocation,
   onNavigateToSetup,
 }: ActionItemsProps) {
