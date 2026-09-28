@@ -961,10 +961,14 @@ export function calculateProjections(
       : Math.max(1, taxSettings.acaSettings.householdSize - 1);
     
     // Determine effective state BEFORE solver call (must match main loop)
-    const effectiveState = taxSettings.stateRelocation?.enabled && 
-      spouse1CurrentAge >= (taxSettings.stateRelocation?.relocationAge || 65)
-      ? taxSettings.stateRelocation.targetState
+    const hasRelocated = !!taxSettings.stateRelocation?.enabled &&
+      spouse1CurrentAge >= (taxSettings.stateRelocation?.relocationAge || 65);
+    const effectiveState = hasRelocated
+      ? taxSettings.stateRelocation!.targetState
       : taxSettings.state;
+    const effectiveNycResident = hasRelocated
+      ? !!taxSettings.stateRelocation?.targetNycResident
+      : !!taxSettings.nycResident;
 
     // Determine effective conversion strategy for solver (must match main loop)
     const isSurvivorYear = (!spouse1Alive || !spouse2Alive) && survivorEnabled;
