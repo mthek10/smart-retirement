@@ -176,7 +176,8 @@ export function ActionItems({
     filingStatus,
     currentYear.nonSocialSecurityOrdinaryIncome,
     sampleGainAmount,
-    stateRate
+    stateRate,
+    nycResident
   );
   const targetStateRateEstimate = hasRelocation
     ? estimateStateCapitalGainsRate(
@@ -184,7 +185,8 @@ export function ActionItems({
         filingStatus,
         currentYear.nonSocialSecurityOrdinaryIncome,
         sampleGainAmount,
-        stateRate
+        stateRate,
+        !!stateRelocation.targetNycResident
       )
     : 0;
   const movingToHigherTaxState = Boolean(hasRelocation && targetStateRateEstimate > currentStateRateEstimate + 0.002);
