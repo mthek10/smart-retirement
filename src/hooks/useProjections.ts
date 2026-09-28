@@ -96,6 +96,8 @@ export interface StateRelocationSettings {
   enabled: boolean;
   targetState: string;
   relocationAge: number;
+  /** After relocating, will the household be a New York City resident? Only meaningful when targetState is 'NY'. */
+  targetNycResident?: boolean;
 }
 
 export interface LifeEvent {
