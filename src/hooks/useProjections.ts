@@ -456,8 +456,8 @@ function solveRequiredWithdrawal(
         : (spouse1Alive ? spouse1Age : spouse2Age);
       const stateSSTax = calculateStateSocialSecurityTax(ssAnnual, agi, effectiveFilingStatus, state, olderLivingSpouseAge);
       const nonSSIncome = ordinaryIncome;
-      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, state, effectiveFilingStatus);
-      stateCapitalGainsTax = calculateStateCapitalGainsTax(totalCapitalGains, nonSSIncome, state, effectiveFilingStatus);
+      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, state, effectiveFilingStatus, isNycResident);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(totalCapitalGains, nonSSIncome, state, effectiveFilingStatus, isNycResident);
       stateTax = stateSSTax + stateIncomeTax;
     }
     
