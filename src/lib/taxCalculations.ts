@@ -1,5 +1,5 @@
 // Tax calculation utilities for retirement planning
-import { stateTaxData } from './stateTaxData';
+import { stateTaxData, type StateTaxBracket } from './stateTaxData';
 export type { StateTaxBracket, StateTaxData } from './stateTaxData';
 // Re-export for consumers that import from taxCalculations
 export { stateTaxData };
