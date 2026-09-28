@@ -28,7 +28,7 @@ test('zero-tax move says pause/delay', () => {
 });
 
 test('IRMAA only when 63+ around the move; single ignores spouse age', () => {
-  assert.ok(!titles(buildRelocationTaxChecklist(base())).includes('IRMAA & Medicare'));
+  assert.ok(!titles(buildRelocationTaxChecklist(base({ relocationAge: 58, currentAge: 55, rows: rows(55, 20) }))).includes('IRMAA & Medicare'));
   assert.ok(titles(buildRelocationTaxChecklist(base({ relocationAge: 66, currentAge: 64, rows: rows(64, 20) }))).includes('IRMAA & Medicare'));
 });
 
