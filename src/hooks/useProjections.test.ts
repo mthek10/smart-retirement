@@ -142,6 +142,24 @@ test("pension start year still meets the inflation-adjusted take-home target", (
   assert.ok(age71.takeHome > age70.takeHome);
 });
 
+test("account withdrawal sources reconcile to total annual withdrawals", () => {
+  const { accounts, ssData, taxSettings } = buildRegressionScenario();
+  const projections = calculateProjections(accounts, ssData, taxSettings);
+
+  assert.ok(projections.some((row) => row.withdrawals > 0), "expected at least one withdrawal year");
+
+  for (const row of projections) {
+    const accountWithdrawals = row.traditionalWithdrawal + row.rothWithdrawal + row.taxableWithdrawal;
+    assert.ok(
+      Math.abs(accountWithdrawals - row.withdrawals) < 0.01,
+      `expected account sources to reconcile at age ${row.age}`,
+    );
+    assert.ok(row.traditionalWithdrawal >= 0);
+    assert.ok(row.rothWithdrawal >= 0);
+    assert.ok(row.taxableWithdrawal >= 0);
+  }
+});
+
 test("already-claiming person receives their actual check from year 1, unadjusted", () => {
   const { accounts, ssData, taxSettings } = buildRegressionScenario();
   taxSettings.spouse1Age = 68;
