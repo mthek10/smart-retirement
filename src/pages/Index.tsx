@@ -6,6 +6,7 @@ import { ProjectionSummary } from "@/components/ProjectionSummary";
 import { TaxChart } from "@/components/TaxChart";
 import { BracketChart } from "@/components/BracketChart";
 import { BalanceByAgeChart } from "@/components/BalanceByAgeChart";
+import { IncomeByAgeChart } from "@/components/IncomeByAgeChart";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
@@ -878,6 +879,7 @@ const Index = () => {
 
           <TabsContent value="charts" className="mt-6 space-y-6">
             <BalanceByAgeChart projections={projections} />
+            <IncomeByAgeChart projections={projections} />
             <BracketChart data={projections} />
             <TaxChart data={taxChartData} />
           </TabsContent>

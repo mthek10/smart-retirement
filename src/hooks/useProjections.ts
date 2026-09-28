@@ -177,6 +177,9 @@ export interface ProjectionRow {
   contributions401k: number;
   employerMatch: number;
   withdrawals: number;
+  traditionalWithdrawal: number;
+  rothWithdrawal: number;
+  taxableWithdrawal: number;
   federalTax: number;
   federalCapitalGainsTax: number;
   stateTax: number;
@@ -1482,6 +1485,9 @@ export function calculateProjections(
       contributions401k: total401kContributions,
       employerMatch: totalEmployerMatch,
       withdrawals: totalWithdrawals,
+      traditionalWithdrawal,
+      rothWithdrawal,
+      taxableWithdrawal,
       federalTax: federalTaxOrdinary,
       federalCapitalGainsTax: federalTaxCapitalGains,
       stateTax,
