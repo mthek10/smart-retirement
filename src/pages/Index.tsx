@@ -63,6 +63,7 @@ const DEFAULT_SS_DATA = {
 const DEFAULT_TAX_SETTINGS = {
   filingStatus: "married",
   state: "other",
+  nycResident: false,
   stateRate: 5,
   spouse1Age: 60,
   spouse2Age: 58,
