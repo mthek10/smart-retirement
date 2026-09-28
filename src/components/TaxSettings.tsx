@@ -644,9 +644,28 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
                 </Select>
               </div>
               </div>
+              {taxSettings.stateRelocation?.targetState === 'NY' && (
+                <div className="flex items-start justify-between gap-3 rounded-lg border-l-4 border-l-primary bg-muted/30 px-3 py-2.5">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="targetNycResident" className="font-medium">Moving into New York City</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Adds NYC local income tax (3.08% – 3.88%) after the move
+                    </p>
+                  </div>
+                  <Switch
+                    id="targetNycResident"
+                    checked={taxSettings.stateRelocation?.targetNycResident || false}
+                    onCheckedChange={(checked) => {
+                      const current = taxSettings.stateRelocation || { enabled: true, targetState: 'NY', relocationAge: 65 };
+                      onChange({ ...taxSettings, stateRelocation: { ...current, targetNycResident: checked } });
+                    }}
+                  />
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 Annual model: the target state's tax rules apply starting in the first projection year when Spouse 1 reaches this age. For higher-tax targets, you'll get pre-move planning advice.
               </p>
+
             </div>
           )}
         </div>
