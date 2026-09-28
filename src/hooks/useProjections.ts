@@ -366,6 +366,7 @@ function solveRequiredWithdrawal(
   qualifiedDividends: number = 0,
   ordinaryDividends: number = 0,
   extraCapitalGains: number = 0,
+  isNycResident: boolean = false,
 ): number {
   let low = Math.max(0, currentRMD);
   let high = Math.max(
