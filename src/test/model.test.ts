@@ -217,9 +217,8 @@ test("nyc: state capital gains tax includes city portion", () => {
   near(withCity - without, calculateNycCapitalGainsTax(40_000, 60_000, "married"), 0.01);
 });
 test("nyc: projections pay more state tax than NY state alone", () => {
-  const base = { ...tax, state: "NY", stateRate: 0 };
-  const nyOnly = calculateProjections(accounts(), ss(), base as any);
-  const nyc = calculateProjections(accounts(), ss(), { ...base, nycResident: true } as any);
+  const nyOnly = calculateProjections(accounts(), ss(), tax({ state: "NY", stateRate: 0 }) as any);
+  const nyc = calculateProjections(accounts(), ss(), tax({ state: "NY", stateRate: 0, nycResident: true }) as any);
   const sum = (rows: any[]) => rows.reduce((s, r) => s + r.stateTax + r.stateCapitalGainsTax, 0);
   assert.ok(sum(nyc) > sum(nyOnly), "NYC resident should owe more state+local tax");
 });
