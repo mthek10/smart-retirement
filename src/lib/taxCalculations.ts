@@ -63,6 +63,7 @@ export function getRothConversionLimit(
     'fill_12': brackets[1].max - 1, // Top of 12% bracket
     'fill_22': brackets[2].max - 1, // Top of 22% bracket
     'fill_24': brackets[3].max - 1, // Top of 24% bracket
+    'fill_32': brackets[4].max - 1, // Top of 32% bracket
   };
 
   const taxableIncomeLimit = strategyMap[strategy] || 0;
