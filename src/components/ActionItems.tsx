@@ -95,11 +95,12 @@ function estimateStateCapitalGainsRate(
   filingStatus: string,
   ordinaryIncome: number,
   sampleGain: number,
-  customStateRate: number = 0
+  customStateRate: number = 0,
+  isNycResident: boolean = false
 ) {
   if (!state || state === 'none' || sampleGain <= 0) return 0;
   if (state === 'other') return Math.max(0, customStateRate) / 100;
-  return calculateStateCapitalGainsTax(sampleGain, ordinaryIncome, state, filingStatus) / sampleGain;
+  return calculateStateCapitalGainsTax(sampleGain, ordinaryIncome, state, filingStatus, isNycResident) / sampleGain;
 }
 
 function estimateStateTaxesForProjection(
@@ -108,7 +109,8 @@ function estimateStateTaxesForProjection(
   filingStatus: string,
   customStateRate: number,
   spouse1StartAge: number,
-  spouse2StartAge: number
+  spouse2StartAge: number,
+  isNycResident: boolean = false
 ) {
   if (!state || state === 'none') {
     return { stateTax: 0, stateCapitalGainsTax: 0, total: 0 };
@@ -130,16 +132,18 @@ function estimateStateTaxesForProjection(
     filingStatus,
     state,
     olderLivingSpouseAge
-  ) + calculateStateIncomeTax(projection.nonSocialSecurityOrdinaryIncome, state, filingStatus);
+  ) + calculateStateIncomeTax(projection.nonSocialSecurityOrdinaryIncome, state, filingStatus, isNycResident);
   const stateCapitalGainsTax = calculateStateCapitalGainsTax(
     projection.capitalGainsIncome,
     projection.nonSocialSecurityOrdinaryIncome,
     state,
-    filingStatus
+    filingStatus,
+    isNycResident
   );
 
   return { stateTax, stateCapitalGainsTax, total: stateTax + stateCapitalGainsTax };
 }
+
 
 export function ActionItems({
   projections,
