@@ -573,6 +573,8 @@ export function ActionItems({
         inflationRate: inflationRate > 1 ? inflationRate / 100 : inflationRate,
         acaEnabled,
         ssClaimAge: spouse1SSClaimAge,
+        fromNycResident: stateCode === 'NY' && nycResident,
+        toNycResident: stateRelocation.targetState === 'NY' && !!stateRelocation.targetNycResident,
         formatMoney: formatCurrency,
       })
     : undefined;
