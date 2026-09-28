@@ -1373,8 +1373,8 @@ export function calculateProjections(
       );
       
       const nonSSIncome = ordinaryIncome;
-      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, effectiveState, effectiveFilingStatus);
-      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus);
+      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
       stateTax = stateSSTax + stateIncomeTax;
     }
 
