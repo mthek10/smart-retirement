@@ -1005,6 +1005,7 @@ export function calculateProjections(
       qualifiedDividends,
       ordinaryDividends,
       homeSaleTaxableGain,
+      effectiveNycResident,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
