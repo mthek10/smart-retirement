@@ -45,6 +45,10 @@ export interface RelocationTaxChecklistInput {
   inflationRate: number; // decimal
   acaEnabled: boolean;
   ssClaimAge: number;
+  /** Household is currently a New York City resident (adds NYC local income tax). */
+  fromNycResident?: boolean;
+  /** Household will be a New York City resident after the move. */
+  toNycResident?: boolean;
   formatMoney?: (n: number) => string;
 }
 
