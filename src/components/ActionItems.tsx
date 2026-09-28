@@ -830,7 +830,7 @@ export function ActionItems({
     const postMoveStateTaxWithoutRelocation = projections
       .filter(p => p.age >= stateRelocation.relocationAge)
       .reduce(
-        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age).total,
+        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age, nycResident).total,
         0
       );
     const postMoveActualTax = projections
