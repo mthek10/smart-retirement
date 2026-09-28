@@ -662,12 +662,17 @@ export function calculateStateCapitalGainsTax(
   capitalGains: number,
   ordinaryIncome: number,
   state: string,
-  filingStatus: string = 'married'
+  filingStatus: string = 'married',
+  isNycResident: boolean = false
 ): number {
-  if (state === 'none' || state === 'other' || !state) return 0;
+  const localTax = state === 'NY' && isNycResident
+    ? calculateNycCapitalGainsTax(capitalGains, ordinaryIncome, filingStatus)
+    : 0;
+
+  if (state === 'none' || state === 'other' || !state) return localTax;
   
   const stateData = stateTaxData[state];
-  if (!stateData) return 0;
+  if (!stateData) return localTax;
   
   // Most states tax capital gains as ordinary income
   if (stateData.capitalGainsAsOrdinary) {
@@ -675,15 +680,15 @@ export function calculateStateCapitalGainsTax(
     const totalIncome = ordinaryIncome + capitalGains;
     const taxOnTotal = calculateStateIncomeTax(totalIncome, state, filingStatus);
     const taxOnOrdinary = calculateStateIncomeTax(ordinaryIncome, state, filingStatus);
-    return taxOnTotal - taxOnOrdinary;
+    return taxOnTotal - taxOnOrdinary + localTax;
   }
 
   if (stateData.capitalGainsRate) {
     const exemption = stateData.capitalGainsExemption || 0;
-    return Math.max(0, capitalGains - exemption) * stateData.capitalGainsRate;
+    return Math.max(0, capitalGains - exemption) * stateData.capitalGainsRate + localTax;
   }
   
-  return 0;
+  return localTax;
 }
 
 export function calculateStateSocialSecurityTax(
