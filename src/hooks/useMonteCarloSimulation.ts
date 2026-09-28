@@ -116,7 +116,7 @@ export function runSingleSimulation(
   const DEPLETION_THRESHOLD = 1000;
   
   // Initialize account balances
-  let traditionalBalance = accounts.spouse1Traditional + accounts.spouse2Traditional;
+  let traditionalBalance = accounts.spouse1Traditional + (taxSettings.filingStatus === 'married' ? accounts.spouse2Traditional : 0);
   let rothBalance = accounts.roth;
   let taxableBalance = accounts.taxable;
   
