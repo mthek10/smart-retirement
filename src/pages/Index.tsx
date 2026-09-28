@@ -784,6 +784,7 @@ const Index = () => {
                 taxableCostBasisPercent={accounts.taxableCostBasisPercent}
                 stateCode={taxSettings.state}
                 stateRate={taxSettings.stateRate}
+                nycResident={taxSettings.nycResident}
                 stateRelocation={taxSettings.stateRelocation}
                 onNavigateToSetup={navigateToSetupStep}
               />
