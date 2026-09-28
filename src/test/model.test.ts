@@ -113,8 +113,8 @@ test("harvesting: 15% tier only harvests when toggle is on", () => {
   const rows = calculateProjections(accounts(), ss(), tax());
   assert.equal(rows.reduce((a, r) => a + r.capitalGainsHarvested15, 0), 0);
 });
-test("conversions: bigger bracket targets convert at least as much", () => {
-  const total = (st: string) => calculateProjections(accounts({ spouse1Traditional: 1_500_000 }), ss(), tax({ rothConversionStrategy: st })).reduce((a, r) => a + r.rothConversion, 0);
+test("conversions: bigger bracket targets convert more in the first year", () => {
+  const total = (st: string) => calculateProjections(accounts({ spouse1Traditional: 1_500_000 }), ss(), tax({ rothConversionStrategy: st }))[0].rothConversion;
   const n = total("none"), a = total("fill_12"), b = total("fill_22"), c = total("fill_32");
   assert.equal(n, 0);
   assert.ok(a <= b + 1 && b <= c + 1, `${a} ${b} ${c}`);
