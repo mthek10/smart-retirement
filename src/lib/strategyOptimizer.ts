@@ -150,15 +150,24 @@ export function pickBestAfterTaxStrategy(
   return { best: top.strategy, startAge: top.startAge, priority: top.priority, label: top.label, ranking };
 }
 
-const CACHE = new WeakMap<TaxSettings, OptimizerResult>();
+// Content-keyed LRU: identical inputs from Dashboard, Two-Pass, Comparison and
+// Monte Carlo reuse one search, and changing accounts/SS invalidates correctly.
+const CACHE = new Map<string, OptimizerResult>();
+const CACHE_LIMIT = 24;
 export function pickBestAfterTaxStrategyCached(
   accounts: Accounts,
   ssData: SSData,
   taxSettings: TaxSettings,
 ): OptimizerResult {
-  const cached = CACHE.get(taxSettings);
-  if (cached) return cached;
+  const key = JSON.stringify([accounts, ssData, taxSettings]);
+  const cached = CACHE.get(key);
+  if (cached) {
+    CACHE.delete(key);
+    CACHE.set(key, cached);
+    return cached;
+  }
   const result = pickBestAfterTaxStrategy(accounts, ssData, taxSettings);
-  CACHE.set(taxSettings, result);
+  CACHE.set(key, result);
+  if (CACHE.size > CACHE_LIMIT) CACHE.delete(CACHE.keys().next().value as string);
   return result;
 }

@@ -73,12 +73,27 @@ export interface MonteCarloResult {
   isRunning: boolean;
 }
 
+let rng: () => number = Math.random;
+
+/** Test hook: pass a seed for reproducible runs, or null to restore Math.random. */
+export function setMonteCarloSeed(seed: number | null): void {
+  if (seed == null) { rng = Math.random; return; }
+  let s = seed >>> 0;
+  rng = () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 /**
  * Generate random return using Box-Muller transform for normal distribution
  */
 function randomNormal(mean: number, stdDev: number): number {
-  const u1 = Math.random();
-  const u2 = Math.random();
+  const u1 = rng() || Number.MIN_VALUE;
+  const u2 = rng();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   return mean + z * stdDev;
 }
@@ -87,14 +102,17 @@ function randomNormal(mean: number, stdDev: number): number {
  * Run a single simulation with year-by-year randomized returns.
  * This properly models sequence-of-returns risk by applying random returns each year.
  */
-function runSingleSimulation(
+export function runSingleSimulation(
   accounts: Accounts,
   ssData: SSData,
   taxSettings: TaxSettings,
   strategy: string,
   settings: MonteCarloSettings
 ): SimulationOutcome {
-  const maxYears = Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age);
+  // Single filers ignore spouse data (spouse2Age is 0 → would otherwise run to 100 years).
+  const maxYears = taxSettings.filingStatus === 'married'
+    ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
+    : 100 - taxSettings.spouse1Age;
   const DEPLETION_THRESHOLD = 1000;
   
   // Initialize account balances
