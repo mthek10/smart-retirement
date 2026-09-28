@@ -276,6 +276,26 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
           })()}
         </div>
 
+        {taxSettings.state === 'NY' && (
+          <div className="flex items-start justify-between gap-3 rounded-lg border-l-4 border-l-primary bg-muted/30 px-3 py-2.5">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="nycResident" className="font-medium">New York City Resident</Label>
+                <InfoTooltip text="NYC residents pay a local personal income tax of 3.078%–3.876% on top of New York State tax. It applies to IRA/401(k) withdrawals, Roth conversions, pensions and realized capital gains. Social Security is exempt." />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Adds NYC local income tax (3.08% – 3.88%) on top of New York State tax
+              </p>
+            </div>
+            <Switch
+              id="nycResident"
+              checked={taxSettings.nycResident || false}
+              onCheckedChange={(checked) => handleChange('nycResident', checked)}
+            />
+          </div>
+        )}
+
+
         {taxSettings.state === 'other' && (
           <div className="space-y-2">
             <Label htmlFor="stateRate">State Income Tax Rate (%)</Label>
