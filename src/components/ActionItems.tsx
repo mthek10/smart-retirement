@@ -9,8 +9,12 @@ import {
   HeartPulse,
   PiggyBank,
   Coins,
-  MapPin
+  MapPin,
+  ChevronDown,
+  ListChecks
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { buildRelocationChecklist, type ChecklistPhase } from "@/lib/relocationChecklist";
 import { getBracketRoom } from "@/lib/incomeAlerts";
 import {
   calculateCapitalGainsHarvestingRoom,
@@ -52,6 +56,7 @@ interface ActionItem {
   description: string;
   impact?: string;
   customContent?: React.ReactNode;
+  checklist?: ChecklistPhase[];
   icon: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
@@ -518,6 +523,30 @@ export function ActionItems({
       )
     : 0;
   const movingToZeroTax = Boolean(hasRelocation && fullyTaxFreeStates.includes(stateRelocation.targetState));
+  const relocationChecklist: ChecklistPhase[] | undefined = hasRelocation
+    ? (() => {
+        const relAge = stateRelocation.relocationAge;
+        const pre = projections.filter(p => p.age < relAge);
+        const atMove = projections.find(p => p.age >= relAge) ?? projections[projections.length - 1];
+        const married = filingStatus.toLowerCase().includes('married') || filingStatus === 'mfj';
+        return buildRelocationChecklist({
+          fromState: stateCode || currentStateCode || 'other',
+          toState: stateRelocation.targetState,
+          relocationAge: relAge,
+          currentAge: spouse1Age,
+          spouseAge: married ? spouse2Age : null,
+          filingStatus,
+          direction: movingToZeroTax ? 'zero' : movingToHigherTaxState ? 'higher' : 'lower',
+          hasEmployment: (atMove?.employmentIncome || 0) > 0 || pre.some(p => (p.employmentIncome || 0) > 0 && p.age >= relAge - 1),
+          claimingSS: (atMove?.ssIncome || 0) > 0,
+          hasPension: (atMove?.pensionIncome || 0) > 0,
+          rothPlanned: pre.reduce((s, p) => s + (p.rothConversion || 0), 0),
+          gainsPlanned: pre.reduce((s, p) => s + (p.capitalGainsHarvested || 0) + (p.capitalGainsHarvested15 || 0), 0),
+          baseYear: projections[0]?.year ?? new Date().getFullYear(),
+          formatMoney: formatCurrency,
+        });
+      })()
+    : undefined;
 
 
   if (movingToHigherTaxState) {
@@ -758,6 +787,7 @@ export function ActionItems({
       description: totalSavingsDesc,
       impact: fallbackImpact,
       customContent: tableContent,
+      checklist: relocationChecklist,
       icon: <MapPin className="h-5 w-5 text-warning" />,
     });
   } else if (movingToZeroTax && isInTaxableState && lifetimeStateTax > 5000) {
@@ -786,6 +816,23 @@ export function ActionItems({
       title: `State Relocation: Moving to ${stateRelocation.targetState} in ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'}`,
       description: `Moving from ${stateName} to ${stateRelocation.targetState} at age ${stateRelocation.relocationAge} is estimated to save ${formatCurrency(lifetimeSavings)} in lifetime state taxes versus staying put.`,
       impact: `Projected state taxes: ${formatCurrency(lifetimeStateTax)} with relocation vs ${formatCurrency(estimatedNoMoveStateTax)} without relocation (${formatCurrency(preMoveTax)} before move, ${formatCurrency(postMoveSavings)} saved after)`,
+      checklist: relocationChecklist,
+      icon: <MapPin className="h-5 w-5 text-success" />,
+    });
+  } else if (hasRelocation) {
+    // Relocation to a lower-tax (or similar) state
+    const yearsUntilMove = Math.max(0, stateRelocation.relocationAge - spouse1Age);
+    const stateName = stateCode === 'other' ? 'your current state' : (stateCode || 'your current state');
+    const lifetimeSavings = Math.max(0, estimatedNoMoveStateTax - lifetimeStateTax);
+    actionItems.push({
+      id: 'state-relocation-combined',
+      priority: yearsUntilMove <= 3 ? 'high' : lifetimeSavings > 25000 ? 'medium' : 'low',
+      category: 'state-tax',
+      title: `State Relocation: Moving to ${stateRelocation.targetState} in ${yearsUntilMove} ${yearsUntilMove === 1 ? 'Year' : 'Years'}`,
+      description: lifetimeSavings > 0
+        ? `Moving from ${stateName} to ${stateRelocation.targetState} at age ${stateRelocation.relocationAge} is estimated to save ${formatCurrency(lifetimeSavings)} in lifetime state taxes versus staying put.`
+        : `You're planning to move from ${stateName} to ${stateRelocation.targetState} at age ${stateRelocation.relocationAge}. Use the checklist below to make the move clean for tax purposes.`,
+      checklist: relocationChecklist,
       icon: <MapPin className="h-5 w-5 text-success" />,
     });
   } else if (isInTaxableState && lifetimeStateTax > 5000 && !hasRelocation) {
@@ -872,6 +919,34 @@ export function ActionItems({
                   <div className="text-sm font-medium text-primary mt-2 whitespace-pre-line">
                     💡 {item.impact}
                   </div>
+                )}
+                {item.checklist && item.checklist.length > 0 && (
+                  <Collapsible className="mt-3">
+                    <CollapsibleTrigger className="group flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80">
+                      <ListChecks className="h-4 w-4" />
+                      Relocation Checklist — before & after the move
+                      <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-3 space-y-4">
+                      {item.checklist.map((phase, pi) => (
+                        <div key={pi} className="border-l-4 border-primary pl-3">
+                          <h5 className="text-sm font-semibold text-foreground">{pi + 1}. {phase.title}</h5>
+                          <ul className="mt-2 space-y-2">
+                            {phase.items.map((it, ii) => (
+                              <li key={ii} className="flex gap-2 text-sm text-foreground">
+                                <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                                <div>
+                                  <div>{it.text}</div>
+                                  {it.detail && <div className="text-xs text-foreground/80 mt-0.5">{it.detail}</div>}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                      <p className="text-xs text-foreground/80 italic">Residency rules vary by state — confirm your plan with a tax professional.</p>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
                 {item.actionLabel && item.onAction && (
                   <button
