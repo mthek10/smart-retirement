@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { buildRelocationChecklist, type ChecklistPhase } from "@/lib/relocationChecklist";
+import { buildRelocationTaxChecklist, type TaxChecklistSection } from "@/lib/relocationTaxChecklist";
 import { getBracketRoom } from "@/lib/incomeAlerts";
 import {
   calculateCapitalGainsHarvestingRoom,
@@ -57,6 +58,7 @@ interface ActionItem {
   impact?: string;
   customContent?: React.ReactNode;
   checklist?: ChecklistPhase[];
+  taxChecklist?: TaxChecklistSection[];
   icon: React.ReactNode;
   actionLabel?: string;
   onAction?: () => void;
@@ -547,6 +549,24 @@ export function ActionItems({
         });
       })()
     : undefined;
+  const relocationTaxChecklist: TaxChecklistSection[] | undefined = hasRelocation
+    ? buildRelocationTaxChecklist({
+        fromState: stateCode || 'other',
+        toState: stateRelocation.targetState,
+        relocationAge: stateRelocation.relocationAge,
+        currentAge: spouse1Age,
+        spouseAge: spouse2Age,
+        filingStatus,
+        direction: movingToZeroTax ? 'zero' : movingToHigherTaxState ? 'higher' : 'lower',
+        currentStateRate: currentStateRateEstimate,
+        targetStateRate: targetStateRateEstimate,
+        rows: projections,
+        inflationRate: inflationRate > 1 ? inflationRate / 100 : inflationRate,
+        acaEnabled,
+        ssClaimAge: spouse1SSClaimAge,
+        formatMoney: formatCurrency,
+      })
+    : undefined;
 
 
   if (movingToHigherTaxState) {
@@ -788,6 +808,7 @@ export function ActionItems({
       impact: fallbackImpact,
       customContent: tableContent,
       checklist: relocationChecklist,
+      taxChecklist: relocationTaxChecklist,
       icon: <MapPin className="h-5 w-5 text-warning" />,
     });
   } else if (movingToZeroTax && isInTaxableState && lifetimeStateTax > 5000) {
@@ -817,6 +838,7 @@ export function ActionItems({
       description: `Moving from ${stateName} to ${stateRelocation.targetState} at age ${stateRelocation.relocationAge} is estimated to save ${formatCurrency(lifetimeSavings)} in lifetime state taxes versus staying put.`,
       impact: `Projected state taxes: ${formatCurrency(lifetimeStateTax)} with relocation vs ${formatCurrency(estimatedNoMoveStateTax)} without relocation (${formatCurrency(preMoveTax)} before move, ${formatCurrency(postMoveSavings)} saved after)`,
       checklist: relocationChecklist,
+      taxChecklist: relocationTaxChecklist,
       icon: <MapPin className="h-5 w-5 text-success" />,
     });
   } else if (hasRelocation) {
@@ -833,6 +855,7 @@ export function ActionItems({
         ? `Moving from ${stateName} to ${stateRelocation.targetState} at age ${stateRelocation.relocationAge} is estimated to save ${formatCurrency(lifetimeSavings)} in lifetime state taxes versus staying put.`
         : `You're planning to move from ${stateName} to ${stateRelocation.targetState} at age ${stateRelocation.relocationAge}. Use the checklist below to make the move clean for tax purposes.`,
       checklist: relocationChecklist,
+      taxChecklist: relocationTaxChecklist,
       icon: <MapPin className="h-5 w-5 text-success" />,
     });
   } else if (isInTaxableState && lifetimeStateTax > 5000 && !hasRelocation) {
@@ -945,6 +968,36 @@ export function ActionItems({
                         </div>
                       ))}
                       <p className="text-xs text-foreground/80 italic">Residency rules vary by state — confirm your plan with a tax professional.</p>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+                {item.taxChecklist && item.taxChecklist.length > 0 && (
+                  <Collapsible className="mt-3">
+                    <CollapsibleTrigger className="group flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80">
+                      <ListChecks className="h-4 w-4" />
+                      Tax Planning Checklist — before & after the move
+                      <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-3 space-y-4">
+                      {item.taxChecklist.map((sec, si) => (
+                        <div key={si} className="border-l-4 border-primary pl-3">
+                          <h5 className="text-sm font-semibold text-foreground">{si + 1}. {sec.title}</h5>
+                          <ul className="mt-2 space-y-2">
+                            {sec.items.map((it, ii) => (
+                              <li key={ii} className="flex gap-2 text-sm text-foreground">
+                                <Badge variant="outline" className="h-5 shrink-0 text-[10px] text-foreground">
+                                  {it.timing === 'before' ? 'Before move' : 'After move'}
+                                </Badge>
+                                <div>
+                                  <div>{it.text}</div>
+                                  {it.detail && <div className="text-xs text-foreground/80 mt-0.5">{it.detail}</div>}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                      <p className="text-xs text-foreground/80 italic">Figures are projections from your plan — confirm with a tax professional before acting.</p>
                     </CollapsibleContent>
                   </Collapsible>
                 )}
