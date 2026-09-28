@@ -41,10 +41,12 @@ interface ActionItemsProps {
   taxableCostBasisPercent?: number;
   stateCode?: string;
   stateRate?: number;
+  nycResident?: boolean;
   stateRelocation?: {
     enabled: boolean;
     targetState: string;
     relocationAge: number;
+    targetNycResident?: boolean;
   };
   onNavigateToSetup?: (stepIndex: number) => void;
 }
