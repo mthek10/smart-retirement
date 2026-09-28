@@ -529,7 +529,7 @@ export function ActionItems({
     : 0;
   const estimatedNoMoveStateTax = isInTaxableState
     ? projections.reduce(
-        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age).total,
+        (sum, p) => sum + estimateStateTaxesForProjection(p, stateCode, filingStatus, stateRate, spouse1Age, spouse2Age, nycResident).total,
         0
       )
     : 0;
