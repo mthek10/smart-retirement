@@ -1386,7 +1386,7 @@ export function calculateProjections(
       if (effectiveState === 'other') {
         stateCGWithout = (capitalGains - capitalGainsHarvested15) * (taxSettings.stateRate / 100);
       } else if (effectiveState && effectiveState !== 'none') {
-        stateCGWithout = calculateStateCapitalGainsTax(capitalGains - capitalGainsHarvested15, ordinaryIncome, effectiveState, effectiveFilingStatus);
+        stateCGWithout = calculateStateCapitalGainsTax(capitalGains - capitalGainsHarvested15, ordinaryIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
       }
       harvest15TaxFromProceeds = Math.max(0, (federalTaxCapitalGains - fedCGWithout) + (stateCapitalGainsTax - stateCGWithout));
       taxableBalance = Math.max(0, taxableBalance - harvest15TaxFromProceeds);
