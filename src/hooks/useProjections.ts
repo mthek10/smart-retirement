@@ -137,6 +137,8 @@ export interface CharitableGivingSettings {
 export interface TaxSettings {
   filingStatus: string;
   state: string;
+  /** New York City resident local income tax (3.078%–3.876%). Only applies when state is 'NY'. */
+  nycResident?: boolean;
   stateRate: number;
   spouse1Age: number;
   spouse2Age: number;
