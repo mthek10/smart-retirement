@@ -21,6 +21,7 @@ interface TaxSettingsProps {
   taxSettings: {
     filingStatus: string;
     state: string;
+    nycResident?: boolean;
     stateRate: number;
     spouse1Age: number;
     spouse2Age: number;
@@ -38,6 +39,7 @@ interface TaxSettingsProps {
       enabled: boolean;
       targetState: string;
       relocationAge: number;
+      targetNycResident?: boolean;
     };
   };
   onChange: (settings: any) => void;
