@@ -482,12 +482,13 @@ function solveRequiredWithdrawal(
       irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
     }
     
+    const medicareSupplemental = acaSettings?.medicareSupplementalMonthlyPerPerson ?? 0;
     let medicarePremiums = 0;
     if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
-      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
+      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
     }
     if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
-      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
+      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
     }
     
     const niit = calculateNIIT(totalCapitalGains, magi, effectiveFilingStatus, yearIndex, inflationFraction);
