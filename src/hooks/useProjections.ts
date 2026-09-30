@@ -1468,7 +1468,7 @@ export function calculateProjections(
     // QCD comes from Trad IRA (already subtracted above). Only cash reduces calculated take-home here.
     // 15%-harvest tax was paid from sale proceeds (balance already reduced) — add it back
     // so it doesn't double-count against take-home.
-    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost - charitableCashDeduction + harvest15TaxFromProceeds;
+    const calculatedTakeHome = totalWithdrawals + ssAnnual + netWages + totalPensionIncome - federalTaxOrdinary - federalTaxCapitalGains - stateTax - stateCapitalGainsTax - cityTax - cityCapitalGainsTax - irmaa - medicarePremiums - niit - amt - netAcaCost - healthInsuranceCost - charitableCashDeduction + harvest15TaxFromProceeds;
     
     // Compute total excess: after-tax income exceeding target gets reinvested to brokerage
     let totalExcess = 0;
