@@ -12,6 +12,8 @@ import {
   getMarginalTaxBracket,
   calculateStateSocialSecurityTax,
   calculateStateIncomeTax,
+  calculateNycIncomeTax,
+  calculateNycCapitalGainsTax,
   calculateStateCapitalGainsTax,
   calculateFullRetirementAge,
   calculateNIIT,
