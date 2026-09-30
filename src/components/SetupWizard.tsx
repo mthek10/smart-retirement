@@ -190,6 +190,9 @@ export function SetupWizard({
           <ACASettings
             acaSettings={taxSettings.acaSettings}
             onChange={(newAcaSettings) => onTaxSettingsChange({ ...taxSettings, acaSettings: newAcaSettings })}
+            filingStatus={taxSettings.filingStatus}
+            spouse1Age={taxSettings.spouse1Age}
+            spouse2Age={taxSettings.spouse2Age}
           />
         );
       default:
