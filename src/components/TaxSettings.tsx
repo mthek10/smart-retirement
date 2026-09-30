@@ -12,8 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
 import { LifeEventsEditor } from "@/components/LifeEventsEditor";
-import type { LifeEvent, ProjectionRow } from "@/hooks/useProjections";
-import type { MonteCarloResult, MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
+import type { LifeEvent } from "@/hooks/useProjections";
 
 interface TaxSettingsProps {
   taxSettings: {
