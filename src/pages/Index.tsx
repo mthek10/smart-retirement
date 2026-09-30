@@ -7,6 +7,7 @@ import { TaxChart } from "@/components/TaxChart";
 import { BracketChart } from "@/components/BracketChart";
 import { BalanceByAgeChart } from "@/components/BalanceByAgeChart";
 import { IncomeByAgeChart } from "@/components/IncomeByAgeChart";
+import { TaxRulesReference } from "@/components/TaxRulesReference";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
