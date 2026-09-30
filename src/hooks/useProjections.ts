@@ -1428,12 +1428,13 @@ export function calculateProjections(
       irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
     }
 
+    const medicareSupplemental = taxSettings.acaSettings?.medicareSupplementalMonthlyPerPerson ?? 0;
     let medicarePremiums = 0;
     if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
+      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100, medicareSupplemental);
     }
     if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
+      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100, medicareSupplemental);
     }
 
     const coveredPeople = [
