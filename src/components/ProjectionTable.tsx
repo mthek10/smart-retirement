@@ -28,6 +28,8 @@ interface YearProjection {
   federalTax: number;
   federalCapitalGainsTax: number;
   stateTax: number;
+  cityTax?: number;
+  cityCapitalGainsTax?: number;
   stateCapitalGainsTax: number;
   irmaa: number;
   medicarePremiums?: number;
@@ -115,6 +117,11 @@ export const ProjectionTable = memo(function ProjectionTable({
   const harvest15Rows = projections.filter(p => (p.capitalGainsHarvested15 ?? 0) > 0);
   const totalHarvested15 = harvest15Rows.reduce((sum, p) => sum + (p.capitalGainsHarvested15 ?? 0), 0);
   const showHarvestNote = show("income") && hasBrokerage && projections.length > 0;
+
+  // City (NYC) tax columns only appear when a municipal tax is actually owed.
+  const hasCityTax = projections.some(
+    p => (p.cityTax ?? 0) > 0 || (p.cityCapitalGainsTax ?? 0) > 0
+  );
 
   const handleExportToCSV = () => {
     if (projections.length === 0) return;
@@ -225,6 +232,16 @@ export const ProjectionTable = memo(function ProjectionTable({
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Fed CG Tax</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State Tax</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State CG Tax</th>
+                      {hasCityTax && (
+                        <>
+                          <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                            <span className="inline-flex items-center gap-1">City Tax <InfoTooltip text="New York City resident personal income tax (3.078%–3.876%) on withdrawals, Roth conversions, pensions and wages. Social Security is exempt. Shown separately from New York State tax." /></span>
+                          </th>
+                          <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                            <span className="inline-flex items-center gap-1">City CG Tax <InfoTooltip text="New York City resident tax on realized capital gains, stacked on top of your ordinary income." /></span>
+                          </th>
+                        </>
+                      )}
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
                         <span className="inline-flex items-center gap-1">NIIT <InfoTooltip text="Net Investment Income Tax — a 3.8% surtax on investment income above $200K (single) or $250K (married)." /></span>
                       </th>
@@ -429,6 +446,16 @@ export const ProjectionTable = memo(function ProjectionTable({
                         <td className="p-4 align-middle text-right text-destructive">
                           {formatCurrency(projection.stateCapitalGainsTax)}
                         </td>
+                        {hasCityTax && (
+                          <>
+                            <td className="p-4 align-middle text-right text-destructive">
+                              {formatCurrency(projection.cityTax ?? 0)}
+                            </td>
+                            <td className="p-4 align-middle text-right text-destructive">
+                              {formatCurrency(projection.cityCapitalGainsTax ?? 0)}
+                            </td>
+                          </>
+                        )}
                         <td className="p-4 align-middle text-right text-destructive">
                           {formatCurrency(projection.niit)}
                         </td>

@@ -128,6 +128,8 @@ const PROJECTION_COLUMNS: { key: keyof ProjectionRow; header: string }[] = [
   { key: "federalCapitalGainsTax", header: "Fed CG Tax" },
   { key: "stateTax", header: "State Tax" },
   { key: "stateCapitalGainsTax", header: "State CG Tax" },
+  { key: "cityTax", header: "City Tax" },
+  { key: "cityCapitalGainsTax", header: "City CG Tax" },
   { key: "niit", header: "NIIT" },
   { key: "amt", header: "AMT" },
   // Healthcare group
