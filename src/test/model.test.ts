@@ -219,6 +219,10 @@ test("nyc: state capital gains tax includes city portion", () => {
 test("nyc: projections pay more state tax than NY state alone", () => {
   const nyOnly = calculateProjections(accounts(), ss(), tax({ state: "NY", stateRate: 0 }) as any);
   const nyc = calculateProjections(accounts(), ss(), tax({ state: "NY", stateRate: 0, nycResident: true }) as any);
-  const sum = (rows: any[]) => rows.reduce((s, r) => s + r.stateTax + r.stateCapitalGainsTax, 0);
+  const sum = (rows: any[]) =>
+    rows.reduce((s, r) => s + r.stateTax + r.stateCapitalGainsTax + r.cityTax + r.cityCapitalGainsTax, 0);
   assert.ok(sum(nyc) > sum(nyOnly), "NYC resident should owe more state+local tax");
+  // City tax must be reported separately, never folded into the state columns.
+  assert.ok(nyc.some((r: any) => r.cityTax > 0), "city tax column should be populated");
+  assert.ok(nyOnly.every((r: any) => r.cityTax === 0 && r.cityCapitalGainsTax === 0));
 });
