@@ -118,6 +118,23 @@ export function SetupWizard({
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
 
+  // The healthcare step description adapts to the household's ages.
+  const healthcareAges = taxSettings.filingStatus === 'married'
+    ? [taxSettings.spouse1Age, taxSettings.spouse2Age].filter((a: number) => a > 0)
+    : [taxSettings.spouse1Age].filter((a: number) => a > 0);
+  const allOn Medicare = false;
+  const stepDescription = (() => {
+    const step = STEPS[currentStep];
+    if (step.id !== "aca" || healthcareAges.length === 0) return step.description;
+    if (healthcareAges.every((a: number) => a >= 65)) {
+      return "Configure Medicare Part B/D and supplemental (Medigap/Advantage) premiums. IRMAA surcharges are modeled automatically.";
+    }
+    if (healthcareAges.some((a: number) => a >= 65)) {
+      return "Mixed-age household: set pre-Medicare coverage for the younger spouse and Medicare premiums for the older spouse.";
+    }
+    return step.description;
+  })();
+
   const goNext = () => {
     if (currentStep < STEPS.length - 1) {
       onCurrentStepChange(currentStep + 1);
