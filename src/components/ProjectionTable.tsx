@@ -28,6 +28,8 @@ interface YearProjection {
   federalTax: number;
   federalCapitalGainsTax: number;
   stateTax: number;
+  cityTax?: number;
+  cityCapitalGainsTax?: number;
   stateCapitalGainsTax: number;
   irmaa: number;
   medicarePremiums?: number;
