@@ -92,6 +92,8 @@ export interface ACASettings {
   householdSize: number;
   customBenchmarkPremium: number;
   annualHealthInsuranceCost: number;
+  /** Optional Medigap / Medicare Advantage / supplemental monthly premium per person age 65+. */
+  medicareSupplementalMonthlyPerPerson?: number;
 }
 
 export interface StateRelocationSettings {
@@ -480,12 +482,13 @@ function solveRequiredWithdrawal(
       irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
     }
     
+    const medicareSupplemental = acaSettings?.medicareSupplementalMonthlyPerPerson ?? 0;
     let medicarePremiums = 0;
     if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
-      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
+      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
     }
     if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
-      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction);
+      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
     }
     
     const niit = calculateNIIT(totalCapitalGains, magi, effectiveFilingStatus, yearIndex, inflationFraction);
@@ -1425,12 +1428,13 @@ export function calculateProjections(
       irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
     }
 
+    const medicareSupplemental = taxSettings.acaSettings?.medicareSupplementalMonthlyPerPerson ?? 0;
     let medicarePremiums = 0;
     if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
+      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100, medicareSupplemental);
     }
     if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100);
+      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100, medicareSupplemental);
     }
 
     const coveredPeople = [

@@ -118,6 +118,22 @@ export function SetupWizard({
 
   const progressPercent = ((currentStep + 1) / STEPS.length) * 100;
 
+  // The healthcare step description adapts to the household's ages.
+  const healthcareAges = taxSettings.filingStatus === 'married'
+    ? [taxSettings.spouse1Age, taxSettings.spouse2Age].filter((a: number) => a > 0)
+    : [taxSettings.spouse1Age].filter((a: number) => a > 0);
+  const stepDescription = (() => {
+    const step = STEPS[currentStep];
+    if (step.id !== "aca" || healthcareAges.length === 0) return step.description;
+    if (healthcareAges.every((a: number) => a >= 65)) {
+      return "Configure Medicare Part B/D and supplemental (Medigap/Advantage) premiums. IRMAA surcharges are modeled automatically.";
+    }
+    if (healthcareAges.some((a: number) => a >= 65)) {
+      return "Mixed-age household: set pre-Medicare coverage for the younger spouse and Medicare premiums for the older spouse.";
+    }
+    return step.description;
+  })();
+
   const goNext = () => {
     if (currentStep < STEPS.length - 1) {
       onCurrentStepChange(currentStep + 1);
@@ -190,6 +206,9 @@ export function SetupWizard({
           <ACASettings
             acaSettings={taxSettings.acaSettings}
             onChange={(newAcaSettings) => onTaxSettingsChange({ ...taxSettings, acaSettings: newAcaSettings })}
+            filingStatus={taxSettings.filingStatus}
+            spouse1Age={taxSettings.spouse1Age}
+            spouse2Age={taxSettings.spouse2Age}
           />
         );
       default:
@@ -232,7 +251,7 @@ export function SetupWizard({
 
       {/* Step description */}
       <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-3">
-        {STEPS[currentStep].description}
+        {stepDescription}
       </p>
 
       <div className="rounded-xl border bg-card/80 px-4 py-3 shadow-sm animate-in fade-in-0 slide-in-from-top-1 duration-300">

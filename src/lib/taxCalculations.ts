@@ -393,15 +393,19 @@ export function getNextIRMAAThreshold(
   return null;
 }
 
-// Calculate Medicare Part B and D base premiums (applies per person age 65+)
+// Calculate Medicare Part B and D base premiums (applies per person age 65+).
+// `supplementalMonthlyPerPerson` covers optional Medigap / Medicare Advantage /
+// dental-vision premiums the household actually pays; inflated like the base premiums.
 export function calculateMedicarePremiums(
   yearIndex: number = 0,
-  inflationRate: number = 0
+  inflationRate: number = 0,
+  supplementalMonthlyPerPerson: number = 0
 ): number {
   const inflationMultiplier = Math.pow(1 + inflationRate, yearIndex);
   const annualPartB = medicarePartBPremium2024 * 12 * inflationMultiplier;
   const annualPartD = medicarePartDPremium2024 * 12 * inflationMultiplier;
-  return annualPartB + annualPartD;
+  const annualSupplemental = Math.max(0, supplementalMonthlyPerPerson) * 12 * inflationMultiplier;
+  return annualPartB + annualPartD + annualSupplemental;
 }
 
 // Helper function to interpolate premium for ages not in the table

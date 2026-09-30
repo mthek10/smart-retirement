@@ -84,6 +84,7 @@ const DEFAULT_TAX_SETTINGS = {
     householdSize: 2,
     customBenchmarkPremium: 0,
     annualHealthInsuranceCost: 0,
+    medicareSupplementalMonthlyPerPerson: 0,
   },
   spouse1Employment: {
     currentIncome: 0,

@@ -460,3 +460,61 @@ test("ACA enabled without an entered premium falls back to the modeled benchmark
   assert.ok(year1.acaPremium > 0);
   assert.equal(year1.healthcareCost, year1.acaPremium - year1.acaSubsidy);
 });
+
+test("Medicare supplemental premium adds to Part B+D for each person 65+", () => {
+  const base = buildHealthcareScenario();
+  base.taxSettings.spouse1Age = 70;
+  base.taxSettings.acaSettings.enabled = false;
+  const without = calculateProjections(base.accounts, base.ssData, base.taxSettings);
+  const withSupp = calculateProjections(base.accounts, base.ssData, {
+    ...base.taxSettings,
+    acaSettings: { ...base.taxSettings.acaSettings, medicareSupplementalMonthlyPerPerson: 200 },
+  });
+  const a = without.find((row) => row.age === 70)!;
+  const b = withSupp.find((row) => row.age === 70)!;
+  // inflationRate is 0 in this scenario, so year 1 adds exactly 200*12 for one person
+  assert.equal(Math.round(b.medicarePremiums - a.medicarePremiums), 2400);
+});
+
+test("Medicare supplemental applies per person for a married 65+ household", () => {
+  const base = buildHealthcareScenario();
+  base.taxSettings.filingStatus = "married";
+  base.taxSettings.spouse1Age = 70;
+  base.taxSettings.spouse2Age = 68;
+  base.taxSettings.acaSettings.enabled = false;
+  const without = calculateProjections(base.accounts, base.ssData, base.taxSettings);
+  const withSupp = calculateProjections(base.accounts, base.ssData, {
+    ...base.taxSettings,
+    acaSettings: { ...base.taxSettings.acaSettings, medicareSupplementalMonthlyPerPerson: 150 },
+  });
+  const a = without.find((row) => row.age === 70)!;
+  const b = withSupp.find((row) => row.age === 70)!;
+  assert.equal(Math.round(b.medicarePremiums - a.medicarePremiums), 150 * 12 * 2);
+});
+
+test("mixed-age household: supplemental applies only to the spouse who is 65+", () => {
+  const base = buildHealthcareScenario();
+  base.taxSettings.filingStatus = "married";
+  base.taxSettings.spouse1Age = 70;
+  base.taxSettings.spouse2Age = 60;
+  base.taxSettings.acaSettings.enabled = false;
+  const without = calculateProjections(base.accounts, base.ssData, base.taxSettings);
+  const withSupp = calculateProjections(base.accounts, base.ssData, {
+    ...base.taxSettings,
+    acaSettings: { ...base.taxSettings.acaSettings, medicareSupplementalMonthlyPerPerson: 100 },
+  });
+  const a = without.find((row) => row.age === 70)!;
+  const b = withSupp.find((row) => row.age === 70)!;
+  assert.equal(Math.round(b.medicarePremiums - a.medicarePremiums), 1200);
+});
+
+test("no supplemental premium leaves existing projections unchanged", () => {
+  const base = buildHealthcareScenario();
+  base.taxSettings.spouse1Age = 70;
+  const a = calculateProjections(base.accounts, base.ssData, base.taxSettings);
+  const b = calculateProjections(base.accounts, base.ssData, {
+    ...base.taxSettings,
+    acaSettings: { ...base.taxSettings.acaSettings, medicareSupplementalMonthlyPerPerson: 0 },
+  });
+  assert.deepEqual(a.map((r) => r.healthcareCost), b.map((r) => r.healthcareCost));
+});
