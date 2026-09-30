@@ -446,6 +446,16 @@ export const ProjectionTable = memo(function ProjectionTable({
                         <td className="p-4 align-middle text-right text-destructive">
                           {formatCurrency(projection.stateCapitalGainsTax)}
                         </td>
+                        {hasCityTax && (
+                          <>
+                            <td className="p-4 align-middle text-right text-destructive">
+                              {formatCurrency(projection.cityTax ?? 0)}
+                            </td>
+                            <td className="p-4 align-middle text-right text-destructive">
+                              {formatCurrency(projection.cityCapitalGainsTax ?? 0)}
+                            </td>
+                          </>
+                        )}
                         <td className="p-4 align-middle text-right text-destructive">
                           {formatCurrency(projection.niit)}
                         </td>
