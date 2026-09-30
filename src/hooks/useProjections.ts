@@ -1360,6 +1360,10 @@ export function calculateProjections(
     
     let stateTax = 0;
     let stateCapitalGainsTax = 0;
+    // Municipal (currently NYC-only) income taxes are tracked separately from the
+    // state liability so the projection table can show them in their own columns.
+    let cityTax = 0;
+    let cityCapitalGainsTax = 0;
     
     // effectiveState already computed above (before solver call)
     
@@ -1379,9 +1383,14 @@ export function calculateProjections(
       );
       
       const nonSSIncome = ordinaryIncome;
-      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
-      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
+      const stateIncomeTax = calculateStateIncomeTax(nonSSIncome, effectiveState, effectiveFilingStatus, false);
+      stateCapitalGainsTax = calculateStateCapitalGainsTax(capitalGains, nonSSIncome, effectiveState, effectiveFilingStatus, false);
       stateTax = stateSSTax + stateIncomeTax;
+
+      if (effectiveState === 'NY' && effectiveNycResident) {
+        cityTax = calculateNycIncomeTax(nonSSIncome, effectiveFilingStatus);
+        cityCapitalGainsTax = calculateNycCapitalGainsTax(capitalGains, nonSSIncome, effectiveFilingStatus);
+      }
     }
 
     // 15%-bracket harvest tax is paid from sale proceeds, not household cash flow:
@@ -1394,9 +1403,12 @@ export function calculateProjections(
       } else if (effectiveState && effectiveState !== 'none') {
         stateCGWithout = calculateStateCapitalGainsTax(capitalGains - capitalGainsHarvested15, ordinaryIncome, effectiveState, effectiveFilingStatus, effectiveNycResident);
       }
-      harvest15TaxFromProceeds = Math.max(0, (federalTaxCapitalGains - fedCGWithout) + (stateCapitalGainsTax - stateCGWithout));
+      const stateCGWith = stateCapitalGainsTax + cityCapitalGainsTax;
+      harvest15TaxFromProceeds = Math.max(0, (federalTaxCapitalGains - fedCGWithout) + (stateCGWith - stateCGWithout));
       taxableBalance = Math.max(0, taxableBalance - harvest15TaxFromProceeds);
     }
+
+
 
 
     const magi = totalOrdinaryIncome + capitalGains;
