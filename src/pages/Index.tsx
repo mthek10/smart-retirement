@@ -482,9 +482,10 @@ const Index = () => {
     const allTaxData = projections.map(p => ({
       year: p.year,
       "Federal Tax": p.federalTax,
-      "State Tax": p.stateTax,
+      // Chart keeps state + city combined so the stacked totals stay complete.
+      "State Tax": p.stateTax + (p.cityTax ?? 0),
       "Federal CG Tax": p.federalCapitalGainsTax,
-      "State CG Tax": p.stateCapitalGainsTax,
+      "State CG Tax": p.stateCapitalGainsTax + (p.cityCapitalGainsTax ?? 0),
       "IRMAA": p.irmaa,
       "NIIT": p.niit,
       "AMT": p.amt,
