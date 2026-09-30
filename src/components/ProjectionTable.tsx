@@ -118,6 +118,11 @@ export const ProjectionTable = memo(function ProjectionTable({
   const totalHarvested15 = harvest15Rows.reduce((sum, p) => sum + (p.capitalGainsHarvested15 ?? 0), 0);
   const showHarvestNote = show("income") && hasBrokerage && projections.length > 0;
 
+  // City (NYC) tax columns only appear when a municipal tax is actually owed.
+  const hasCityTax = projections.some(
+    p => (p.cityTax ?? 0) > 0 || (p.cityCapitalGainsTax ?? 0) > 0
+  );
+
   const handleExportToCSV = () => {
     if (projections.length === 0) return;
     exportProjectionsToCSV(projections as ProjectionRow[]);
