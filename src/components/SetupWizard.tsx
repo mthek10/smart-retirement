@@ -122,7 +122,6 @@ export function SetupWizard({
   const healthcareAges = taxSettings.filingStatus === 'married'
     ? [taxSettings.spouse1Age, taxSettings.spouse2Age].filter((a: number) => a > 0)
     : [taxSettings.spouse1Age].filter((a: number) => a > 0);
-  const allOn Medicare = false;
   const stepDescription = (() => {
     const step = STEPS[currentStep];
     if (step.id !== "aca" || healthcareAges.length === 0) return step.description;
