@@ -552,7 +552,7 @@ const Index = () => {
       totalFederalTax += p.federalTax;
       totalFederalCGTax += p.federalCapitalGainsTax;
       totalStateTax += p.stateTax;
-      totalStateCGTax += p.stateCapitalGainsTax;
+      totalStateCGTax += p.stateCapitalGainsTax + (p.cityCapitalGainsTax ?? 0);
       totalIRMAA += p.irmaa;
       totalMedicarePremiums += (p.medicarePremiums || 0);
       totalNIIT += p.niit;
