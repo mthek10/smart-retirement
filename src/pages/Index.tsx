@@ -859,6 +859,27 @@ const Index = () => {
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22'}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
             />
+            {/* Market Downturn Scenario + Projected Capital Gains by Year */}
+            {projections && projections.length > 0 && (
+              <TaxLossHarvestingTracker
+                projections={projections}
+                taxableBalance={committedAccounts.taxable}
+                costBasisPercent={committedAccounts.taxableCostBasisPercent}
+                taxableReturn={committedAccounts.taxableReturn}
+                filingStatus={committedTaxSettings.filingStatus}
+                spouse1Age={committedTaxSettings.spouse1Age}
+              />
+            )}
+
+            {/* Monte Carlo Simulation */}
+            {monteCarloResults && (
+              <MonteCarloResults
+                results={monteCarloResults}
+                settings={monteCarloSettings}
+                onSettingsChange={setMonteCarloSettings}
+              />
+            )}
+
             {/* RMD Year-by-Year & Tax Strategies */}
             <RMDPlanner
               spouse1TradBalance={committedAccounts.spouse1Traditional}
