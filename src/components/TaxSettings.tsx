@@ -97,7 +97,7 @@ function CurrencyInput({ id, value, onChange, max, placeholder }: {
   );
 }
 
-export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections, accounts, monteCarloResults, monteCarloSettings, onMonteCarloSettingsChange, autoStrategyLabel }: TaxSettingsProps) {
+export function TaxSettings({ taxSettings, onChange, totalPortfolio, autoStrategyLabel }: TaxSettingsProps) {
   const handleChange = (field: string, value: string | number | boolean) => {
     // Auto-enable survivor scenario when survivor_smooth strategy is selected
     if (field === 'rothConversionStrategy' && value === 'survivor_smooth') {
