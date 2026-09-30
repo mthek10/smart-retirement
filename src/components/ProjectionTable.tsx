@@ -232,6 +232,16 @@ export const ProjectionTable = memo(function ProjectionTable({
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Fed CG Tax</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State Tax</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">State CG Tax</th>
+                      {hasCityTax && (
+                        <>
+                          <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                            <span className="inline-flex items-center gap-1">City Tax <InfoTooltip text="New York City resident personal income tax (3.078%–3.876%) on withdrawals, Roth conversions, pensions and wages. Social Security is exempt. Shown separately from New York State tax." /></span>
+                          </th>
+                          <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                            <span className="inline-flex items-center gap-1">City CG Tax <InfoTooltip text="New York City resident tax on realized capital gains, stacked on top of your ordinary income." /></span>
+                          </th>
+                        </>
+                      )}
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
                         <span className="inline-flex items-center gap-1">NIIT <InfoTooltip text="Net Investment Income Tax — a 3.8% surtax on investment income above $200K (single) or $250K (married)." /></span>
                       </th>
