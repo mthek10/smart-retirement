@@ -723,6 +723,7 @@ const Index = () => {
             <TabsTrigger value="projections" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Projections</TabsTrigger>
             <TabsTrigger value="analysis" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Analysis</TabsTrigger>
             <TabsTrigger value="charts" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Charts</TabsTrigger>
+            <TabsTrigger value="tax-rules" className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Tax Rules</TabsTrigger>
           </TabsList>
 
           <TabsContent value="setup">
