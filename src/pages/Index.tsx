@@ -911,6 +911,10 @@ const Index = () => {
             <BracketChart data={projections} />
             <TaxChart data={taxChartData} />
           </TabsContent>
+
+          <TabsContent value="tax-rules" className="mt-6">
+            <TaxRulesReference />
+          </TabsContent>
         </Tabs>
         )}
       </main>
