@@ -251,7 +251,7 @@ export function SetupWizard({
 
       {/* Step description */}
       <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-3">
-        {STEPS[currentStep].description}
+        {stepDescription}
       </p>
 
       <div className="rounded-xl border bg-card/80 px-4 py-3 shadow-sm animate-in fade-in-0 slide-in-from-top-1 duration-300">
