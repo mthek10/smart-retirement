@@ -92,6 +92,8 @@ export interface ACASettings {
   householdSize: number;
   customBenchmarkPremium: number;
   annualHealthInsuranceCost: number;
+  /** Optional Medigap / Medicare Advantage / supplemental monthly premium per person age 65+. */
+  medicareSupplementalMonthlyPerPerson?: number;
 }
 
 export interface StateRelocationSettings {
