@@ -879,30 +879,6 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
           </>
         )}
 
-        {projections && projections.length > 0 && accounts && (
-          <>
-            <Separator />
-            <TaxLossHarvestingTracker
-              projections={projections}
-              taxableBalance={accounts.taxable}
-              costBasisPercent={accounts.taxableCostBasisPercent}
-              taxableReturn={accounts.taxableReturn}
-              filingStatus={taxSettings.filingStatus}
-              spouse1Age={taxSettings.spouse1Age}
-            />
-          </>
-        )}
-
-        {monteCarloResults && monteCarloSettings && onMonteCarloSettingsChange && (
-          <>
-            <Separator />
-            <MonteCarloResults
-              results={monteCarloResults}
-              settings={monteCarloSettings}
-              onSettingsChange={onMonteCarloSettingsChange}
-            />
-          </>
-        )}
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
