@@ -1516,6 +1516,8 @@ export function calculateProjections(
       federalCapitalGainsTax: federalTaxCapitalGains,
       stateTax,
       stateCapitalGainsTax,
+      cityTax,
+      cityCapitalGainsTax,
       irmaa,
       medicarePremiums,
       acaPremium,
