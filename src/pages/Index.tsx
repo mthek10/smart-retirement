@@ -7,6 +7,7 @@ import { TaxChart } from "@/components/TaxChart";
 import { BracketChart } from "@/components/BracketChart";
 import { BalanceByAgeChart } from "@/components/BalanceByAgeChart";
 import { IncomeByAgeChart } from "@/components/IncomeByAgeChart";
+import { TaxRulesReference } from "@/components/TaxRulesReference";
 import { BracketAnalysisCard } from "@/components/BracketAnalysis";
 import { SummaryCards } from "@/components/SummaryCards";
 import { StrategyComparison } from "@/components/StrategyComparison";
@@ -723,6 +724,7 @@ const Index = () => {
             <TabsTrigger value="projections" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Projections</TabsTrigger>
             <TabsTrigger value="analysis" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Analysis</TabsTrigger>
             <TabsTrigger value="charts" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Charts</TabsTrigger>
+            <TabsTrigger value="tax-rules" className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Tax Rules</TabsTrigger>
           </TabsList>
 
           <TabsContent value="setup">
@@ -909,6 +911,10 @@ const Index = () => {
             <IncomeByAgeChart projections={projections} />
             <BracketChart data={projections} />
             <TaxChart data={taxChartData} />
+          </TabsContent>
+
+          <TabsContent value="tax-rules" className="mt-6">
+            <TaxRulesReference />
           </TabsContent>
         </Tabs>
         )}
