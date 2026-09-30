@@ -551,7 +551,7 @@ const Index = () => {
       const p = projections[i];
       totalFederalTax += p.federalTax;
       totalFederalCGTax += p.federalCapitalGainsTax;
-      totalStateTax += p.stateTax;
+      totalStateTax += p.stateTax + (p.cityTax ?? 0);
       totalStateCGTax += p.stateCapitalGainsTax + (p.cityCapitalGainsTax ?? 0);
       totalIRMAA += p.irmaa;
       totalMedicarePremiums += (p.medicarePremiums || 0);
