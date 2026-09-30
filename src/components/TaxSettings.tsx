@@ -42,15 +42,6 @@ interface TaxSettingsProps {
   };
   onChange: (settings: any) => void;
   totalPortfolio?: number;
-  projections?: ProjectionRow[];
-  accounts?: {
-    taxable: number;
-    taxableCostBasisPercent: number;
-    taxableReturn: number;
-  };
-  monteCarloResults?: MonteCarloResult;
-  monteCarloSettings?: MonteCarloSettings;
-  onMonteCarloSettingsChange?: (settings: MonteCarloSettings) => void;
   autoStrategyLabel?: string;
 }
 // Inline currency-formatted input with $ and commas
