@@ -12,10 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
 import { LifeEventsEditor } from "@/components/LifeEventsEditor";
-import { TaxLossHarvestingTracker } from "@/components/TaxLossHarvestingTracker";
-import { MonteCarloResults } from "@/components/MonteCarloResults";
-import type { LifeEvent, ProjectionRow } from "@/hooks/useProjections";
-import type { MonteCarloResult, MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
+import type { LifeEvent } from "@/hooks/useProjections";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -44,15 +41,6 @@ interface TaxSettingsProps {
   };
   onChange: (settings: any) => void;
   totalPortfolio?: number;
-  projections?: ProjectionRow[];
-  accounts?: {
-    taxable: number;
-    taxableCostBasisPercent: number;
-    taxableReturn: number;
-  };
-  monteCarloResults?: MonteCarloResult;
-  monteCarloSettings?: MonteCarloSettings;
-  onMonteCarloSettingsChange?: (settings: MonteCarloSettings) => void;
   autoStrategyLabel?: string;
 }
 // Inline currency-formatted input with $ and commas
@@ -109,7 +97,7 @@ function CurrencyInput({ id, value, onChange, max, placeholder }: {
   );
 }
 
-export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections, accounts, monteCarloResults, monteCarloSettings, onMonteCarloSettingsChange, autoStrategyLabel }: TaxSettingsProps) {
+export function TaxSettings({ taxSettings, onChange, totalPortfolio, autoStrategyLabel }: TaxSettingsProps) {
   const handleChange = (field: string, value: string | number | boolean) => {
     // Auto-enable survivor scenario when survivor_smooth strategy is selected
     if (field === 'rothConversionStrategy' && value === 'survivor_smooth') {
@@ -879,30 +867,6 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, projections
           </>
         )}
 
-        {projections && projections.length > 0 && accounts && (
-          <>
-            <Separator />
-            <TaxLossHarvestingTracker
-              projections={projections}
-              taxableBalance={accounts.taxable}
-              costBasisPercent={accounts.taxableCostBasisPercent}
-              taxableReturn={accounts.taxableReturn}
-              filingStatus={taxSettings.filingStatus}
-              spouse1Age={taxSettings.spouse1Age}
-            />
-          </>
-        )}
-
-        {monteCarloResults && monteCarloSettings && onMonteCarloSettingsChange && (
-          <>
-            <Separator />
-            <MonteCarloResults
-              results={monteCarloResults}
-              settings={monteCarloSettings}
-              onSettingsChange={onMonteCarloSettingsChange}
-            />
-          </>
-        )}
           </CollapsibleContent>
         </Collapsible>
       </CardContent>

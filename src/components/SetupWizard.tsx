@@ -183,7 +183,7 @@ export function SetupWizard({
       case "tax": {
         const isMarried = taxSettings.filingStatus === 'married';
         const totalPortfolio = accounts.spouse1Traditional + (isMarried ? accounts.spouse2Traditional : 0) + accounts.roth + accounts.taxable;
-        return <TaxSettings taxSettings={taxSettings} onChange={onTaxSettingsChange} totalPortfolio={totalPortfolio} projections={projections} accounts={accounts} monteCarloResults={monteCarloResults} autoStrategyLabel={autoStrategyLabel} monteCarloSettings={monteCarloSettings} onMonteCarloSettingsChange={onMonteCarloSettingsChange} />;
+        return <TaxSettings taxSettings={taxSettings} onChange={onTaxSettingsChange} totalPortfolio={totalPortfolio} autoStrategyLabel={autoStrategyLabel} />;
       }
       case "aca":
         return (

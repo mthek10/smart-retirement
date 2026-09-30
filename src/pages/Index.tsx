@@ -16,6 +16,8 @@ import { ActionItems } from "@/components/ActionItems";
 import { ScenarioManager } from "@/components/ScenarioManager";
 import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { RMDPlanner } from "@/components/RMDPlanner";
+import { TaxLossHarvestingTracker } from "@/components/TaxLossHarvestingTracker";
+import { MonteCarloResults } from "@/components/MonteCarloResults";
 import { useTwoPassProjections, findDepletionAges, type SSData } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
@@ -857,6 +859,27 @@ const Index = () => {
               showOptimization={taxSettings.rothConversionStrategy !== 'fill_22'}
               survivorEnabled={taxSettings.survivorSettings?.enabled && taxSettings.filingStatus === 'married'}
             />
+            {/* Market Downturn Scenario + Projected Capital Gains by Year */}
+            {projections && projections.length > 0 && (
+              <TaxLossHarvestingTracker
+                projections={projections}
+                taxableBalance={committedAccounts.taxable}
+                costBasisPercent={committedAccounts.taxableCostBasisPercent}
+                taxableReturn={committedAccounts.taxableReturn}
+                filingStatus={committedTaxSettings.filingStatus}
+                spouse1Age={committedTaxSettings.spouse1Age}
+              />
+            )}
+
+            {/* Monte Carlo Simulation */}
+            {monteCarloResults && (
+              <MonteCarloResults
+                results={monteCarloResults}
+                settings={monteCarloSettings}
+                onSettingsChange={setMonteCarloSettings}
+              />
+            )}
+
             {/* RMD Year-by-Year & Tax Strategies */}
             <RMDPlanner
               spouse1TradBalance={committedAccounts.spouse1Traditional}
