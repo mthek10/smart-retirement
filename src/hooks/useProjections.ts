@@ -190,6 +190,10 @@ export interface ProjectionRow {
   federalCapitalGainsTax: number;
   stateTax: number;
   stateCapitalGainsTax: number;
+  /** Municipal (NYC) income tax on ordinary income. 0 when not a city resident. */
+  cityTax: number;
+  /** Municipal (NYC) tax on realized capital gains. 0 when not a city resident. */
+  cityCapitalGainsTax: number;
   irmaa: number;
   medicarePremiums: number;
   acaPremium: number;
