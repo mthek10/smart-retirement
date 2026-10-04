@@ -134,6 +134,10 @@ function ReturnRateSliders({
   onRecalculate,
   targetTakeHome,
   onTargetTakeHomeChange,
+  spendingPeriods,
+  onSpendingPeriodsChange,
+  currentAge = 60,
+  endAge = 100,
 }: {
   accountReturns: { traditionalReturn: number; rothReturn: number; taxableReturn: number };
   onAccountReturnsChange?: (field: string, value: number) => void;
@@ -141,10 +145,16 @@ function ReturnRateSliders({
   onRecalculate?: () => void;
   targetTakeHome?: number;
   onTargetTakeHomeChange?: (value: number) => void;
+  spendingPeriods?: SpendingPeriodsSettings;
+  onSpendingPeriodsChange?: (value: SpendingPeriodsSettings) => void;
+  currentAge?: number;
+  endAge?: number;
 }) {
   const [localReturns, setLocalReturns] = useState(accountReturns);
   const [localTakeHome, setLocalTakeHome] = useState(targetTakeHome || 0);
+  const [localPeriods, setLocalPeriods] = useState<SpendingPeriod[]>(spendingPeriods?.periods ?? []);
   const [dirty, setDirty] = useState(false);
+  const periodsEnabled = !!spendingPeriods?.enabled && localPeriods.length === 3;
 
   const handleChange = useCallback((field: string, value: number) => {
     setLocalReturns(prev => ({ ...prev, [field]: value }));
@@ -158,17 +168,24 @@ function ReturnRateSliders({
     setDirty(true);
   }, []);
 
+  const handlePeriodChange = useCallback((i: number, patch: Partial<SpendingPeriod>) => {
+    setLocalPeriods(prev => clampSpendingPeriods(prev.map((p, j) => (j === i ? { ...p, ...patch } : p)), currentAge, endAge));
+    setDirty(true);
+  }, [currentAge, endAge]);
+
   const handleRecalculate = useCallback(() => {
     onAccountReturnsChange?.('traditionalReturn', localReturns.traditionalReturn);
     onAccountReturnsChange?.('rothReturn', localReturns.rothReturn);
     onAccountReturnsChange?.('taxableReturn', localReturns.taxableReturn);
     onAccountReturnsCommit?.('rothReturn', localReturns.rothReturn);
-    if (onTargetTakeHomeChange && localTakeHome !== targetTakeHome) {
+    if (periodsEnabled && onSpendingPeriodsChange) {
+      onSpendingPeriodsChange({ enabled: true, periods: localPeriods });
+    } else if (onTargetTakeHomeChange && localTakeHome !== targetTakeHome) {
       onTargetTakeHomeChange(localTakeHome);
     }
     setDirty(false);
     Promise.resolve().then(() => onRecalculate?.());
-  }, [localReturns, localTakeHome, targetTakeHome, onAccountReturnsChange, onAccountReturnsCommit, onTargetTakeHomeChange, onRecalculate]);
+  }, [localReturns, localTakeHome, targetTakeHome, periodsEnabled, localPeriods, onAccountReturnsChange, onAccountReturnsCommit, onTargetTakeHomeChange, onSpendingPeriodsChange, onRecalculate]);
 
   return (
     <Card className="border-dashed">
