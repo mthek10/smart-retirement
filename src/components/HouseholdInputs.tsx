@@ -9,6 +9,7 @@ interface HouseholdInputsProps {
     filingStatus: string;
     spouse1Age: number;
     spouse2Age: number;
+    projectionEndAge?: number;
   };
   onChange: (settings: any) => void;
 }
@@ -51,6 +52,33 @@ function AgeInput({ id, value, onChange, label }: { id: string; value: number; o
         onChange={handleChange}
         onBlur={handleBlur}
       />
+    </div>
+  );
+}
+
+function PlanEndAgeInput({ taxSettings, onCommit }: { taxSettings: HouseholdInputsProps['taxSettings']; onCommit: (val: number) => void }) {
+  const isMarried = taxSettings.filingStatus === 'married';
+  const youngest = isMarried && taxSettings.spouse2Age > 0 ? Math.min(taxSettings.spouse1Age, taxSettings.spouse2Age) : taxSettings.spouse1Age;
+  const min = Math.min(100, (youngest || 0) + 1);
+  const value = Math.min(100, Math.max(min, taxSettings.projectionEndAge ?? 100));
+  const [local, setLocal] = useState(String(value));
+  useEffect(() => { setLocal(String(value)); }, [value]);
+  const commit = () => {
+    const n = parseInt(local, 10);
+    const clamped = isNaN(n) ? value : Math.min(100, Math.max(min, n));
+    setLocal(String(clamped));
+    if (clamped !== taxSettings.projectionEndAge) onCommit(clamped);
+  };
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="projectionEndAge">Plan Until Age</Label>
+      <Input id="projectionEndAge" type="text" inputMode="numeric" maxLength={3} value={local}
+        onChange={(e) => setLocal(e.target.value.replace(/\D/g, '').slice(0, 3))} onBlur={commit} />
+      <p className="text-xs text-muted-foreground">
+        {isMarried
+          ? `Projections run until the younger spouse reaches age ${value} (between ${min} and 100).`
+          : `Projections run until you reach age ${value} (between ${min} and 100).`}
+      </p>
     </div>
   );
 }
@@ -102,11 +130,7 @@ export function HouseholdInputs({ taxSettings, onChange }: HouseholdInputsProps)
           )}
         </div>
         
-        <p className="text-xs text-muted-foreground">
-          {taxSettings.filingStatus === 'married' 
-            ? 'Projections will run until both spouses reach age 100'
-            : 'Projections will run until age 100'}
-        </p>
+        <PlanEndAgeInput taxSettings={taxSettings} onCommit={(val) => handleChange('projectionEndAge', val)} />
       </CardContent>
     </Card>
   );
