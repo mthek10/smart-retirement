@@ -6,7 +6,7 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { stateTaxData } from "@/lib/stateTaxData";
 import type { SpendingPeriod, SpendingPeriodsSettings } from "@/hooks/useProjections";
 
-const STATE_NAMES: Record<string, string> = {
+export const STATE_NAMES: Record<string, string> = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut",
   DE: "Delaware", DC: "District of Columbia", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois",
   IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
@@ -16,7 +16,7 @@ const STATE_NAMES: Record<string, string> = {
   RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah",
   VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
 };
-const STATES = Object.keys(stateTaxData).sort((a, b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b]));
+export const STATES = Object.keys(stateTaxData).sort((a, b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b]));
 
 interface Props {
   value?: SpendingPeriodsSettings;
