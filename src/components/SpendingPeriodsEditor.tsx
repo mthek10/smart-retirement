@@ -50,11 +50,7 @@ export function SpendingPeriodsEditor({ value, currentAge, endAge, defaultTakeHo
 
   const update = (i: number, patch: Partial<SpendingPeriod>) => {
     const next = periods.map((p, j) => (j === i ? { ...p, ...patch } : p));
-    next[0].startAge = currentAge;
-    // keep start ages increasing
-    next[1].startAge = Math.max(currentAge + 1, Math.min(endAge, next[1].startAge));
-    next[2].startAge = Math.max(next[1].startAge + 1, Math.min(endAge, next[2].startAge));
-    onChange({ enabled: true, periods: next });
+    onChange({ enabled: true, periods: clampSpendingPeriods(next, currentAge, endAge) });
   };
 
   return (
