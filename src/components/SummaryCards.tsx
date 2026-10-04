@@ -6,6 +6,10 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { clampSpendingPeriods, STATE_NAMES, STATES } from "@/components/SpendingPeriodsEditor";
+import type { SpendingPeriod, SpendingPeriodsSettings } from "@/hooks/useProjections";
 import {
   DollarSign,
   TrendingDown,
@@ -73,6 +77,10 @@ interface SummaryCardsProps {
   onRecalculate?: () => void;
   targetTakeHome?: number;
   onTargetTakeHomeChange?: (value: number) => void;
+  spendingPeriods?: SpendingPeriodsSettings;
+  onSpendingPeriodsChange?: (value: SpendingPeriodsSettings) => void;
+  currentAge?: number;
+  endAge?: number;
 }
 
 interface CardData {
