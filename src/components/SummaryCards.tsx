@@ -404,6 +404,10 @@ export function SummaryCards({
   onRecalculate,
   targetTakeHome,
   onTargetTakeHomeChange,
+  spendingPeriods,
+  onSpendingPeriodsChange,
+  currentAge,
+  endAge,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
   const accountCards: CardData[] = [
@@ -650,6 +654,10 @@ export function SummaryCards({
           onRecalculate={onRecalculate}
           targetTakeHome={targetTakeHome}
           onTargetTakeHomeChange={onTargetTakeHomeChange}
+          spendingPeriods={spendingPeriods}
+          onSpendingPeriodsChange={onSpendingPeriodsChange}
+          currentAge={currentAge}
+          endAge={endAge}
         />
       )}
 
