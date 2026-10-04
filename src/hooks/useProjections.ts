@@ -185,7 +185,7 @@ export interface TaxSettings {
   spendingPeriods?: SpendingPeriodsSettings;
 }
 
-export interface SpendingPeriod { startAge: number; takeHome: number; state: string; nycResident?: boolean }
+export interface SpendingPeriod { startAge: number; takeHome: number; state: string; nycResident?: boolean; excludeMedicare?: boolean }
 export interface SpendingPeriodsSettings { enabled: boolean; periods: SpendingPeriod[] }
 
 /** Active period for a primary-person age (period 1 always applies from today). */
@@ -406,6 +406,7 @@ function solveRequiredWithdrawal(
   ordinaryDividends: number = 0,
   extraCapitalGains: number = 0,
   isNycResident: boolean = false,
+  excludeMedicare: boolean = false,
 ): number {
   let low = Math.max(0, currentRMD);
   let high = Math.max(
@@ -502,20 +503,24 @@ function solveRequiredWithdrawal(
     
     const magi = totalOrdinaryIncome + totalCapitalGains;
     let irmaa = 0;
-    if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
-      irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
+    if (!excludeMedicare) {
+      if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
+        irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
+      }
+      if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
+        irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
+      }
     }
-    if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
-      irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
-    }
-    
+
     const medicareSupplemental = acaSettings?.medicareSupplementalMonthlyPerPerson ?? 0;
     let medicarePremiums = 0;
-    if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
-      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
-    }
-    if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
-      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
+    if (!excludeMedicare) {
+      if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
+        medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
+      }
+      if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
+        medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
+      }
     }
     
     const niit = calculateNIIT(totalCapitalGains, magi, effectiveFilingStatus, yearIndex, inflationFraction);
@@ -1008,6 +1013,8 @@ export function calculateProjections(
     const effectiveNycResident = activePeriod ? (activePeriod.state === 'NY' && !!activePeriod.nycResident) : hasRelocated
       ? !!taxSettings.stateRelocation?.targetNycResident
       : !!taxSettings.nycResident;
+    // Overseas periods: no Medicare Part B/D premiums and no IRMAA surcharges.
+    const excludeMedicare = !!activePeriod?.excludeMedicare;
 
     // Determine effective conversion strategy for solver (must match main loop)
     const isSurvivorYear = (!spouse1Alive || !spouse2Alive) && survivorEnabled;
@@ -1045,6 +1052,7 @@ export function calculateProjections(
       ordinaryDividends,
       homeSaleTaxableGain,
       effectiveNycResident,
+      excludeMedicare,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
@@ -1447,20 +1455,24 @@ export function calculateProjections(
     const magi = totalOrdinaryIncome + capitalGains;
     prevYearMagi = magi;
     let irmaa = 0;
-    if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-      irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
-    }
-    if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-      irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+    if (!excludeMedicare) {
+      if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+        irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+      }
+      if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+        irmaa += calculateIRMAA(magi, i, taxSettings.inflationRate / 100, effectiveFilingStatus);
+      }
     }
 
     const medicareSupplemental = taxSettings.acaSettings?.medicareSupplementalMonthlyPerPerson ?? 0;
     let medicarePremiums = 0;
-    if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
-      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100, medicareSupplemental);
-    }
-    if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
-      medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100, medicareSupplemental);
+    if (!excludeMedicare) {
+      if (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) {
+        medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100, medicareSupplemental);
+      }
+      if (spouse2Alive && spouse2CurrentAge >= 65 && spouse2CurrentAge <= 100) {
+        medicarePremiums += calculateMedicarePremiums(i, taxSettings.inflationRate / 100, medicareSupplemental);
+      }
     }
 
     const coveredPeople = [
