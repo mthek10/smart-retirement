@@ -96,6 +96,11 @@ export function SpendingPeriodsEditor({ value, currentAge, endAge, defaultTakeHo
                       New York City resident
                     </label>
                   )}
+                  <label className="flex items-center gap-2 pt-1 text-xs text-foreground">
+                    <Switch checked={!!p.excludeMedicare} onCheckedChange={(c) => update(i, { excludeMedicare: c })} />
+                    Living overseas (no Medicare B, D or IRMAA)
+                    <InfoTooltip text="For years spent abroad. Medicare Parts B and D do not cover care outside the U.S., so premiums and IRMAA surcharges are set to $0 for this period. Budget any international health insurance inside this period's take-home amount." />
+                  </label>
                 </div>
               </div>
             );

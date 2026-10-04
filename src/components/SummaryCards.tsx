@@ -283,6 +283,10 @@ function ReturnRateSliders({
                       NYC
                     </label>
                   )}
+                  <label className="flex items-center gap-1.5 text-xs text-foreground">
+                    <Switch checked={!!p.excludeMedicare} onCheckedChange={(c) => handlePeriodChange(i, { excludeMedicare: c })} />
+                    Overseas (no Medicare)
+                  </label>
                 </div>
               );
             })}
