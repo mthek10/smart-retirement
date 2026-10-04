@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Accounts, SSData, TaxSettings } from "./useProjections";
-import { calculateProjections } from "./useProjections";
+import { calculateProjections, getProjectionYears, getProjectionEndAge } from "./useProjections";
 import { pickBestAfterTaxStrategyCached, applySequencing } from "@/lib/strategyOptimizer";
 import { calculateFederalTax } from "@/lib/taxCalculations";
 
@@ -110,9 +110,7 @@ export function runSingleSimulation(
   settings: MonteCarloSettings
 ): SimulationOutcome {
   // Single filers ignore spouse data (spouse2Age is 0 → would otherwise run to 100 years).
-  const maxYears = taxSettings.filingStatus === 'married'
-    ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
-    : 100 - taxSettings.spouse1Age;
+  const maxYears = getProjectionYears(taxSettings);
   const DEPLETION_THRESHOLD = 1000;
   
   // Initialize account balances
@@ -257,7 +255,7 @@ export function runSingleSimulation(
     taxableDepletionAge,
     lifetimeTax,
     effectiveTerminalRate,
-    success: depletionAge === null || depletionAge >= 100,
+    success: depletionAge === null || depletionAge >= getProjectionEndAge(taxSettings),
   };
 }
 
@@ -322,10 +320,7 @@ function runStrategySimulation(
   //   2) Strategies that successfully drained Trad (via conversions) get a small
   //      bill; strategies that didn't get a much larger one. This is exactly the
   //      asymmetry the after-tax metric should capture.
-  const yearsToTerminal = Math.max(
-    100 - taxSettings.spouse1Age,
-    100 - taxSettings.spouse2Age
-  );
+  const yearsToTerminal = getProjectionYears(taxSettings);
   const terminalLumpSumTax = calculateFederalTax(
     medianFinalTraditional,
     taxSettings.filingStatus,
