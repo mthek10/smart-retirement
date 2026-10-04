@@ -138,8 +138,21 @@ export interface CharitableGivingSettings {
   otherItemizedDeductions: number;
 }
 
+/** Projection horizon: runs until the younger spouse (or single filer) reaches projectionEndAge (max 100). */
+export function getProjectionEndAge(t: Pick<TaxSettings, 'projectionEndAge'>): number {
+  const v = Number(t.projectionEndAge);
+  return Number.isFinite(v) && v > 0 ? Math.min(100, Math.round(v)) : 100;
+}
+export function getProjectionYears(t: Pick<TaxSettings, 'filingStatus' | 'spouse1Age' | 'spouse2Age' | 'projectionEndAge'>): number {
+  const end = getProjectionEndAge(t);
+  const youngest = t.filingStatus === 'married' && t.spouse2Age > 0 ? Math.min(t.spouse1Age, t.spouse2Age) : t.spouse1Age;
+  return Math.max(1, end - youngest);
+}
+
 export interface TaxSettings {
   filingStatus: string;
+  /** Age the younger spouse (or single filer) is projected to; default 100, max 100. */
+  projectionEndAge?: number;
   state: string;
   /** New York City resident local income tax (3.078%–3.876%). Only applies when state is 'NY'. */
   nycResident?: boolean;
@@ -560,9 +573,7 @@ export function calculateProjections(
   const qualifiedDividendYield = accounts.qualifiedDividendYield ?? 0;
   const ordinaryDividendYield = accounts.ordinaryDividendYield ?? 0;
 
-  const maxYears = isMarried
-    ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
-    : 100 - taxSettings.spouse1Age;
+  const maxYears = getProjectionYears(taxSettings);
   
   // Use override strategy if provided, otherwise use settings
   let effectiveConversionStrategy = strategyOverride ?? taxSettings.rothConversionStrategy;

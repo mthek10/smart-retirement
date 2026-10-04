@@ -1,5 +1,5 @@
 import type { Accounts, SSData, TaxSettings } from "@/hooks/useProjections";
-import { calculateProjections } from "@/hooks/useProjections";
+import { calculateProjections, getProjectionYears } from "@/hooks/useProjections";
 import { calculateFederalTax } from "@/lib/taxCalculations";
 
 const ASSUMED_LTCG_RATE = 0.15;
@@ -60,7 +60,7 @@ function candidateStartAges(ssData: SSData, taxSettings: TaxSettings): (number |
   const birthYear = 2026 - age;
   const rmdAge = birthYear >= 1960 ? 75 : 73;
   const ssAge = ssData.spouse1.alreadyClaiming ? age : ssData.spouse1.claimAge;
-  const raw = [age + 3, age + 5, ssAge, rmdAge].filter((a) => a > age && a < 100);
+  const raw = [age + 3, age + 5, ssAge, rmdAge].filter((a) => a > age && a < getProjectionYears(taxSettings) + age);
   return [null, ...Array.from(new Set(raw)).sort((a, b) => a - b)];
 }
 
@@ -75,9 +75,7 @@ export function pickBestAfterTaxStrategy(
   ssData: SSData,
   taxSettings: TaxSettings,
 ): OptimizerResult {
-  const yearsToTerminal = taxSettings.filingStatus === "married"
-    ? Math.max(100 - taxSettings.spouse1Age, 100 - taxSettings.spouse2Age)
-    : 100 - taxSettings.spouse1Age;
+  const yearsToTerminal = getProjectionYears(taxSettings);
 
   const startingBasisFraction =
     accounts.taxableCostBasisPercent > 0 && accounts.taxableCostBasisPercent <= 100
