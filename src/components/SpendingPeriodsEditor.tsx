@@ -30,6 +30,16 @@ interface Props {
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
 
+// Shared clamping rules: period 1 starts at current age, start ages strictly
+// increase, and everything is capped at the plan end age.
+export function clampSpendingPeriods(periods: SpendingPeriod[], currentAge: number, endAge: number): SpendingPeriod[] {
+  const next = periods.map((p) => ({ ...p }));
+  next[0].startAge = currentAge;
+  next[1].startAge = Math.max(currentAge + 1, Math.min(endAge, next[1].startAge));
+  next[2].startAge = Math.max(next[1].startAge + 1, Math.min(endAge, next[2].startAge));
+  return next;
+}
+
 export function SpendingPeriodsEditor({ value, currentAge, endAge, defaultTakeHome, defaultState, defaultNyc, onChange }: Props) {
   const enabled = !!value?.enabled;
   const periods: SpendingPeriod[] = value?.periods?.length === 3 ? value.periods : [
