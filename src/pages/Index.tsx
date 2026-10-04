@@ -69,7 +69,7 @@ const DEFAULT_TAX_SETTINGS = {
   nycResident: false,
   stateRate: 5,
   spouse1Age: 60,
-    projectionEndAge: 100,
+  projectionEndAge: 100,
   spouse2Age: 58,
   targetTakeHome: 200000,
   inflationRate: 2.5,
