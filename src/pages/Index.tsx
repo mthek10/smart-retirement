@@ -779,7 +779,7 @@ const Index = () => {
               onTargetTakeHomeChange={(value: number) => setTaxSettings(prev => ({ ...prev, targetTakeHome: value }))}
               spendingPeriods={taxSettings.spendingPeriods}
               onSpendingPeriodsChange={(value) => setTaxSettings(prev => ({ ...prev, spendingPeriods: value }))}
-              currentAge={Math.min(taxSettings.spouse1Age, taxSettings.filingStatus === 'married' ? taxSettings.spouse2Age : taxSettings.spouse1Age)}
+              currentAge={taxSettings.spouse1Age}
               endAge={getProjectionEndAge(taxSettings)}
             >
               {/* Action Items */}
