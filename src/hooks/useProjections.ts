@@ -181,6 +181,20 @@ export interface TaxSettings {
   stateRelocation?: StateRelocationSettings;
   lifeEvents?: LifeEvent[];
   charitableGiving?: CharitableGivingSettings;
+  /** Up to three independent periods, each with its own take-home (today's dollars) and state. Overrides targetTakeHome/state/relocation when enabled. */
+  spendingPeriods?: SpendingPeriodsSettings;
+}
+
+export interface SpendingPeriod { startAge: number; takeHome: number; state: string; nycResident?: boolean }
+export interface SpendingPeriodsSettings { enabled: boolean; periods: SpendingPeriod[] }
+
+/** Active period for a primary-person age (period 1 always applies from today). */
+export function getActivePeriod(t: Pick<TaxSettings, 'spendingPeriods'>, age: number): SpendingPeriod | null {
+  const sp = t.spendingPeriods;
+  if (!sp?.enabled || !sp.periods?.length) return null;
+  let active = sp.periods[0];
+  for (let i = 1; i < sp.periods.length; i++) if (age >= sp.periods[i].startAge) active = sp.periods[i];
+  return active;
 }
 
 export interface ProjectionRow {
@@ -815,7 +829,8 @@ export function calculateProjections(
     const taxableWages = totalWages - totalTraditional401k; // Only traditional 401(k) reduces taxable wages
     
     const survivorSpendingPercent = taxSettings.survivorSettings?.survivorSpendingPercent || 75;
-    const baseTargetTakeHome = taxSettings.targetTakeHome * inflationMultiplier;
+    const activePeriod = getActivePeriod(taxSettings, spouse1CurrentAge);
+    const baseTargetTakeHome = (activePeriod ? activePeriod.takeHome : taxSettings.targetTakeHome) * inflationMultiplier;
     // Only apply survivor spending reduction when a married couple loses a spouse
     // Single filers should always use the full target
     const isSurvivorReduction = survivorEnabled && !(spouse1Alive && spouse2Alive);
@@ -987,10 +1002,10 @@ export function calculateProjections(
     // Determine effective state BEFORE solver call (must match main loop)
     const hasRelocated = !!taxSettings.stateRelocation?.enabled &&
       spouse1CurrentAge >= (taxSettings.stateRelocation?.relocationAge || 65);
-    const effectiveState = hasRelocated
+    const effectiveState = activePeriod ? activePeriod.state : hasRelocated
       ? taxSettings.stateRelocation!.targetState
       : taxSettings.state;
-    const effectiveNycResident = hasRelocated
+    const effectiveNycResident = activePeriod ? (activePeriod.state === 'NY' && !!activePeriod.nycResident) : hasRelocated
       ? !!taxSettings.stateRelocation?.targetNycResident
       : !!taxSettings.nycResident;
 
