@@ -246,7 +246,48 @@ function ReturnRateSliders({
             />
           </div>
         </div>
-        {targetTakeHome !== undefined && (
+        {periodsEnabled ? (
+          <div className="mt-4 pt-4 border-t border-border space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs">Annual Take Home by Period</Label>
+              <InfoTooltip text="Three spending periods are enabled in Tax Settings. Edit each period's take-home (today's dollars, grows with inflation) and state here, then click Recalculate." />
+            </div>
+            {localPeriods.map((p, i) => {
+              const end = i < 2 ? localPeriods[i + 1].startAge - 1 : endAge;
+              return (
+                <div key={i} className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-medium text-muted-foreground w-32 shrink-0">
+                    Period {i + 1}: age {p.startAge}–{end}
+                  </span>
+                  <div className="relative w-[150px]">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                    <Input
+                      type="text"
+                      aria-label={`Period ${i + 1} take home`}
+                      defaultValue={Math.round(p.takeHome).toLocaleString("en-US")}
+                      key={`p${i}-${p.takeHome}`}
+                      onBlur={(e) => handlePeriodChange(i, { takeHome: Math.max(0, Number(e.target.value.replace(/[^0-9.]/g, "")) || 0) })}
+                      className="pl-6 h-8 text-sm"
+                    />
+                  </div>
+                  <Select value={p.state || "none"} onValueChange={(v) => handlePeriodChange(i, { state: v, nycResident: v === "NY" ? p.nycResident : false })}>
+                    <SelectTrigger aria-label={`Period ${i + 1} state`} className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <SelectItem value="none">No State Income Tax</SelectItem>
+                      {STATES.map((s) => <SelectItem key={s} value={s}>{STATE_NAMES[s]}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {p.state === "NY" && (
+                    <label className="flex items-center gap-1.5 text-xs text-foreground">
+                      <Switch checked={!!p.nycResident} onCheckedChange={(c) => handlePeriodChange(i, { nycResident: c })} />
+                      NYC
+                    </label>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : targetTakeHome !== undefined && (
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex items-center gap-3">
               <Label className="text-xs whitespace-nowrap">Annual Take Home</Label>
