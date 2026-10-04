@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateProjections, getActivePeriod } from "@/hooks/useProjections";
+import { clampSpendingPeriods } from "@/components/SpendingPeriodsEditor";
 import { accounts, ss, tax } from "./scenarios";
 
 const periods = { enabled: true, periods: [
