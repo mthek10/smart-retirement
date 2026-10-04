@@ -13,6 +13,7 @@ import { stateTaxData } from "@/lib/stateTaxData";
 import { formatCurrency } from "@/lib/utils";
 import { LifeEventsEditor } from "@/components/LifeEventsEditor";
 import type { LifeEvent } from "@/hooks/useProjections";
+import { SpendingPeriodsEditor } from "@/components/SpendingPeriodsEditor";
 
 interface TaxSettingsProps {
   taxSettings: {
@@ -176,6 +177,17 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, autoStrateg
             {totalPortfolio ? ` Maximum: ${formatCurrency(totalPortfolio)}.` : ''}
           </p>
         </div>
+
+        <SpendingPeriodsEditor
+          value={(taxSettings as any).spendingPeriods}
+          currentAge={taxSettings.spouse1Age}
+          endAge={(taxSettings as any).projectionEndAge ?? 100}
+          defaultTakeHome={taxSettings.targetTakeHome}
+          defaultState={taxSettings.state}
+          defaultNyc={taxSettings.nycResident}
+          onChange={(v) => onChange({ ...taxSettings, spendingPeriods: v })}
+        />
+
 
         <div className="space-y-2">
           <Label htmlFor="state">State</Label>
