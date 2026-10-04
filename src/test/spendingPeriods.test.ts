@@ -38,3 +38,17 @@ test("clampSpendingPeriods enforces ordering and caps (dashboard commit path)", 
   assert.equal(clamped[1].startAge, 61, "period 2 at least current age + 1");
   assert.equal(clamped[2].startAge, 100, "period 3 capped at end age");
 });
+
+test("excludeMedicare zeroes Medicare premiums and IRMAA for that period only", () => {
+  const overseas = { enabled: true, periods: [
+    { startAge: 60, takeHome: 100_000, state: "FL" },
+    { startAge: 70, takeHome: 80_000, state: "none", excludeMedicare: true },
+    { startAge: 80, takeHome: 60_000, state: "FL" },
+  ] };
+  const rows = calculateProjections(accounts(), ss(), tax({ spendingPeriods: overseas }));
+  const at = (a: number) => rows.find((r: any) => r.age === a) as any;
+  assert.ok(at(66).medicarePremiums > 0, "Medicare applies before overseas period");
+  assert.equal(at(70).medicarePremiums, 0, "no Medicare premiums while overseas");
+  assert.equal(at(75).irmaa, 0, "no IRMAA while overseas");
+  assert.ok(at(80).medicarePremiums > 0, "Medicare resumes after overseas period");
+});
