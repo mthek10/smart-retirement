@@ -19,7 +19,7 @@ import { ScenarioComparison } from "@/components/ScenarioComparison";
 import { RMDPlanner } from "@/components/RMDPlanner";
 import { TaxLossHarvestingTracker } from "@/components/TaxLossHarvestingTracker";
 import { MonteCarloResults } from "@/components/MonteCarloResults";
-import { useTwoPassProjections, findDepletionAges, type SSData } from "@/hooks/useProjections";
+import { useTwoPassProjections, findDepletionAges, getProjectionEndAge, type SSData } from "@/hooks/useProjections";
 import { useMonteCarloSimulation, type MonteCarloSettings } from "@/hooks/useMonteCarloSimulation";
 import { useScenarios } from "@/hooks/useScenarios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -72,6 +72,7 @@ const DEFAULT_TAX_SETTINGS = {
   projectionEndAge: 100,
   spouse2Age: 58,
   targetTakeHome: 200000,
+  spendingPeriods: { enabled: false, periods: [] },
   inflationRate: 2.5,
   rothConversionStrategy: "none",
   rothConversionCustom: 94300,
