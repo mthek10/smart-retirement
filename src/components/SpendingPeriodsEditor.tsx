@@ -6,7 +6,7 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { stateTaxData } from "@/lib/stateTaxData";
 import type { SpendingPeriod, SpendingPeriodsSettings } from "@/hooks/useProjections";
 
-const STATE_NAMES: Record<string, string> = {
+export const STATE_NAMES: Record<string, string> = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado", CT: "Connecticut",
   DE: "Delaware", DC: "District of Columbia", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho", IL: "Illinois",
   IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
@@ -16,7 +16,7 @@ const STATE_NAMES: Record<string, string> = {
   RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah",
   VT: "Vermont", VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
 };
-const STATES = Object.keys(stateTaxData).sort((a, b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b]));
+export const STATES = Object.keys(stateTaxData).sort((a, b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b]));
 
 interface Props {
   value?: SpendingPeriodsSettings;
@@ -30,6 +30,16 @@ interface Props {
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
 
+// Shared clamping rules: period 1 starts at current age, start ages strictly
+// increase, and everything is capped at the plan end age.
+export function clampSpendingPeriods(periods: SpendingPeriod[], currentAge: number, endAge: number): SpendingPeriod[] {
+  const next = periods.map((p) => ({ ...p }));
+  next[0].startAge = currentAge;
+  next[1].startAge = Math.max(currentAge + 1, Math.min(endAge, next[1].startAge));
+  next[2].startAge = Math.max(next[1].startAge + 1, Math.min(endAge, next[2].startAge));
+  return next;
+}
+
 export function SpendingPeriodsEditor({ value, currentAge, endAge, defaultTakeHome, defaultState, defaultNyc, onChange }: Props) {
   const enabled = !!value?.enabled;
   const periods: SpendingPeriod[] = value?.periods?.length === 3 ? value.periods : [
@@ -40,11 +50,7 @@ export function SpendingPeriodsEditor({ value, currentAge, endAge, defaultTakeHo
 
   const update = (i: number, patch: Partial<SpendingPeriod>) => {
     const next = periods.map((p, j) => (j === i ? { ...p, ...patch } : p));
-    next[0].startAge = currentAge;
-    // keep start ages increasing
-    next[1].startAge = Math.max(currentAge + 1, Math.min(endAge, next[1].startAge));
-    next[2].startAge = Math.max(next[1].startAge + 1, Math.min(endAge, next[2].startAge));
-    onChange({ enabled: true, periods: next });
+    onChange({ enabled: true, periods: clampSpendingPeriods(next, currentAge, endAge) });
   };
 
   return (

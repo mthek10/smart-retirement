@@ -6,6 +6,10 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { clampSpendingPeriods, STATE_NAMES, STATES } from "@/components/SpendingPeriodsEditor";
+import type { SpendingPeriod, SpendingPeriodsSettings } from "@/hooks/useProjections";
 import {
   DollarSign,
   TrendingDown,
@@ -73,6 +77,10 @@ interface SummaryCardsProps {
   onRecalculate?: () => void;
   targetTakeHome?: number;
   onTargetTakeHomeChange?: (value: number) => void;
+  spendingPeriods?: SpendingPeriodsSettings;
+  onSpendingPeriodsChange?: (value: SpendingPeriodsSettings) => void;
+  currentAge?: number;
+  endAge?: number;
 }
 
 interface CardData {
@@ -126,6 +134,10 @@ function ReturnRateSliders({
   onRecalculate,
   targetTakeHome,
   onTargetTakeHomeChange,
+  spendingPeriods,
+  onSpendingPeriodsChange,
+  currentAge = 60,
+  endAge = 100,
 }: {
   accountReturns: { traditionalReturn: number; rothReturn: number; taxableReturn: number };
   onAccountReturnsChange?: (field: string, value: number) => void;
@@ -133,10 +145,16 @@ function ReturnRateSliders({
   onRecalculate?: () => void;
   targetTakeHome?: number;
   onTargetTakeHomeChange?: (value: number) => void;
+  spendingPeriods?: SpendingPeriodsSettings;
+  onSpendingPeriodsChange?: (value: SpendingPeriodsSettings) => void;
+  currentAge?: number;
+  endAge?: number;
 }) {
   const [localReturns, setLocalReturns] = useState(accountReturns);
   const [localTakeHome, setLocalTakeHome] = useState(targetTakeHome || 0);
+  const [localPeriods, setLocalPeriods] = useState<SpendingPeriod[]>(spendingPeriods?.periods ?? []);
   const [dirty, setDirty] = useState(false);
+  const periodsEnabled = !!spendingPeriods?.enabled && localPeriods.length === 3;
 
   const handleChange = useCallback((field: string, value: number) => {
     setLocalReturns(prev => ({ ...prev, [field]: value }));
@@ -150,17 +168,24 @@ function ReturnRateSliders({
     setDirty(true);
   }, []);
 
+  const handlePeriodChange = useCallback((i: number, patch: Partial<SpendingPeriod>) => {
+    setLocalPeriods(prev => clampSpendingPeriods(prev.map((p, j) => (j === i ? { ...p, ...patch } : p)), currentAge, endAge));
+    setDirty(true);
+  }, [currentAge, endAge]);
+
   const handleRecalculate = useCallback(() => {
     onAccountReturnsChange?.('traditionalReturn', localReturns.traditionalReturn);
     onAccountReturnsChange?.('rothReturn', localReturns.rothReturn);
     onAccountReturnsChange?.('taxableReturn', localReturns.taxableReturn);
     onAccountReturnsCommit?.('rothReturn', localReturns.rothReturn);
-    if (onTargetTakeHomeChange && localTakeHome !== targetTakeHome) {
+    if (periodsEnabled && onSpendingPeriodsChange) {
+      onSpendingPeriodsChange({ enabled: true, periods: localPeriods });
+    } else if (onTargetTakeHomeChange && localTakeHome !== targetTakeHome) {
       onTargetTakeHomeChange(localTakeHome);
     }
     setDirty(false);
     Promise.resolve().then(() => onRecalculate?.());
-  }, [localReturns, localTakeHome, targetTakeHome, onAccountReturnsChange, onAccountReturnsCommit, onTargetTakeHomeChange, onRecalculate]);
+  }, [localReturns, localTakeHome, targetTakeHome, periodsEnabled, localPeriods, onAccountReturnsChange, onAccountReturnsCommit, onTargetTakeHomeChange, onSpendingPeriodsChange, onRecalculate]);
 
   return (
     <Card className="border-dashed">
@@ -221,7 +246,48 @@ function ReturnRateSliders({
             />
           </div>
         </div>
-        {targetTakeHome !== undefined && (
+        {periodsEnabled ? (
+          <div className="mt-4 pt-4 border-t border-border space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs">Annual Take Home by Period</Label>
+              <InfoTooltip text="Three spending periods are enabled in Tax Settings. Edit each period's take-home (today's dollars, grows with inflation) and state here, then click Recalculate." />
+            </div>
+            {localPeriods.map((p, i) => {
+              const end = i < 2 ? localPeriods[i + 1].startAge - 1 : endAge;
+              return (
+                <div key={i} className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-medium text-muted-foreground w-32 shrink-0">
+                    Period {i + 1}: age {p.startAge}–{end}
+                  </span>
+                  <div className="relative w-[150px]">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                    <Input
+                      type="text"
+                      aria-label={`Period ${i + 1} take home`}
+                      defaultValue={Math.round(p.takeHome).toLocaleString("en-US")}
+                      key={`p${i}-${p.takeHome}`}
+                      onBlur={(e) => handlePeriodChange(i, { takeHome: Math.max(0, Number(e.target.value.replace(/[^0-9.]/g, "")) || 0) })}
+                      className="pl-6 h-8 text-sm"
+                    />
+                  </div>
+                  <Select value={p.state || "none"} onValueChange={(v) => handlePeriodChange(i, { state: v, nycResident: v === "NY" ? p.nycResident : false })}>
+                    <SelectTrigger aria-label={`Period ${i + 1} state`} className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <SelectItem value="none">No State Income Tax</SelectItem>
+                      {STATES.map((s) => <SelectItem key={s} value={s}>{STATE_NAMES[s]}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {p.state === "NY" && (
+                    <label className="flex items-center gap-1.5 text-xs text-foreground">
+                      <Switch checked={!!p.nycResident} onCheckedChange={(c) => handlePeriodChange(i, { nycResident: c })} />
+                      NYC
+                    </label>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : targetTakeHome !== undefined && (
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex items-center gap-3">
               <Label className="text-xs whitespace-nowrap">Annual Take Home</Label>
@@ -338,6 +404,10 @@ export function SummaryCards({
   onRecalculate,
   targetTakeHome,
   onTargetTakeHomeChange,
+  spendingPeriods,
+  onSpendingPeriodsChange,
+  currentAge,
+  endAge,
 }: SummaryCardsProps) {
   // ── Account Depletion (hero cards) ──
   const accountCards: CardData[] = [
@@ -584,6 +654,10 @@ export function SummaryCards({
           onRecalculate={onRecalculate}
           targetTakeHome={targetTakeHome}
           onTargetTakeHomeChange={onTargetTakeHomeChange}
+          spendingPeriods={spendingPeriods}
+          onSpendingPeriodsChange={onSpendingPeriodsChange}
+          currentAge={currentAge}
+          endAge={endAge}
         />
       )}
 

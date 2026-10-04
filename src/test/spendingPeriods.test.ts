@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateProjections, getActivePeriod } from "@/hooks/useProjections";
+import { clampSpendingPeriods } from "@/components/SpendingPeriodsEditor";
 import { accounts, ss, tax } from "./scenarios";
 
 const periods = { enabled: true, periods: [
@@ -25,4 +26,15 @@ test("projection uses each period's take-home and state", () => {
   const infl = (y: number) => Math.pow(1.025, y);
   assert.ok(Math.abs(at(70).takeHome - 80_000 * infl(10)) < 5);
   assert.ok(Math.abs(at(60).takeHome - 100_000) < 5);
+});
+
+test("clampSpendingPeriods enforces ordering and caps (dashboard commit path)", () => {
+  const clamped = clampSpendingPeriods([
+    { startAge: 75, takeHome: 100_000, state: "CA" },
+    { startAge: 40, takeHome: 80_000, state: "FL" },
+    { startAge: 200, takeHome: 60_000, state: "NY" },
+  ], 60, 100);
+  assert.equal(clamped[0].startAge, 60, "period 1 pinned to current age");
+  assert.equal(clamped[1].startAge, 61, "period 2 at least current age + 1");
+  assert.equal(clamped[2].startAge, 100, "period 3 capped at end age");
 });
