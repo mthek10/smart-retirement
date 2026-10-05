@@ -52,3 +52,16 @@ test("excludeMedicare zeroes Medicare premiums and IRMAA for that period only", 
   assert.equal(at(75).irmaa, 0, "no IRMAA while overseas");
   assert.ok(at(80).medicarePremiums > 0, "Medicare resumes after overseas period");
 });
+
+test("setSpendingPeriodEnd moves the next period's start and keeps order", async () => {
+  const { setSpendingPeriodEnd } = await import("@/components/SpendingPeriodsEditor");
+  const base = periods.periods;
+  const a = setSpendingPeriodEnd(base, 0, 64, 60, 100);
+  assert.deepEqual(a.map(p => p.startAge), [60, 65, 80]);
+  const b = setSpendingPeriodEnd(base, 0, 85, 60, 100);
+  assert.deepEqual(b.map(p => p.startAge), [60, 86, 87], "period 3 pushed out");
+  const c = setSpendingPeriodEnd(base, 1, 150, 60, 100);
+  assert.deepEqual(c.map(p => p.startAge), [60, 70, 100], "capped at plan end");
+  const d = setSpendingPeriodEnd(base, 0, 120, 60, 100);
+  assert.deepEqual(d.map(p => p.startAge), [60, 99, 100], "each period at least 1 year");
+});
