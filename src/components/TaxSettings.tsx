@@ -160,6 +160,11 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, autoStrateg
         <CardDescription>Configure state taxes, take-home goals, and conversion strategy</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {(taxSettings as any).spendingPeriods?.enabled ? (
+          <p className="text-sm text-foreground rounded-md border-l-4 border-primary bg-muted/30 p-3">
+            Your first-year take home is set by <strong>Period 1</strong> below while the three spending periods are on.
+          </p>
+        ) : (
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
             <Label htmlFor="targetTakeHome">Annual Take Home (First Year) After All Taxes</Label>
@@ -177,6 +182,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, autoStrateg
             {totalPortfolio ? ` Maximum: ${formatCurrency(totalPortfolio)}.` : ''}
           </p>
         </div>
+        )}
 
         <SpendingPeriodsEditor
           value={(taxSettings as any).spendingPeriods}
@@ -185,7 +191,11 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, autoStrateg
           defaultTakeHome={taxSettings.targetTakeHome}
           defaultState={taxSettings.state}
           defaultNyc={taxSettings.nycResident}
-          onChange={(v) => onChange({ ...taxSettings, spendingPeriods: v })}
+          onChange={(v) => onChange({
+            ...taxSettings,
+            spendingPeriods: v,
+            ...(v.enabled && v.periods?.[0] ? { targetTakeHome: v.periods[0].takeHome } : {}),
+          })}
         />
 
 
