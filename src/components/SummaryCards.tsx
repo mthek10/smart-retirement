@@ -256,8 +256,17 @@ function ReturnRateSliders({
               const end = i < 2 ? localPeriods[i + 1].startAge - 1 : endAge;
               return (
                 <div key={i} className="flex flex-wrap items-center gap-3">
-                  <span className="text-xs font-medium text-muted-foreground w-32 shrink-0">
-                    Period {i + 1}: age {p.startAge}–{end}
+                  <span className="flex items-center gap-1 text-xs font-medium text-foreground w-40 shrink-0">
+                    P{i + 1}: age {p.startAge} to
+                    {i < 2 ? (
+                      <Input aria-label={`Period ${i + 1} end age`} type="text" inputMode="numeric" maxLength={3}
+                        className="h-7 w-12 px-1 text-center text-xs" defaultValue={end} key={`e${i}-${end}`}
+                        onBlur={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          setLocalPeriods(prev => setSpendingPeriodEnd(prev, i, v, currentAge, endAge));
+                          setDirty(true);
+                        }} />
+                    ) : <span>{end}</span>}
                   </span>
                   <div className="relative w-[150px]">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>

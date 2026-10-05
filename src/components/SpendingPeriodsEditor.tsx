@@ -35,9 +35,19 @@ const fmt = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
 export function clampSpendingPeriods(periods: SpendingPeriod[], currentAge: number, endAge: number): SpendingPeriod[] {
   const next = periods.map((p) => ({ ...p }));
   next[0].startAge = currentAge;
-  next[1].startAge = Math.max(currentAge + 1, Math.min(endAge, next[1].startAge));
+  next[1].startAge = Math.max(currentAge + 1, Math.min(endAge - 1, next[1].startAge));
   next[2].startAge = Math.max(next[1].startAge + 1, Math.min(endAge, next[2].startAge));
   return next;
+}
+
+// Set the last age of period i (0 or 1); the next period starts the year after.
+export function setSpendingPeriodEnd(periods: SpendingPeriod[], i: number, lastAge: number, currentAge: number, endAge: number): SpendingPeriod[] {
+  const next = periods.map((p) => ({ ...p }));
+  if (!Number.isFinite(lastAge) || i < 0 || i > 1) return clampSpendingPeriods(next, currentAge, endAge);
+  next[i + 1].startAge = Math.round(lastAge) + 1;
+  // Moving period 1's end past period 2's end pushes period 3 out too.
+  if (i === 0 && next[2].startAge <= next[1].startAge) next[2].startAge = next[1].startAge + 1;
+  return clampSpendingPeriods(next, currentAge, endAge);
 }
 
 export function SpendingPeriodsEditor({ value, currentAge, endAge, defaultTakeHome, defaultState, defaultNyc, onChange }: Props) {
@@ -72,9 +82,9 @@ export function SpendingPeriodsEditor({ value, currentAge, endAge, defaultTakeHo
                   Period {i + 1}: age {p.startAge}–{end}
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor={`period-start-${i}`} className="text-xs">Starts at age</Label>
-                  <Input id={`period-start-${i}`} type="number" disabled={i === 0} defaultValue={p.startAge} key={`${i}-${p.startAge}`}
-                    onBlur={(e) => update(i, { startAge: Number(e.target.value) || p.startAge })} />
+                  <Label htmlFor={`period-end-${i}`} className="text-xs">Ends at age{i === 0 ? ` (starts at ${currentAge})` : i === 2 ? " (plan end)" : ""}</Label>
+                  <Input id={`period-end-${i}`} aria-label={`Period ${i + 1} end age`} type="text" inputMode="numeric" maxLength={3} disabled={i === 2} defaultValue={end} key={`e${i}-${end}`}
+                    onBlur={(e) => onChange({ enabled: true, periods: setSpendingPeriodEnd(periods, i, parseInt(e.target.value, 10), currentAge, endAge) })} />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={`period-take-${i}`} className="text-xs">Take home / yr (today's $)</Label>
