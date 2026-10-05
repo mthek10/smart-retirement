@@ -294,7 +294,7 @@ function ReturnRateSliders({
                     </label>
                   )}
                   <label className="flex items-center gap-1.5 text-xs text-foreground">
-                    <Switch checked={!!p.excludeMedicare} onCheckedChange={(c) => handlePeriodChange(i, { excludeMedicare: c })} />
+                    <Switch checked={!!p.excludeMedicare} onCheckedChange={(c) => handlePeriodChange(i, c ? { excludeMedicare: true, state: "none", nycResident: false } : { excludeMedicare: false })} />
                     Overseas (no Medicare)
                   </label>
                 </div>
