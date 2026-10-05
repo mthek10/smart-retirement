@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { clampSpendingPeriods, STATE_NAMES, STATES } from "@/components/SpendingPeriodsEditor";
+import { clampSpendingPeriods, setSpendingPeriodEnd, STATE_NAMES, STATES } from "@/components/SpendingPeriodsEditor";
 import type { SpendingPeriod, SpendingPeriodsSettings } from "@/hooks/useProjections";
 import {
   DollarSign,
