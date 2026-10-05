@@ -199,6 +199,11 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, autoStrateg
         />
 
 
+        {(taxSettings as any).spendingPeriods?.enabled ? (
+          <p className="rounded-md border-l-4 border-primary bg-muted/30 px-3 py-2 text-sm text-foreground">
+            Your state of residence is set separately for each of the <strong>three spending periods</strong> above.
+          </p>
+        ) : (<>
         <div className="space-y-2">
           <Label htmlFor="state">State</Label>
           <Select
@@ -324,6 +329,7 @@ export function TaxSettings({ taxSettings, onChange, totalPortfolio, autoStrateg
             </p>
           </div>
         )}
+        </>)}
 
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
