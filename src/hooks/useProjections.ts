@@ -531,15 +531,9 @@ function solveRequiredWithdrawal(
     }
     
     const magi = totalOrdinaryIncome + totalCapitalGains;
-    let irmaa = 0;
-    if (!excludeMedicare) {
-      if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
-        irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
-      }
-      if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
-        irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
-      }
-    }
+    const irmaa = irmaaMultiplier > 0
+      ? irmaaMultiplier * calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus)
+      : 0;
 
     const niit = calculateNIIT(totalCapitalGains, magi, effectiveFilingStatus, yearIndex, inflationFraction);
     const amt = calculateAMT(totalOrdinaryIncome, totalCapitalGains, effectiveFilingStatus, yearIndex, inflationFraction);
