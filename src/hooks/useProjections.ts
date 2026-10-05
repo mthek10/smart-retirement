@@ -417,6 +417,42 @@ function solveRequiredWithdrawal(
   const tolerance = 1;
   const maxIterations = 50;
   const inflationFraction = inflationRate / 100;
+
+  // Year-constant values: independent of the trial withdrawal, so compute once.
+  const targetIncomeLimit = getRothConversionLimit(
+    conversionStrategy,
+    effectiveFilingStatus,
+    yearIndex,
+    inflationFraction,
+    rothConversionCustom
+  );
+  const medicareSupplemental = acaSettings?.medicareSupplementalMonthlyPerPerson ?? 0;
+  let medicarePremiums = 0;
+  if (!excludeMedicare) {
+    if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
+      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
+    }
+    if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
+      medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
+    }
+  }
+  const coveredPeople = [
+    { age: spouse1Age, isActive: spouse1Alive },
+    { age: spouse2Age, isActive: spouse2Alive },
+  ];
+  // Manual health insurance (pre-Medicare) is skipped when ACA is active so premiums never stack.
+  const acaActiveThisYear = !!(acaSettings?.enabled && acaEnrolleeAges && acaEnrolleeAges.length > 0);
+  const healthInsuranceCost = acaActiveThisYear ? 0 : calculateManualHealthInsuranceCost(
+    acaSettings?.annualHealthInsuranceCost,
+    yearIndex,
+    inflationFraction,
+    effectiveFilingStatus,
+    coveredPeople
+  );
+  const irmaaMultiplier = excludeMedicare ? 0
+    : (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100 ? 1 : 0)
+    + (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100 ? 1 : 0);
+
   
   for (let iter = 0; iter < maxIterations; iter++) {
     const testWithdrawal = (low + high) / 2;
@@ -455,13 +491,6 @@ function solveRequiredWithdrawal(
     }
     
     let rothConversion = 0;
-    const targetIncomeLimit = getRothConversionLimit(
-      conversionStrategy,
-      effectiveFilingStatus,
-      yearIndex,
-      inflationFraction,
-      rothConversionCustom
-    );
     if (targetIncomeLimit > 0 && testTrad > 0) {
       // Match main loop's Roth conversion room calculation exactly
       const ordinaryIncomePreConversion = traditionalWithdrawn + taxableWages + pensionIncome + ordinaryDividends;
@@ -502,34 +531,13 @@ function solveRequiredWithdrawal(
     }
     
     const magi = totalOrdinaryIncome + totalCapitalGains;
-    let irmaa = 0;
-    if (!excludeMedicare) {
-      if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
-        irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
-      }
-      if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
-        irmaa += calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus);
-      }
-    }
+    const irmaa = irmaaMultiplier > 0
+      ? irmaaMultiplier * calculateIRMAA(magi, yearIndex, inflationFraction, effectiveFilingStatus)
+      : 0;
 
-    const medicareSupplemental = acaSettings?.medicareSupplementalMonthlyPerPerson ?? 0;
-    let medicarePremiums = 0;
-    if (!excludeMedicare) {
-      if (spouse1Alive && spouse1Age >= 65 && spouse1Age <= 100) {
-        medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
-      }
-      if (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100) {
-        medicarePremiums += calculateMedicarePremiums(yearIndex, inflationFraction, medicareSupplemental);
-      }
-    }
-    
     const niit = calculateNIIT(totalCapitalGains, magi, effectiveFilingStatus, yearIndex, inflationFraction);
     const amt = calculateAMT(totalOrdinaryIncome, totalCapitalGains, effectiveFilingStatus, yearIndex, inflationFraction);
-    
-    const coveredPeople = [
-      { age: spouse1Age, isActive: spouse1Alive },
-      { age: spouse2Age, isActive: spouse2Alive },
-    ];
+
     const acaCost = calculateHealthcarePremium(
       magi,
       acaSettings?.householdSize ?? 1,
@@ -541,17 +549,6 @@ function solveRequiredWithdrawal(
     );
     const netAcaCost = acaCost.netPremium;
 
-    // Annual health insurance cost (inflation-adjusted, pre-Medicare only).
-    // Skipped when ACA subsidy calculation is active for this year — the ACA
-    // marketplace premium is the single premium source, so the two never stack.
-    const acaActiveThisYear = !!(acaSettings?.enabled && acaEnrolleeAges && acaEnrolleeAges.length > 0);
-    const healthInsuranceCost = acaActiveThisYear ? 0 : calculateManualHealthInsuranceCost(
-      acaSettings?.annualHealthInsuranceCost,
-      yearIndex,
-      inflationFraction,
-      effectiveFilingStatus,
-      coveredPeople
-    );
 
     // `targetTakeHome` has already been reduced by wages and pension before calling
     // the solver, so only portfolio withdrawals plus Social Security should be
