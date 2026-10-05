@@ -283,6 +283,7 @@ function ReturnRateSliders({
                     <SelectTrigger aria-label={`Period ${i + 1} state`} className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-[300px]">
                       <SelectItem value="none">No State Income Tax</SelectItem>
+                      {p.state === "other" && <SelectItem value="other">Other (choose a state)</SelectItem>}
                       {STATES.map((s) => <SelectItem key={s} value={s}>{STATE_NAMES[s]}</SelectItem>)}
                     </SelectContent>
                   </Select>

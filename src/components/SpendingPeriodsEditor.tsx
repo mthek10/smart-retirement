@@ -97,6 +97,7 @@ export function SpendingPeriodsEditor({ value, currentAge, endAge, defaultTakeHo
                     <SelectTrigger aria-label={`Period ${i + 1} state`}><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-[300px]">
                       <SelectItem value="none">No State Income Tax</SelectItem>
+                      {p.state === "other" && <SelectItem value="other">Other (choose a state)</SelectItem>}
                       {STATES.map((s) => <SelectItem key={s} value={s}>{STATE_NAMES[s]}</SelectItem>)}
                     </SelectContent>
                   </Select>
