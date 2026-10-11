@@ -231,6 +231,10 @@ export interface ProjectionRow {
   medicarePremiums: number;
   acaPremium: number;
   acaSubsidy: number;
+  /** Income used for the ACA credit this year. */
+  acaMagi: number;
+  /** Chosen ACA income limit for this year (0 when no limit applies). */
+  acaIncomeCap: number;
   healthcareCost: number;
   niit: number;
   amt: number;
@@ -1615,6 +1619,8 @@ export function calculateProjections(
       medicarePremiums,
       acaPremium,
       acaSubsidy,
+      acaMagi: magi,
+      acaIncomeCap: Number.isFinite(acaMagiCap) ? acaMagiCap : 0,
       healthcareCost: totalHealthcareCost,
       niit,
       amt,
