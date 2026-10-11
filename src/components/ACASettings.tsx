@@ -3,7 +3,10 @@ import { Label } from "@/components/ui/label";
 import { DebouncedInput } from "@/components/ui/DebouncedInput";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { medicarePartBPremium2024, medicarePartDPremium2024 } from "@/lib/taxCalculations";
+import {
+  medicarePartBPremium2024, medicarePartDPremium2024, ACA_INCOME_TARGETS_FPL, getACAIncomeCeiling,
+  getACABenchmarkPremium, calculateACASubsidy, getACAStateFactor,
+} from "@/lib/taxCalculations";
 
 interface ACASettingsProps {
   acaSettings: {
@@ -12,11 +15,13 @@ interface ACASettingsProps {
     customBenchmarkPremium: number;
     annualHealthInsuranceCost: number;
     medicareSupplementalMonthlyPerPerson?: number;
+    incomeTargetFPL?: number;
   };
   onChange: (settings: any) => void;
   filingStatus?: string;
   spouse1Age?: number;
   spouse2Age?: number;
+  state?: string;
 }
 
 const currency0 = new Intl.NumberFormat('en-US', {
@@ -37,6 +42,7 @@ export function ACASettings({
   filingStatus = 'single',
   spouse1Age = 0,
   spouse2Age = 0,
+  state,
 }: ACASettingsProps) {
   const handleChange = (field: string, value: string | number | boolean) => {
     onChange({ ...acaSettings, [field]: value });
@@ -64,6 +70,21 @@ export function ACASettings({
   const olderAge = Math.max(...validAges, 0);
   const youngerAge = validAges.length > 1 ? Math.min(...validAges) : olderAge;
   const yearsUntil65 = Math.max(0, 65 - youngerAge);
+
+  const enrolleeAges = validAges.filter((a) => a < 65);
+  const householdSize = acaSettings.householdSize || 1;
+  const benchmark = getACABenchmarkPremium(enrolleeAges, 0, 0, state, acaSettings.customBenchmarkPremium);
+  const grossPremium = hasHealthInsuranceCost
+    ? acaSettings.annualHealthInsuranceCost * (enrolleeAges.length / Math.max(1, validAges.length))
+    : benchmark;
+  const tiers = ACA_INCOME_TARGETS_FPL.map((pct) => {
+    const ceiling = getACAIncomeCeiling(pct, householdSize);
+    const { subsidy } = calculateACASubsidy(ceiling, householdSize, enrolleeAges, 0, 0, benchmark);
+    const credit = Math.min(grossPremium, subsidy);
+    return { pct, ceiling, credit, net: Math.max(0, grossPremium - credit) };
+  });
+  const incomeTarget = acaSettings.incomeTargetFPL ?? 0;
+  const stateFactor = getACAStateFactor(state);
 
   return (
     <Card>
@@ -171,6 +192,60 @@ export function ACASettings({
                         Enter the monthly benchmark Silver premium per covered person for subsidy calculation. Leave at 0 to use national age-based averages.
                       </p>
                     </div>
+
+                    {enrolleeAges.length > 0 && (
+                      <div className="space-y-2">
+                        <Label htmlFor="acaIncomeTarget">Keep Income Below (before 65)</Label>
+                        <Select
+                          value={String(incomeTarget)}
+                          onValueChange={(value) => handleChange('incomeTargetFPL', parseInt(value))}
+                        >
+                          <SelectTrigger id="acaIncomeTarget">
+                            <SelectValue placeholder="No income limit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">No income limit</SelectItem>
+                            {tiers.map((t) => (
+                              <SelectItem key={t.pct} value={String(t.pct)}>
+                                Under {t.pct}% of poverty level ({currency0.format(t.ceiling)})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          When set, Roth conversions and capital-gains harvesting are held back so yearly income stays under this
+                          level until 65. Spending withdrawals are never cut, so income can still exceed it if your take-home needs it.
+                        </p>
+                        <div className="rounded-lg border-l-4 border-l-primary bg-muted/40 p-3 space-y-1">
+                          <p className="text-xs font-semibold text-foreground">
+                            Estimated first-year premiums{state && stateFactor !== 1 ? ` in ${state}` : ""} (household of {householdSize})
+                          </p>
+                          <div className="grid grid-cols-4 gap-x-2 text-xs text-foreground">
+                            <span className="font-medium">Income under</span>
+                            <span className="font-medium text-right">Max income</span>
+                            <span className="font-medium text-right">ACA credit</span>
+                            <span className="font-medium text-right">You pay / yr</span>
+                            {tiers.map((t) => (
+                              <div key={t.pct} className={`contents ${t.pct === incomeTarget ? "font-semibold" : ""}`}>
+                                <span>{t.pct}% FPL</span>
+                                <span className="text-right">{currency0.format(t.ceiling)}</span>
+                                <span className="text-right">{currency0.format(t.credit)}</span>
+                                <span className="text-right">{currency0.format(t.net)}</span>
+                              </div>
+                            ))}
+                            <span>Over 400%</span>
+                            <span className="text-right">—</span>
+                            <span className="text-right">{currency0.format(0)}</span>
+                            <span className="text-right">{currency0.format(grossPremium)}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground pt-1">
+                            Benchmark Silver plan estimate: {currency0.format(benchmark)}/yr
+                            {acaSettings.customBenchmarkPremium > 0 ? " (your custom rate)" : stateFactor !== 1 ? " (national average adjusted for your state)" : " (national average)"}.
+                            Rough estimates — check healthcare.gov for your county.
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="pt-2 border-t space-y-2 text-sm">
                       <div className="flex justify-between">
