@@ -209,6 +209,7 @@ export function SetupWizard({
             filingStatus={taxSettings.filingStatus}
             spouse1Age={taxSettings.spouse1Age}
             spouse2Age={taxSettings.spouse2Age}
+            state={taxSettings.spendingPeriods?.enabled ? taxSettings.spendingPeriods.periods[0]?.state : taxSettings.state}
           />
         );
       default:
