@@ -243,3 +243,13 @@ test("ACA benchmark reflects state premium factor", async () => {
   assert.ok(getACABenchmarkPremium([60], 0, 0, "WY") > getACABenchmarkPremium([60], 0, 0, "MD"));
   assert.equal(getACABenchmarkPremium([60], 0, 0, "XX"), 870 * 12);
 });
+
+test("ACA 200% FPL cap: basis-first brokerage draw keeps pre-65 health cost below uncapped", async () => {
+  const { calculateProjections } = await import("@/hooks/useProjections");
+  const { accounts, ss, tax } = await import("./scenarios");
+  const mk = (fpl: number) => calculateProjections(accounts(), ss(), tax({ targetTakeHome: 60000,
+    acaSettings: { enabled: true, householdSize: 1, customBenchmarkPremium: 0, annualHealthInsuranceCost: 0, incomeTargetFPL: fpl } as any }))[0];
+  const capped = mk(200), open = mk(0);
+  assert.ok(capped.healthcareCost < open.healthcareCost);
+  assert.ok(capped.traditionalWithdrawal === 0);
+});
