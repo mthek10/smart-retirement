@@ -25,6 +25,8 @@ import {
   get401kLimit,
   getRothConversionLimit,
   calculateACASubsidy,
+  getACABenchmarkPremium,
+  getACAIncomeCeiling,
   calculateSurvivorSSBenefit,
   calculateCapitalGainsHarvestingRoom,
   niitThresholds2024,
@@ -94,6 +96,8 @@ export interface ACASettings {
   annualHealthInsuranceCost: number;
   /** Optional Medigap / Medicare Advantage / supplemental monthly premium per person age 65+. */
   medicareSupplementalMonthlyPerPerson?: number;
+  /** Keep MAGI below this % of FPL before 65 (limits Roth conversions and gain harvesting). 0/undefined = no cap. */
+  incomeTargetFPL?: number;
 }
 
 export interface StateRelocationSettings {
@@ -344,15 +348,16 @@ function calculateHealthcarePremium(
   acaSettings: ACASettings | undefined,
   yearIndex: number,
   inflationFraction: number,
+  state?: string,
 ): HealthcarePremiumResult {
   if (!acaSettings?.enabled || enrolleeAges.length === 0) {
     return { grossPremium: 0, subsidy: 0, netPremium: 0 };
   }
 
   const inflationMultiplier = Math.pow(1 + inflationFraction, yearIndex);
-  const customAnnualBenchmark = acaSettings.customBenchmarkPremium > 0
-    ? acaSettings.customBenchmarkPremium * 12 * inflationMultiplier * enrolleeAges.length
-    : undefined;
+  const customAnnualBenchmark = getACABenchmarkPremium(
+    enrolleeAges, yearIndex, inflationFraction, state, acaSettings.customBenchmarkPremium,
+  );
   const acaResult = calculateACASubsidy(
     magi,
     householdSize,
@@ -407,6 +412,7 @@ function solveRequiredWithdrawal(
   extraCapitalGains: number = 0,
   isNycResident: boolean = false,
   excludeMedicare: boolean = false,
+  acaMagiCap: number = Infinity,
 ): number {
   let low = Math.max(0, currentRMD);
   let high = Math.max(
@@ -501,7 +507,8 @@ function solveRequiredWithdrawal(
       );
       const totalOrdinaryPreConversion = ordinaryIncomePreConversion + taxableSSPreConversion;
       const conversionRoom = Math.max(0, targetIncomeLimit - totalOrdinaryPreConversion);
-      rothConversion = Math.min(conversionRoom, testTrad);
+      const acaRoom = Math.max(0, acaMagiCap - (totalOrdinaryPreConversion + capitalGainsRealized + qualifiedDividends + extraCapitalGains));
+      rothConversion = Math.min(conversionRoom, testTrad, acaRoom);
     }
     
     const totalCapitalGains = capitalGainsRealized + qualifiedDividends + extraCapitalGains;
@@ -546,6 +553,7 @@ function solveRequiredWithdrawal(
       acaSettings,
       yearIndex,
       inflationFraction,
+      state,
     );
     const netAcaCost = acaCost.netPremium;
 
@@ -1000,6 +1008,11 @@ export function calculateProjections(
     const effectiveHouseholdSize = (spouse1Alive && spouse2Alive) 
       ? taxSettings.acaSettings.householdSize 
       : Math.max(1, taxSettings.acaSettings.householdSize - 1);
+    // Optional ACA income target: keep MAGI under the chosen % of FPL while anyone is pre-Medicare.
+    const acaTargetFPL = taxSettings.acaSettings.incomeTargetFPL ?? 0;
+    const acaMagiCap = taxSettings.acaSettings.enabled && acaTargetFPL > 0 && solverEnrolleeAges.length > 0
+      ? getACAIncomeCeiling(acaTargetFPL, effectiveHouseholdSize, i, taxSettings.inflationRate / 100)
+      : Infinity;
     
     // Determine effective state BEFORE solver call (must match main loop)
     const hasRelocated = !!taxSettings.stateRelocation?.enabled &&
@@ -1050,6 +1063,7 @@ export function calculateProjections(
       homeSaleTaxableGain,
       effectiveNycResident,
       excludeMedicare,
+      acaMagiCap,
     ) : 0;
     
     if (rmd > 0 && requiredWithdrawal < rmd) {
@@ -1154,6 +1168,9 @@ export function calculateProjections(
       
       const conversionRoom = Math.max(0, targetIncomeLimit - totalOrdinaryIncomePreConversion);
       let proposedConversion = Math.min(conversionRoom, remainingTradForConversion);
+      if (acaMagiCap < Infinity) {
+        proposedConversion = Math.min(proposedConversion, Math.max(0, acaMagiCap - (totalOrdinaryIncomePreConversion + capitalGains)));
+      }
       
       // IRMAA-aware optimization
       const isIRMAAAge = (spouse1Alive && spouse1CurrentAge >= 65 && spouse1CurrentAge <= 100) || 
@@ -1350,6 +1367,12 @@ export function calculateProjections(
         }
       }
 
+      // ACA income target: harvesting must not push MAGI above the chosen FPL ceiling.
+      if (totalHarvest > 0 && acaMagiCap < Infinity) {
+        const magiBase = preHarvestOrdinary + ssWithHarvest + preHarvestGains;
+        totalHarvest = Math.max(0, Math.min(totalHarvest, acaMagiCap - magiBase));
+      }
+
       // NIIT guard: never let harvesting push MAGI over the 3.8% surtax threshold
       // (only relevant when the 15% tier is enabled; preserves legacy 0%-only behavior otherwise)
       if (totalHarvest > 0 && taxSettings.harvestFifteenBracket) {
@@ -1484,6 +1507,7 @@ export function calculateProjections(
       taxSettings.acaSettings,
       i,
       taxSettings.inflationRate / 100,
+      effectiveState,
     );
     const acaPremium = acaCost.grossPremium;
     const acaSubsidy = acaCost.subsidy;
