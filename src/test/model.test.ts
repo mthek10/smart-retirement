@@ -226,3 +226,20 @@ test("nyc: projections pay more state tax than NY state alone", () => {
   assert.ok(nyc.some((r: any) => r.cityTax > 0), "city tax column should be populated");
   assert.ok(nyOnly.every((r: any) => r.cityTax === 0 && r.cityCapitalGainsTax === 0));
 });
+
+// ---------- ACA income target ----------
+test("ACA income target keeps pre-65 MAGI-raising conversions under the FPL ceiling", async () => {
+  const { getACAIncomeCeiling } = await import("@/lib/taxCalculations");
+  const base = tax({ targetTakeHome: 30_000, rothConversionStrategy: "fill_22", spouse1Age: 60, acaSettings: { enabled: true, householdSize: 1, customBenchmarkPremium: 0, annualHealthInsuranceCost: 0, incomeTargetFPL: 400 } });
+  const capped = calculateProjections(accounts({ spouse1Traditional: 1_500_000 }), ss(), base);
+  const free = calculateProjections(accounts({ spouse1Traditional: 1_500_000 }), ss(), { ...base, acaSettings: { ...base.acaSettings, incomeTargetFPL: 0 } });
+  assert.ok(capped[0].rothConversion < free[0].rothConversion, "cap should shrink conversion");
+  assert.ok(capped[0].rothConversion > 0);
+  assert.ok(capped[0].acaSubsidy > 0, "staying under 400% FPL keeps the credit");
+  assert.ok(getACAIncomeCeiling(400, 1) < 15_650 * 4);
+});
+test("ACA benchmark reflects state premium factor", async () => {
+  const { getACABenchmarkPremium } = await import("@/lib/taxCalculations");
+  assert.ok(getACABenchmarkPremium([60], 0, 0, "WY") > getACABenchmarkPremium([60], 0, 0, "MD"));
+  assert.equal(getACABenchmarkPremium([60], 0, 0, "XX"), 870 * 12);
+});

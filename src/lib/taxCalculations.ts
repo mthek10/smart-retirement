@@ -485,6 +485,44 @@ export function calculateACASubsidy(
   };
 }
 
+/**
+ * Approximate benchmark Silver premium cost relative to the national average, by state.
+ * Rough planning estimates only — actual premiums vary by county and insurer.
+ */
+export const acaStatePremiumFactors: Record<string, number> = {
+  AL: 1.10, AK: 1.75, AZ: 0.90, AR: 0.95, CA: 0.95, CO: 0.85, CT: 1.20, DE: 1.15, DC: 0.90,
+  FL: 1.00, GA: 0.95, HI: 0.95, ID: 1.00, IL: 0.95, IN: 0.90, IA: 1.05, KS: 1.05, KY: 1.00,
+  LA: 1.20, ME: 1.05, MD: 0.75, MA: 0.90, MI: 0.85, MN: 0.75, MS: 1.15, MO: 1.05, MT: 1.10,
+  NE: 1.25, NV: 0.85, NH: 0.80, NJ: 1.05, NM: 0.85, NY: 1.30, NC: 1.15, ND: 1.05, OH: 0.90,
+  OK: 1.05, OR: 1.00, PA: 0.95, RI: 0.85, SC: 1.05, SD: 1.25, TN: 1.00, TX: 1.00, UT: 1.05,
+  VT: 1.60, VA: 0.95, WA: 0.90, WV: 1.55, WI: 1.10, WY: 1.80,
+};
+
+export function getACAStateFactor(state?: string): number {
+  return (state && acaStatePremiumFactors[state]) || 1;
+}
+
+/** Income targets offered in the ACA dropdown, as % of the Federal Poverty Level. */
+export const ACA_INCOME_TARGETS_FPL = [138, 150, 200, 250, 300, 400] as const;
+
+/** Highest MAGI that stays below the given % of FPL (inflation-indexed). */
+export function getACAIncomeCeiling(fplPercent: number, householdSize: number, yearIndex = 0, inflationRate = 0): number {
+  const fpl = (federalPovertyLevel2024[householdSize] || federalPovertyLevel2024[8]) * Math.pow(1 + inflationRate, yearIndex);
+  return Math.max(0, fpl * fplPercent / 100 - 1);
+}
+
+/** Annual benchmark Silver premium for the enrollees, using a custom monthly per-person rate or the state-adjusted national average. */
+export function getACABenchmarkPremium(
+  enrolleeAges: number[], yearIndex = 0, inflationRate = 0, state?: string, customMonthlyPerPerson = 0,
+): number {
+  const mult = Math.pow(1 + inflationRate, yearIndex);
+  const under65 = enrolleeAges.filter((a) => a < 65);
+  if (customMonthlyPerPerson > 0) return customMonthlyPerPerson * 12 * mult * under65.length;
+  const factor = getACAStateFactor(state);
+  return under65.reduce((s, a) => s + interpolatePremium(a) * 12 * mult * factor, 0);
+}
+
+
 // Calculate Full Retirement Age based on birth year
 export function calculateFullRetirementAge(currentAge: number): number {
   const currentYear = new Date().getFullYear();
