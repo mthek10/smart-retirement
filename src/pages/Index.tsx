@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { calculateBracketConsistency } from "@/lib/taxCalculations";
-import { getCurrentYearAlerts } from "@/lib/incomeAlerts";
+import { getCurrentYearAlerts, getACAFeasibilityAlert } from "@/lib/incomeAlerts";
 import { History, RotateCcw, Sparkles } from "lucide-react";
 
 const SETUP_DRAFT_STORAGE_KEY = "smart-retirement-setup-draft";
@@ -621,13 +621,15 @@ const Index = () => {
 
   // Generate income alerts for current year
   const incomeAlerts = useMemo(() => {
-    return getCurrentYearAlerts(
+    const alerts = getCurrentYearAlerts(
       projections,
       taxSettings.acaSettings.householdSize,
       taxSettings.inflationRate,
       taxSettings.filingStatus
     );
-  }, [projections, taxSettings.acaSettings.householdSize, taxSettings.inflationRate, taxSettings.filingStatus]);
+    const aca = getACAFeasibilityAlert(projections, (taxSettings.acaSettings as { incomeTargetFPL?: number }).incomeTargetFPL ?? 0);
+    return aca ? [aca, ...alerts] : alerts;
+  }, [projections, taxSettings.acaSettings.householdSize, (taxSettings.acaSettings as { incomeTargetFPL?: number }).incomeTargetFPL, taxSettings.inflationRate, taxSettings.filingStatus]);
 
   // Get current year gross ordinary income for bracket gauge
   // This is the totalOrdinaryIncome from projections (includes taxable SS, traditional withdrawals, 

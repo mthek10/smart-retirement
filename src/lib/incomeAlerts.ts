@@ -233,3 +233,32 @@ export function getCurrentYearAlerts(
     filingStatus
   );
 }
+
+/**
+ * ACA feasibility diagnostic: flags pre-65 years where take-home spending forced
+ * income above the user's chosen ACA income limit (conversions/harvesting are already held back).
+ */
+export function getACAFeasibilityAlert(
+  projections: Array<{ age: number; acaMagi?: number; acaIncomeCap?: number; acaSubsidy?: number }>,
+  incomeTargetFPL: number,
+): IncomeAlert | null {
+  const over = projections
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => (p.acaIncomeCap ?? 0) > 0 && (p.acaMagi ?? 0) > (p.acaIncomeCap ?? 0) + 1);
+  if (over.length === 0) return null;
+  const first = over[0];
+  const excess = (first.p.acaMagi ?? 0) - (first.p.acaIncomeCap ?? 0);
+  const ages = over.length === 1 ? `age ${first.p.age}` : `${over.length} years before 65 (first at age ${first.p.age})`;
+  return {
+    type: 'aca',
+    severity: 'warning',
+    title: `Income goes over your ACA limit (${incomeTargetFPL}% of poverty level)`,
+    message: `Your take-home spending pushes income over the limit in ${ages}. At age ${first.p.age}, income is $${Math.round(first.p.acaMagi ?? 0).toLocaleString()} versus a limit of $${Math.round(first.p.acaIncomeCap ?? 0).toLocaleString()} — $${Math.round(excess).toLocaleString()} over — so your ACA credit is reduced or lost.`,
+    distanceToThreshold: -excess,
+    threshold: first.p.acaIncomeCap ?? 0,
+    currentValue: first.p.acaMagi ?? 0,
+    yearIndex: first.i,
+    age: first.p.age,
+    recommendation: `Brokerage cost basis and Roth money are already used first. To stay under the limit, lower pre-65 spending, raise cash/basis savings, or choose a higher income limit.`,
+  };
+}

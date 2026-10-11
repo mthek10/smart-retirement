@@ -135,7 +135,14 @@ export function ACASettings({
               </p>
             </div>
 
-            {hasHealthInsuranceCost && (
+            {!hasHealthInsuranceCost && enrolleeAges.length > 0 && (
+              <p className="text-xs text-foreground">
+                Left at 0, the model estimates your premium from your state{state ? ` (${state})` : ""} and age:{" "}
+                <span className="font-semibold">{currency0.format(benchmark)}/yr</span> for this household before any ACA credit.
+              </p>
+            )}
+
+            {(
               <>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
