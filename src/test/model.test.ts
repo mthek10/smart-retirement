@@ -253,3 +253,11 @@ test("ACA 200% FPL cap: basis-first brokerage draw keeps pre-65 health cost belo
   assert.ok(capped.healthcareCost < open.healthcareCost);
   assert.ok(capped.traditionalWithdrawal === 0);
 });
+
+import { getACAFeasibilityAlert } from "../lib/incomeAlerts";
+test("ACA feasibility alert fires only when income exceeds the chosen limit", () => {
+  assert.equal(getACAFeasibilityAlert([{ age: 60, acaMagi: 40000, acaIncomeCap: 42300 }], 200), null);
+  const a = getACAFeasibilityAlert([{ age: 60, acaMagi: 50000, acaIncomeCap: 42300 }, { age: 61, acaMagi: 30000, acaIncomeCap: 0 }], 200);
+  assert.equal(a?.age, 60);
+  assert.equal(a?.currentValue, 50000);
+});

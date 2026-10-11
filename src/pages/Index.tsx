@@ -627,9 +627,9 @@ const Index = () => {
       taxSettings.inflationRate,
       taxSettings.filingStatus
     );
-    const aca = getACAFeasibilityAlert(projections, taxSettings.acaSettings.incomeTargetFPL ?? 0);
+    const aca = getACAFeasibilityAlert(projections, (taxSettings.acaSettings as { incomeTargetFPL?: number }).incomeTargetFPL ?? 0);
     return aca ? [aca, ...alerts] : alerts;
-  }, [projections, taxSettings.acaSettings.householdSize, taxSettings.acaSettings.incomeTargetFPL, taxSettings.inflationRate, taxSettings.filingStatus]);
+  }, [projections, taxSettings.acaSettings.householdSize, (taxSettings.acaSettings as { incomeTargetFPL?: number }).incomeTargetFPL, taxSettings.inflationRate, taxSettings.filingStatus]);
 
   // Get current year gross ordinary income for bracket gauge
   // This is the totalOrdinaryIncome from projections (includes taxable SS, traditional withdrawals, 
