@@ -386,6 +386,60 @@ function calculateHealthcarePremium(
  * Iterative binary search solver to find withdrawal amount achieving target take-home.
  * Extracted from calculateProjections for readability.
  */
+/**
+ * Split a portfolio withdrawal across accounts. Shared by the solver and the
+ * main projection loop so both stay identical.
+ * When an ACA income cap applies (pre-65), brokerage is drawn basis-first
+ * (cash / high-basis lots, no gain until basis is used up), Traditional only
+ * up to the remaining MAGI room, then Roth, then any further Traditional.
+ */
+export function splitPortfolioWithdrawal(
+  amount: number,
+  bal: { tradBalance: number; rothBalance: number; taxableBalance: number },
+  rmd: number,
+  basisDollars: number,
+  acaMagiCap: number,
+  fixedMagi: number,
+): { fromTrad: number; fromTaxable: number; fromRoth: number; gains: number } {
+  let remaining = amount;
+  let trad = bal.tradBalance;
+  let fromTrad = 0, fromTaxable = 0, fromRoth = 0, gains = 0;
+  if (rmd > 0 && trad > 0) {
+    const r = Math.min(rmd, trad, remaining);
+    fromTrad += r; trad -= r; remaining -= r;
+  }
+  const capped = acaMagiCap < Infinity;
+  if (remaining > 0 && bal.taxableBalance > 0) {
+    fromTaxable = Math.min(remaining, bal.taxableBalance);
+    const basis = Math.min(Math.max(0, basisDollars), bal.taxableBalance);
+    gains = capped
+      ? Math.max(0, fromTaxable - basis)
+      : fromTaxable * (1 - basis / bal.taxableBalance);
+    remaining -= fromTaxable;
+  }
+  if (capped) {
+    if (remaining > 0 && trad > 0) {
+      const room = Math.max(0, acaMagiCap - fixedMagi - fromTrad - gains);
+      const t = Math.min(remaining, trad, room);
+      fromTrad += t; trad -= t; remaining -= t;
+    }
+    if (remaining > 0 && bal.rothBalance > 0) {
+      fromRoth = Math.min(remaining, bal.rothBalance); remaining -= fromRoth;
+    }
+    if (remaining > 0 && trad > 0) {
+      const t = Math.min(remaining, trad); fromTrad += t; remaining -= t;
+    }
+  } else {
+    if (remaining > 0 && trad > 0) {
+      const t = Math.min(remaining, trad); fromTrad += t; trad -= t; remaining -= t;
+    }
+    if (remaining > 0 && bal.rothBalance > 0) {
+      fromRoth = Math.min(remaining, bal.rothBalance); remaining -= fromRoth;
+    }
+  }
+  return { fromTrad, fromTaxable, fromRoth, gains };
+}
+
 function solveRequiredWithdrawal(
   targetTakeHome: number,
   ssAnnual: number,
@@ -460,42 +514,19 @@ function solveRequiredWithdrawal(
     + (spouse2Alive && spouse2Age >= 65 && spouse2Age <= 100 ? 1 : 0);
 
   
+  const fixedMagi = taxableWages + pensionIncome + ordinaryDividends + qualifiedDividends + extraCapitalGains + 0.85 * ssAnnual;
   for (let iter = 0; iter < maxIterations; iter++) {
     const testWithdrawal = (low + high) / 2;
     
-    let testTaxable = currentBalances.taxableBalance;
-    let testTrad = currentBalances.tradBalance;
-    let testRoth = currentBalances.rothBalance;
-    
-    let remaining = testWithdrawal;
-    let capitalGainsRealized = 0;
-    let traditionalWithdrawn = 0;
-    
-    if (currentRMD > 0 && testTrad > 0) {
-      const rmdWithdrawal = Math.min(currentRMD, testTrad, remaining);
-      traditionalWithdrawn = rmdWithdrawal;
-      testTrad -= rmdWithdrawal;
-      remaining -= rmdWithdrawal;
-    }
-    
-    if (remaining > 0 && testTaxable > 0) {
-      const fromTaxable = Math.min(remaining, testTaxable);
-      capitalGainsRealized = fromTaxable * ((100 - costBasisPercent) / 100);
-      testTaxable -= fromTaxable;
-      remaining -= fromTaxable;
-    }
-    
-    if (remaining > 0 && testTrad > 0) {
-      const fromTrad = Math.min(remaining, testTrad);
-      traditionalWithdrawn += fromTrad;
-      testTrad -= fromTrad;
-      remaining -= fromTrad;
-    }
-    
-    if (remaining > 0 && testRoth > 0) {
-      testRoth -= Math.min(remaining, testRoth);
-    }
-    
+    const split = splitPortfolioWithdrawal(
+      testWithdrawal, currentBalances, currentRMD,
+      currentBalances.taxableBalance * costBasisPercent / 100,
+      acaMagiCap, fixedMagi,
+    );
+    const capitalGainsRealized = split.gains;
+    const traditionalWithdrawn = split.fromTrad;
+    const testTrad = currentBalances.tradBalance - split.fromTrad;
+
     let rothConversion = 0;
     if (targetIncomeLimit > 0 && testTrad > 0) {
       // Match main loop's Roth conversion room calculation exactly
@@ -1080,49 +1111,44 @@ export function calculateProjections(
     let spouse1TradWithdrawal = 0;
     let spouse2TradWithdrawal = 0;
 
-    if (rmd > 0 && tradBalance > 0) {
-      const rmdWithdrawal = Math.min(rmd, tradBalance);
-      if (spouse1RMD > 0) {
-        const s1Portion = Math.min(spouse1RMD, spouse1TradBalance, rmdWithdrawal * (spouse1RMD / rmd));
-        spouse1TradWithdrawal = s1Portion;
-        spouse1TradBalance -= s1Portion;
-      }
-      if (spouse2RMD > 0) {
-        const s2Portion = Math.min(spouse2RMD, spouse2TradBalance, rmdWithdrawal * (spouse2RMD / rmd));
-        spouse2TradWithdrawal = s2Portion;
-        spouse2TradBalance -= s2Portion;
-      }
-      traditionalWithdrawal = spouse1TradWithdrawal + spouse2TradWithdrawal;
-      withdrawalAmount -= traditionalWithdrawal;
-    }
-
-    if (withdrawalAmount > 0 && taxableBalance > 0) {
-      taxableWithdrawal = Math.min(withdrawalAmount, taxableBalance);
-      // Reduce basis proportionally to withdrawal (FIFO/avg-cost simplification)
-      const basisRatio = taxableBalance > 0 ? costBasisDollars / taxableBalance : 0;
-      costBasisDollars = Math.max(0, costBasisDollars - taxableWithdrawal * basisRatio);
-      withdrawalAmount -= taxableWithdrawal;
+    const mainSplit = splitPortfolioWithdrawal(
+      withdrawalAmount,
+      { tradBalance, rothBalance, taxableBalance },
+      rmd,
+      costBasisDollars,
+      acaMagiCap,
+      taxableWages + totalPensionIncome + ordinaryDividends + qualifiedDividends + homeSaleTaxableGain + 0.85 * ssAnnual,
+    );
+    const withdrawalGains = mainSplit.gains;
+    if (mainSplit.fromTaxable > 0) {
+      taxableWithdrawal = mainSplit.fromTaxable;
+      costBasisDollars = Math.max(0, costBasisDollars - (taxableWithdrawal - withdrawalGains));
       taxableBalance -= taxableWithdrawal;
     }
-
-    const remainingTradBalance = spouse1TradBalance + spouse2TradBalance;
-    if (withdrawalAmount > 0 && remainingTradBalance > 0) {
-      const additionalTrad = Math.min(withdrawalAmount, remainingTradBalance);
-      const s1Ratio = spouse1TradBalance / remainingTradBalance;
-      const s1Additional = additionalTrad * s1Ratio;
-      const s2Additional = additionalTrad * (1 - s1Ratio);
-      spouse1TradBalance -= s1Additional;
-      spouse2TradBalance -= s2Additional;
-      spouse1TradWithdrawal += s1Additional;
-      spouse2TradWithdrawal += s2Additional;
-      traditionalWithdrawal += additionalTrad;
-      withdrawalAmount -= additionalTrad;
+    if (mainSplit.fromTrad > 0) {
+      let left = mainSplit.fromTrad;
+      const rmdPart = Math.min(rmd, left);
+      if (rmdPart > 0 && rmd > 0) {
+        const s1 = Math.min(spouse1TradBalance, rmdPart * (spouse1RMD / rmd));
+        const s2 = Math.min(spouse2TradBalance, rmdPart - s1);
+        spouse1TradBalance -= s1; spouse2TradBalance -= s2;
+        spouse1TradWithdrawal += s1; spouse2TradWithdrawal += s2;
+        left -= s1 + s2;
+      }
+      const rem = spouse1TradBalance + spouse2TradBalance;
+      if (left > 0 && rem > 0) {
+        const s1 = left * (spouse1TradBalance / rem);
+        const s2 = left - s1;
+        spouse1TradBalance -= s1; spouse2TradBalance -= s2;
+        spouse1TradWithdrawal += s1; spouse2TradWithdrawal += s2;
+      }
+      traditionalWithdrawal = spouse1TradWithdrawal + spouse2TradWithdrawal;
     }
-
-    if (withdrawalAmount > 0 && rothBalance > 0) {
-      rothWithdrawal = Math.min(withdrawalAmount, rothBalance);
+    if (mainSplit.fromRoth > 0) {
+      rothWithdrawal = mainSplit.fromRoth;
       rothBalance -= rothWithdrawal;
     }
+    withdrawalAmount = 0;
 
     // Reuse isSurvivorYear computed above (before solver call)
     
@@ -1156,7 +1182,7 @@ export function calculateProjections(
     
     const conversionStarted = effectiveConversionStartAge == null || age >= effectiveConversionStartAge;
     if (conversionStarted && targetIncomeLimit > 0 && remainingTradForConversion > 0) {
-      const realizedGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
+      const realizedGains = withdrawalGains;
       const capitalGains = realizedGains + qualifiedDividends + homeSaleTaxableGain;
       const ordinaryIncomePreConversion = traditionalWithdrawal + taxableWages + totalPensionIncome + ordinaryDividends;
       const taxableSSIncomePreConversion = calculateTaxableSocialSecurity(
@@ -1304,7 +1330,7 @@ export function calculateProjections(
       }
     }
 
-    const realizedCapitalGains = taxableWithdrawal * ((100 - currentCostBasisPercent) / 100);
+    const realizedCapitalGains = withdrawalGains;
 
     // ============================================================
     // AUTO-HARVEST LTCG BRACKETS (0% always; 15% when enabled)
