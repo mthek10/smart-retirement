@@ -16,6 +16,7 @@ interface YearProjection {
   traditionalBalance: number;
   rothBalance: number;
   taxableBalance: number;
+  taxableCostBasis?: number;
   ssIncome: number;
   employmentIncome?: number;
   pensionIncome?: number;
@@ -198,6 +199,9 @@ export const ProjectionTable = memo(function ProjectionTable({
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Traditional</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Roth</th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Brokerage</th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
+                        <span className="inline-flex items-center gap-1">Remaining Unrealized Gain <InfoTooltip text="Year-end brokerage balance minus remaining cost basis, floored at $0. Reflects withdrawals, harvesting, reinvestment, and that year's market return; not the gain available before this year's harvest." /></span>
+                      </th>
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Withdrawals</th>
                     </>
                   )}
@@ -319,6 +323,11 @@ export const ProjectionTable = memo(function ProjectionTable({
                         </td>
                         <td className="p-4 align-middle text-right">
                           {formatCurrency(projection.taxableBalance)}
+                        </td>
+                        <td className="p-4 align-middle text-right">
+                          {projection.taxableCostBasis === undefined
+                            ? '—'
+                            : formatCurrency(Math.max(0, projection.taxableBalance - projection.taxableCostBasis))}
                         </td>
                         <td className="p-4 align-middle text-right font-medium">
                           {formatCurrency(projection.withdrawals)}
