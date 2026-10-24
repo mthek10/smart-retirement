@@ -13,7 +13,34 @@ export type DrawdownRow = Pick<ProjectionRow,
   "year" | "age" | "traditionalWithdrawal" | "rothWithdrawal" | "taxableWithdrawal" |
   "withdrawals" | "netWages" | "ssIncome" | "pensionIncome" | "rmd" | "qcdAmount" |
   "acaIncomeCap" | "acaMagi" | "medicarePremiums" | "rothConversion" | "excessSavings" | "isSurvivorYear"
->;
+> & Partial<Pick<ProjectionRow, "totalTaxes" | "healthcareCost" | "irmaa" | "takeHome" | "payrollTax">>;
+
+export interface TakeHomeBridge {
+  cashIn: number;
+  taxes: number;
+  healthInsurance: number;
+  reinvested: number;
+  other: number;
+  takeHome: number;
+}
+
+/**
+ * Reconciles a year's cash in to its Take Home using the projection row's own values.
+ * Taxes = the row's Total Taxes (includes Medicare B/D and IRMAA). Health insurance =
+ * healthcare cost not already inside Total Taxes. "Other" absorbs remaining items
+ * (cash charity, harvest tax paid from proceeds) so the bridge always equals Take Home.
+ */
+export function getTakeHomeBridge(row: DrawdownRow): TakeHomeBridge {
+  const cashIn = row.withdrawals + row.netWages + row.ssIncome + row.pensionIncome;
+  // Net paycheck is already after payroll tax, so exclude it here to avoid double-counting.
+  const taxes = (row.totalTaxes ?? 0) - (row.payrollTax ?? 0);
+  const healthInsurance = Math.max(0, (row.healthcareCost ?? 0) - row.medicarePremiums - (row.irmaa ?? 0));
+  const reinvested = row.excessSavings;
+  const takeHome = row.takeHome ?? 0;
+  const raw = cashIn - taxes - healthInsurance - reinvested - takeHome;
+  const other = Math.abs(raw) < 1 ? 0 : raw;
+  return { cashIn, taxes, healthInsurance, reinvested, other, takeHome };
+}
 
 export interface DrawdownPhase {
   first: DrawdownRow;
