@@ -39,7 +39,7 @@ export const DrawdownRoadmap = memo(function DrawdownRoadmap({ projections }: { 
                         const b = getTakeHomeBridge(last);
                         const lines: [string, keyof TakeHomeBridge, boolean][] = [
                           ["Total cash in", "cashIn", true],
-                          ["− Total taxes (incl. Medicare & IRMAA)", "taxes", false],
+                          ["− Income taxes (incl. Medicare & IRMAA)", "taxes", false],
                           ["− Health insurance (after ACA credit)", "healthInsurance", false],
                           ["− Surplus reinvested in Brokerage", "reinvested", false],
                           ["− Other (cash charity, adjustments)", "other", false],

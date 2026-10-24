@@ -13,7 +13,7 @@ export type DrawdownRow = Pick<ProjectionRow,
   "year" | "age" | "traditionalWithdrawal" | "rothWithdrawal" | "taxableWithdrawal" |
   "withdrawals" | "netWages" | "ssIncome" | "pensionIncome" | "rmd" | "qcdAmount" |
   "acaIncomeCap" | "acaMagi" | "medicarePremiums" | "rothConversion" | "excessSavings" | "isSurvivorYear"
-> & Partial<Pick<ProjectionRow, "totalTaxes" | "healthcareCost" | "irmaa" | "takeHome">>;
+> & Partial<Pick<ProjectionRow, "totalTaxes" | "healthcareCost" | "irmaa" | "takeHome" | "payrollTax">>;
 
 export interface TakeHomeBridge {
   cashIn: number;
@@ -32,7 +32,8 @@ export interface TakeHomeBridge {
  */
 export function getTakeHomeBridge(row: DrawdownRow): TakeHomeBridge {
   const cashIn = row.withdrawals + row.netWages + row.ssIncome + row.pensionIncome;
-  const taxes = row.totalTaxes ?? 0;
+  // Net paycheck is already after payroll tax, so exclude it here to avoid double-counting.
+  const taxes = (row.totalTaxes ?? 0) - (row.payrollTax ?? 0);
   const healthInsurance = Math.max(0, (row.healthcareCost ?? 0) - row.medicarePremiums - (row.irmaa ?? 0));
   const reinvested = row.excessSavings;
   const takeHome = row.takeHome ?? 0;
