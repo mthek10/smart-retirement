@@ -727,6 +727,7 @@ const Index = () => {
             <TabsTrigger value="setup" className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Setup</TabsTrigger>
             <TabsTrigger value="dashboard" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Dashboard</TabsTrigger>
             <TabsTrigger value="projections" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Projections</TabsTrigger>
+            <TabsTrigger value="roadmap" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Roadmap</TabsTrigger>
             <TabsTrigger value="analysis" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Analysis</TabsTrigger>
             <TabsTrigger value="charts" onClick={commitInputs} className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Charts</TabsTrigger>
             <TabsTrigger value="tax-rules" className="flex-1 min-w-0 rounded-lg transition-all duration-200 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-sm font-medium text-xs sm:text-sm">Tax Rules</TabsTrigger>
@@ -836,14 +837,23 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="projections" className="mt-6 space-y-6">
-            <DrawdownRoadmap projections={projections} />
             <ProjectionTable
               projections={projections}
               autoHarvestCapitalGains={taxSettings.autoHarvestCapitalGains !== false}
             />
 
             <div className="flex justify-end pt-2">
-              <Button onClick={() => setActiveTab("analysis")} className="px-8">
+              <Button onClick={() => { setActiveTab("roadmap"); window.scrollTo({ top: 0 }); }} className="px-8">
+                View Roadmap →
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="roadmap" className="mt-6 space-y-6">
+            <DrawdownRoadmap projections={projections} />
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={() => { setActiveTab("analysis"); window.scrollTo({ top: 0 }); }} className="px-8">
                 View Analysis →
               </Button>
             </div>
