@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import { Compass } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { buildDrawdownRoadmap, getCashRMD, type DrawdownRow } from "@/lib/drawdownRoadmap";
+import { buildDrawdownRoadmap, getCashRMD, getTakeHomeBridge, type DrawdownRow, type TakeHomeBridge } from "@/lib/drawdownRoadmap";
 import { formatCurrency } from "@/lib/utils";
 
 export const DrawdownRoadmap = memo(function DrawdownRoadmap({ projections }: { projections: DrawdownRow[] }) {
@@ -34,7 +34,23 @@ export const DrawdownRoadmap = memo(function DrawdownRoadmap({ projections }: { 
                     <thead><tr className="border-b"><th className="py-2 text-left font-medium">Source</th><th className="py-2 pl-3 text-right whitespace-nowrap font-medium">Age {first.age}</th>{phase.years > 1 && <th className="py-2 pl-3 text-right whitespace-nowrap font-medium">Age {last.age}</th>}</tr></thead>
                     <tbody>
                       {phase.sources.map(source => <tr key={source.key} className="border-b"><td className="py-2">{source.label}</td><td className="py-2 pl-3 text-right tabular-nums">{formatCurrency(first[source.key])}</td>{phase.years > 1 && <td className="py-2 pl-3 text-right tabular-nums">{formatCurrency(last[source.key])}</td>}</tr>)}
-                      <tr className="font-semibold"><td className="py-2">Total account draws</td><td className="py-2 pl-3 text-right tabular-nums">{formatCurrency(first.withdrawals)}</td>{phase.years > 1 && <td className="py-2 pl-3 text-right tabular-nums">{formatCurrency(last.withdrawals)}</td>}</tr>
+                      {(() => {
+                        const a = getTakeHomeBridge(first);
+                        const b = getTakeHomeBridge(last);
+                        const lines: [string, keyof TakeHomeBridge, boolean][] = [
+                          ["Total cash in", "cashIn", true],
+                          ["− Total taxes (incl. Medicare & IRMAA)", "taxes", false],
+                          ["− Health insurance (after ACA credit)", "healthInsurance", false],
+                          ["− Surplus reinvested in Brokerage", "reinvested", false],
+                          ["− Other (cash charity, adjustments)", "other", false],
+                        ];
+                        return <>
+                          {lines.filter(([, k, always]) => always || Math.abs(a[k]) >= 1 || Math.abs(b[k]) >= 1).map(([label, k, bold]) => (
+                            <tr key={k} className={bold ? "border-b font-semibold" : "border-b"}><td className="py-2">{label}</td><td className="py-2 pl-3 text-right tabular-nums">{formatCurrency(a[k])}</td>{phase.years > 1 && <td className="py-2 pl-3 text-right tabular-nums">{formatCurrency(b[k])}</td>}</tr>
+                          ))}
+                          <tr className="font-semibold bg-primary/10"><td className="py-2 pl-1">= Take Home (matches yearly table)</td><td className="py-2 pl-3 text-right tabular-nums">{formatCurrency(a.takeHome)}</td>{phase.years > 1 && <td className="py-2 pl-3 pr-1 text-right tabular-nums">{formatCurrency(b.takeHome)}</td>}</tr>
+                        </>;
+                      })()}
                     </tbody>
                   </table>
                 </div>

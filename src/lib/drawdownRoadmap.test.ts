@@ -52,3 +52,15 @@ test("roadmap covers each projected year and reconciles account sources for repr
   }
   assert.deepEqual(buildDrawdownRoadmap([]), []);
 });
+test("roadmap take-home bridge equals each year's Take Home: cash in minus taxes and costs", async () => {
+  const { getTakeHomeBridge } = await import("./drawdownRoadmap");
+  for (const scenario of SCENARIOS) {
+    for (const r of calculateProjections(scenario.accounts, scenario.ss, scenario.tax)) {
+      const b = getTakeHomeBridge(r);
+      assert.ok(Math.abs(b.cashIn - b.taxes - b.healthInsurance - b.reinvested - b.other - r.takeHome) < 0.01);
+    }
+  }
+  const b = getTakeHomeBridge(row(60, { withdrawals: 109536, taxableWithdrawal: 109536, totalTaxes: 3536, healthcareCost: 6000, takeHome: 100000 }));
+  assert.equal(b.healthInsurance, 6000);
+  assert.equal(b.other, 0);
+});
