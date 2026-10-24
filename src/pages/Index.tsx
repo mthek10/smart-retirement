@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { SetupWizard, SETUP_STEP_COUNT, type SetupSaveStatus } from "@/components/SetupWizard";
 import { ProjectionTable } from "@/components/ProjectionTable";
+import { DrawdownRoadmap } from "@/components/DrawdownRoadmap";
 
 import { ProjectionSummary } from "@/components/ProjectionSummary";
 import { TaxChart } from "@/components/TaxChart";
@@ -835,6 +836,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="projections" className="mt-6 space-y-6">
+            <DrawdownRoadmap projections={projections} />
             <ProjectionTable
               projections={projections}
               autoHarvestCapitalGains={taxSettings.autoHarvestCapitalGains !== false}

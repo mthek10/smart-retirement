@@ -9,6 +9,7 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { CustomScrollbar } from "@/components/ui/CustomScrollbar";
 import { exportProjectionsToCSV } from "@/lib/exportUtils";
 import type { ProjectionRow } from "@/hooks/useProjections";
+import { getCashRMD } from "@/lib/drawdownRoadmap";
 
 interface YearProjection {
   year: number;
@@ -26,6 +27,9 @@ interface YearProjection {
   contributions401k?: number;
   employerMatch?: number;
   withdrawals: number;
+  traditionalWithdrawal: number;
+  rothWithdrawal: number;
+  taxableWithdrawal: number;
   federalTax: number;
   federalCapitalGainsTax: number;
   stateTax: number;
@@ -64,10 +68,11 @@ interface ProjectionTableProps {
   autoHarvestCapitalGains?: boolean;
 }
 
-type ColumnGroup = "balances" | "income" | "taxes" | "healthcare" | "lifeEvents" | "charitable";
+type ColumnGroup = "balances" | "withdrawals" | "income" | "taxes" | "healthcare" | "lifeEvents" | "charitable";
 
 const COLUMN_GROUPS: { id: ColumnGroup; label: string; description: string }[] = [
-  { id: "balances", label: "Balances", description: "Account balances and withdrawals" },
+  { id: "balances", label: "Balances", description: "Account balances and remaining unrealized gains" },
+  { id: "withdrawals", label: "Withdrawals", description: "Traditional, Roth, Brokerage, and total account draws" },
   { id: "income", label: "Income", description: "Wages, SS, conversions, and RMDs" },
   { id: "taxes", label: "Tax Details", description: "Individual tax breakdowns" },
   { id: "healthcare", label: "Healthcare", description: "Medicare, IRMAA, and ACA details" },
@@ -80,7 +85,7 @@ export const ProjectionTable = memo(function ProjectionTable({
   autoHarvestCapitalGains = true,
 }: ProjectionTableProps) {
   const [activeGroups, setActiveGroups] = useState<Set<ColumnGroup>>(
-    new Set(["balances", "income"])
+    new Set(["balances", "withdrawals", "income"])
   );
 
   const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -102,7 +107,7 @@ export const ProjectionTable = memo(function ProjectionTable({
   const showAll = activeGroups.size === COLUMN_GROUPS.length;
   const toggleAll = () => {
     if (showAll) {
-      setActiveGroups(new Set(["balances"]));
+      setActiveGroups(new Set(["balances", "withdrawals"]));
     } else {
       setActiveGroups(new Set(COLUMN_GROUPS.map(g => g.id)));
     }
@@ -132,7 +137,7 @@ export const ProjectionTable = memo(function ProjectionTable({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>Year-by-Year Projections</CardTitle>
             <CardDescription>
@@ -155,30 +160,37 @@ export const ProjectionTable = memo(function ProjectionTable({
       <CardContent>
         {/* Column group toggles */}
         <div className="flex flex-wrap gap-2 mb-4">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
+            aria-pressed={showAll}
             onClick={toggleAll}
             className={cn(
-              "px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer border",
+              "text-xs",
               showAll
                 ? "bg-primary text-primary-foreground border-primary"
-                : "bg-background text-muted-foreground border-border hover:bg-muted"
+                : "bg-background text-foreground border-border hover:bg-muted"
             )}
           >
             All Columns
-          </button>
+          </Button>
           {COLUMN_GROUPS.map(group => (
-            <button
+            <Button
               key={group.id}
+              variant="outline"
+              size="sm"
+              aria-pressed={activeGroups.has(group.id)}
+              title={group.description}
               onClick={() => toggleGroup(group.id)}
               className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer border",
+                "text-xs",
                 activeGroups.has(group.id)
-                  ? "bg-primary/15 text-primary border-primary/30"
-                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+                  ? "bg-primary/15 text-foreground border-primary/30"
+                  : "bg-background text-foreground border-border hover:bg-muted"
               )}
             >
               {group.label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -202,7 +214,14 @@ export const ProjectionTable = memo(function ProjectionTable({
                       <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">
                         <span className="inline-flex items-center gap-1">Remaining Unrealized Gain <InfoTooltip text="Year-end brokerage balance minus remaining cost basis, floored at $0. Reflects withdrawals, harvesting, reinvestment, and that year's market return; not the gain available before this year's harvest." /></span>
                       </th>
-                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b">Withdrawals</th>
+                    </>
+                  )}
+                  {show("withdrawals") && (
+                    <>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b"><span className="inline-flex items-center gap-1">Trad IRA Draw <InfoTooltip text="Cash withdrawn from Traditional IRA / 401(k), including cash RMDs. Excludes Roth conversions and separate charitable IRA distributions. RMD details appear beside the amount." /></span></th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b"><span className="inline-flex items-center gap-1">Roth Draw <InfoTooltip text="Money withdrawn from Roth accounts for spending and obligations. Roth conversions into this account are not withdrawals." /></span></th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b"><span className="inline-flex items-center gap-1">Brokerage Draw <InfoTooltip text="Cash withdrawn from Brokerage, including return of principal and realized gains. This is not the taxable gain amount; Remaining Unrealized Gain under Balances shows gains left at year-end." /></span></th>
+                      <th className="h-12 px-4 text-right align-middle font-semibold sticky top-0 z-30 bg-background border-b"><span className="inline-flex items-center gap-1">Total Withdrawals <InfoTooltip text="Traditional + Roth + Brokerage draws, before taxes and healthcare costs. Excludes Social Security, wages, pensions, Roth conversions, and gains harvested through sell-and-rebuy." /></span></th>
                     </>
                   )}
                   {show("income") && (
@@ -329,9 +348,17 @@ export const ProjectionTable = memo(function ProjectionTable({
                             ? '—'
                             : formatCurrency(Math.max(0, projection.taxableBalance - projection.taxableCostBasis))}
                         </td>
-                        <td className="p-4 align-middle text-right font-medium">
-                          {formatCurrency(projection.withdrawals)}
+                      </>
+                    )}
+                    {show("withdrawals") && (
+                      <>
+                        <td className="p-4 align-middle text-right tabular-nums">
+                          {formatCurrency(projection.traditionalWithdrawal)}
+                          {projection.rmd > 0 && <div className="mt-1 flex items-center justify-end gap-1 text-xs text-foreground"><Badge variant="outline" className="text-xs">RMD</Badge><span>{formatCurrency(getCashRMD({ ...projection, qcdAmount: projection.qcdAmount ?? 0 }))}</span><InfoTooltip text={`Cash RMD included in this draw: ${formatCurrency(getCashRMD({ ...projection, qcdAmount: projection.qcdAmount ?? 0 }))}. Additional discretionary draw: ${formatCurrency(Math.max(0, projection.traditionalWithdrawal - getCashRMD({ ...projection, qcdAmount: projection.qcdAmount ?? 0 })))}. Total RMD requirement: ${formatCurrency(projection.rmd)}. Separate charitable IRA distribution: ${formatCurrency(projection.qcdAmount ?? 0)}.`} /></div>}
                         </td>
+                        <td className="p-4 align-middle text-right tabular-nums">{formatCurrency(projection.rothWithdrawal)}</td>
+                        <td className="p-4 align-middle text-right tabular-nums">{formatCurrency(projection.taxableWithdrawal)}</td>
+                        <td className="p-4 align-middle text-right font-semibold tabular-nums">{formatCurrency(projection.withdrawals)}</td>
                       </>
                     )}
                     {show("income") && (
